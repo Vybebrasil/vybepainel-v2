@@ -1019,6 +1019,12 @@
       <nav aria-label="Navegar pelas semanas"><button type="button" data-semana-passo="-1" aria-label="Semana anterior">‹</button><span>${esc(dataCompleta(g.inicio))} – ${esc(dataCompleta(g.fim))}</span><button type="button" data-semana-passo="1" aria-label="Próxima semana">›</button><button type="button" data-semana-passo="0">Atual</button></nav></div>`;
   }
   function selecionarSemana(b) {
+    if (b.dataset.semanaEscopo) {
+      if (!['agencia', 'fila'].includes(b.dataset.semanaEscopo)) return false;
+      escopoSemanaTarefas = b.dataset.semanaEscopo; semanaAgencia.dia = '';
+      try { localStorage.setItem('vybe.mundo.semanaTarefas', escopoSemanaTarefas); } catch { /* sem guardar: vale só nesta tela */ }
+      pintarHoje(); return true;
+    }
     if (b.dataset.semanaDia !== undefined) {
       const dia = String(b.dataset.semanaDia || '');
       semanaAgencia.dia = !dia || semanaAgencia.dia === dia ? '' : dia;
@@ -1111,7 +1117,8 @@
         const quem = String(d.responsavel || '').trim() || 'sem responsável', cli = typeof clientesDoItem === 'function' ? clientesDoItem(d)[0] : d.cliente;
         return `<button type="button" class="vv-g-linha" data-espiar-item="${i++}"><b>${esc(d.nome || d.titulo || 'Peça')}</b><small>${cli ? cliCor(cli) + ' · ' : ''}${esc(quem)}</small></button>`;
       }).join('')}</section>`).join('') || '<p class="vv-vazio">Nada aqui.</p>';
-      return { corpo, itens: lista.map((d) => ({ nome: d.nome, id: d.id })), clicar: (it) => chamar('openItemWorkspace', String(it.id)) };
+      // Solicitação abre no quadro dela (a prévia da semana junta conteúdos e solicitações).
+      return { corpo, itens: lista.map((d) => ({ nome: d.nome, id: d.id, dem: typeof isRequestItem === 'function' && isRequestItem(d) })), clicar: (it) => chamar(it.dem ? 'openDemandaWorkspace' : 'openItemWorkspace', String(it.id)) };
     };
     // Alerta da operação (Paulo, 08/11/2026: "fui no automático clicar pra saber o que era em cada um"): a lista por trás.
     prov.alerta = (resto) => {
@@ -1125,8 +1132,10 @@
       return null;
     };
     prov.semdia = (resto) => {
-      const [dia, campo = 'veiculacao_iso'] = String(resto).split('|');
-      const itens = (typeof DADOS_ALL !== 'undefined' && Array.isArray(DADOS_ALL) ? DADOS_ALL : []).filter((d) => String(d[campo] || '').slice(0, 10) === dia);
+      const [dia, campo = 'veiculacao_iso', escopo = ''] = String(resto).split('|');
+      // Da prévia da semana: exatamente as peças que a coluna do dia contou (agência ou fila).
+      const daPrevia = escopo ? pecasDaPreviaD3.get(escopo)?.get(dia) : null;
+      const itens = daPrevia || (typeof DADOS_ALL !== 'undefined' && Array.isArray(DADOS_ALL) ? DADOS_ALL : []).filter((d) => String(d[campo] || '').slice(0, 10) === dia);
       const blocos = pecasEmBlocos(itens);
       const nomeDia = new Date(dia + 'T12:00:00Z').toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: '2-digit', timeZone: 'UTC' });
       return { titulo: 'peças em ' + nomeDia, n: itens.length, ...blocos, rodape: campo === 'prazo_iso' ? 'pelo prazo' : 'pela veiculação' };
@@ -1403,40 +1412,68 @@
     : { prontas: Number(S.previstasEntregues ?? S.entregues) || 0, finalizadas: Number(S.previstasEntregues ?? S.entregues) || 0, paraAgendar: 0, agendadas: 0, previstas: Number(S.previstas) || 0 });
   const resumoProntasD3 = (c, o) => (typeof utilDono().resumoProntas === 'function' ? utilDono().resumoProntas(c, o) : `${n0(c.finalizadas)} ${Number(c.finalizadas) === 1 ? 'finalizada' : 'finalizadas'}`);
   const faseProntaD3 = (d) => (typeof utilDono().faseDaPronta === 'function' ? utilDono().faseDaPronta(d) : situacaoDaPeca(d) === 'concluida' ? 'finalizado' : '');
-  // Semana em linha: prontas (acumuladas até hoje) contra previstas (tracejada). Tocar num dia escolhe o dia: o pé passa a
-  // contar só ele (Prontas, Em produção, Atrasadas) e "lista" abre as peças daquele dia; tocar de novo volta à semana.
-  function semanaD3Html(G, { titulo = 'Semana', abrir = true, selecionavel = true, pecas = null } = {}) {
-    const dias = (G?.porDia || []).map((x) => x.dia); if (!dias.length) return cartaoD3({ titulo, corpo: '<p class="d3h-vazio">Sem a semana agora</p>', cls: 'd3h-semana' });
-    const hoje = hojeIso(), campo = G?.campo === 'prazo' ? 'prazo_iso' : 'veiculacao_iso';
-    // Com o dado novo (prontas e finalizadas de cada dia, 19/11/2026): a linha cheia é das previstas com a produção pronta
-    // (Finalizado, Para agendar, Agendado) e a fina, das já em Finalizado, as duas pela data da peça até domingo. Sem ele
-    // (a semana da pessoa), as entregues no dia, até hoje.
-    const comProntas = G.porDia.some((x) => x.prontas != null);
-    let ap = 0, ae = 0, af = 0; const prev = G.porDia.map((x) => (ap += x.previstas || 0)), feitas = [], fins = [];
-    for (const x of G.porDia) { if (!comProntas && x.dia > hoje) break; ae += (comProntas ? x.prontas : x.entregues) || 0; feitas.push(ae); af += x.finalizadas || 0; fins.push(af); }
-    const W = 400, H = 92, P = 6, max = Math.max(1, ap, ae), X = (i) => P + (i * (W - 2 * P)) / 6, Y = (v) => H - P - (v / max) * (H - 2 * P);
-    const pts = (l) => l.map((v, i) => `${X(i).toFixed(1)},${Y(v).toFixed(1)}`).join(' ');
-    let comp = 0; for (let i = 1; i < feitas.length; i++) comp += Math.hypot(X(i) - X(i - 1), Y(feitas[i]) - Y(feitas[i - 1]));
-    const ult = feitas.length - 1;
-    const fimSem = comProntas ? { finalizadas: af, paraAgendar: G.porDia.reduce((t, x) => t + (x.paraAgendar || 0), 0), agendadas: G.porDia.reduce((t, x) => t + (x.agendadas || 0), 0) } : null;
-    const svg = `<svg class="d3-graf d3h-sem-graf" viewBox="0 0 ${W} ${H}" style="--d3-comp:${Math.ceil(comp) || 1}" role="img" aria-label="Prontas ${ae} de ${ap} previstas na semana${fimSem ? `: ${esc(resumoProntasD3(fimSem))}` : ''}"><polyline class="meta" points="${pts(prev)}"/>${feitas.length > 1 ? `<polyline${comProntas ? ' class="vsg-pronta"' : ''} points="${pts(feitas)}"/>` : ''}${comProntas && fins.length > 1 ? `<polyline class="vsg-fin" points="${pts(fins)}"/>` : ''}${ult >= 0 ? `<circle cx="${X(ult).toFixed(1)}" cy="${Y(feitas[ult]).toFixed(1)}" r="4.5"/>` : ''}</svg>`;
+  // Prévia da semana, dia a dia (Paulo, 24/11/2026: "esse gráfico não faz jus... olha o tanto de demanda já pra agendar
+  // ou agendada nos dias aí na semana... o gráfico não devia mostrar essa prévia?"). No lugar da linha acumulada, uma
+  // coluna por dia com as peças daquela data: embaixo as prontas por fase (Finalizado cheio, Agendado no tom claro, Para
+  // agendar listrado), depois as em produção (vazadas) e, em cima, as atrasadas (a data já passou e a peça não está
+  // pronta). Em cima da coluna, "prontas / total"; hoje destacado. A conta é a da régua da semana da Produção
+  // (previaDaSemanaGestor → VybeDono.util.previaDaSemana), então "ter 24: 6/19" é o mesmo número nos dois lugares. A data
+  // é a do cliente (veiculação; solicitação pela conclusão), a mesma das colunas e do pé. Tocar num dia escolhe o dia: o
+  // pé passa a contar só ele e "lista" abre as peças daquele dia; tocar de novo volta à semana.
+  const diasDaSemanaD3 = () => { const ini = utilDono().inicioDaSemana?.(semanaAgencia.referencia || hojeIso()) || hojeIso(); return Array.from({ length: 7 }, (_, i) => somar(ini, i)); };
+  const dataPreviaD3 = (d, campo) => (typeof dataDaPrevia === 'function' ? dataDaPrevia(d, campo) : String((campo === 'prazo' ? d.prazo_iso : d.veiculacao_iso) || '').slice(0, 10));
+  // As peças de cada dia do último desenho, por escopo (agencia | fila): a "lista" do dia abre exatamente o que a coluna contou.
+  const pecasDaPreviaD3 = new Map();
+  function previaD3({ escopo = 'agencia', itens = null, campo = semanaAgencia.campo === 'prazo' ? 'prazo' : 'veiculacao', dias = diasDaSemanaD3() } = {}) {
+    const hoje = hojeIso(); let P = null;
+    try { if (typeof previaDaSemanaGestor === 'function') P = previaDaSemanaGestor(dias, { itens, campo, carteira: false, hoje }); } catch (e) { console.error('[mundo] prévia da semana', e); }
+    if (!P && typeof utilDono().previaDaSemana === 'function') {
+      const todos = itens || (typeof DADOS_ALL !== 'undefined' && Array.isArray(DADOS_ALL) ? DADOS_ALL : []);
+      P = utilDono().previaDaSemana({ itens: todos, dias, dataDe: (d) => dataPreviaD3(d, campo), hoje });
+    }
+    return P ? { ...P, campo, escopo } : null;
+  }
+  // Minhas tarefas (Paulo, 24/11/2026): o dono vê a semana da agência por padrão, com "Agência | Minha fila" (fica guardado
+  // neste navegador); quem não é dono vê a própria fila no mesmo desenho.
+  let escopoSemanaTarefas = '';
+  try { escopoSemanaTarefas = localStorage.getItem('vybe.mundo.semanaTarefas') || ''; } catch { escopoSemanaTarefas = ''; }
+  const SEG_PREVIA_D3 = [['finalizadas', 'fin', 'finalizada'], ['agendadas', 'agd', 'agendada'], ['paraAgendar', 'pag', 'para agendar'], ['emProducao', 'pro', 'em produção'], ['atrasadas', 'atr', 'atrasada']];
+  function semanaD3Html(G, { titulo = 'Semana', abrir = true, selecionavel = true, alternar = '' } = {}) {
+    const porDia = G?.porDia || [], dias = porDia.map((x) => x.dia);
+    if (!dias.length) return cartaoD3({ titulo, aux: alternar, corpo: '<p class="d3h-vazio">Sem a semana agora</p>', cls: 'd3h-semana', rotulo: 'Semana' });
+    const hoje = hojeIso(), campo = G.campo === 'prazo' ? 'prazo' : 'veiculacao', escopo = G.escopo === 'fila' ? 'fila' : 'agencia';
+    pecasDaPreviaD3.set(escopo, new Map(porDia.map((x) => [x.dia, x.itens || []])));
+    const max = Math.max(1, ...porDia.map((x) => x.total || 0));
     const sel = selecionavel && dias.includes(semanaAgencia.dia) ? semanaAgencia.dia : '';
-    const nomeDia = (x) => DIAS_D3[new Date(x.dia + 'T12:00:00Z').getUTCDay()].slice(0, 3), dica = (x) => esc(comProntas ? `${dmD3(x.dia)}: ${x.prontas || 0} de ${x.previstas || 0} prontas · ${resumoProntasD3(x)}` : `${dmD3(x.dia)}: ${x.previstas || 0} previstas, ${x.entregues || 0} prontas`);
-    const rotDias = `<div class="d3h-sem-dias"${selecionavel ? ' role="group" aria-label="Escolher um dia"' : ''}>${G.porDia.map((x) => selecionavel
-      ? `<button type="button" data-semana-dia="${x.dia}" aria-pressed="${x.dia === sel}" class="${x.dia === hoje ? 'hoje' : ''}" title="${dica(x)}">${nomeDia(x)}</button>`
-      : `<span class="${x.dia === hoje ? 'hoje' : ''}" title="${dica(x)}">${nomeDia(x)}</span>`).join('')}</div>`;
-    const todos = pecas || (typeof DADOS_ALL !== 'undefined' && Array.isArray(DADOS_ALL) ? DADOS_ALL : []);
-    const doDia = todos.filter((d) => { const x = String(d[campo] || '').slice(0, 10); return sel ? x === sel : dias.includes(x); });
-    // Prontas = a produção pronta (Finalizado, Para agendar, Agendado; o detalhe no title). Atrasadas = as atrasadas que a
-    // produção ainda não terminou (o "furando a data"); as prontas que passaram da data sem Finalizado contam em Prontas aqui
-    // e seguem nas Atrasadas e no alerta "a conferir se saíram" do resto do sistema.
-    const conta = { Prontas: 0, 'Em produção': 0, Atrasadas: 0 }, fases = { finalizadas: 0, paraAgendar: 0, agendadas: 0 }, CAMPO = { finalizado: 'finalizadas', paraAgendar: 'paraAgendar', agendado: 'agendadas' };
-    for (const d of doDia) { const f = faseProntaD3(d); if (f) { conta.Prontas++; fases[CAMPO[f]]++; continue; } const s = situacaoDaPeca(d); conta[s === 'atrasada' ? 'Atrasadas' : 'Em produção']++; }
-    const pe = `<span class="d3h-sem-qual">${sel ? `${DIAS_D3[new Date(sel + 'T12:00:00Z').getUTCDay()]} ${dmD3(sel)}` : 'Semana toda'} · ${n0(doDia.length)}</span>`
-      + `<span class="d3h-pill${conta.Prontas ? ' g' : ''}" title="${esc(resumoProntasD3(fases))}"><i></i>Prontas ${n0(conta.Prontas)}</span><span class="d3h-pill"><i></i>Em produção ${n0(conta['Em produção'])}</span><span class="d3h-pill${conta.Atrasadas ? ' r' : ''}"><i></i>Atrasadas ${n0(conta.Atrasadas)}</span>`
-      + (sel ? `<button type="button" class="d3h-link" data-espiar="semdia:${sel}|${campo}">lista</button><button type="button" class="d3h-link" data-semana-dia="">semana toda</button>` : '')
+    const nomeLongo = (iso) => DIAS_D3[new Date(iso + 'T12:00:00Z').getUTCDay()];
+    const resumo = (x) => [`${n0(x.prontas)} de ${n0(x.total)} ${x.total === 1 ? 'pronta' : 'prontas'}${x.prontas ? ` (${resumoProntasD3(x)})` : ''}`,
+      x.emProducao ? `${n0(x.emProducao)} em produção` : '', x.atrasadas ? plural(x.atrasadas, 'atrasada', 'atrasadas') : ''].filter(Boolean).join(' · ');
+    // A coluna empilha de baixo para cima (column-reverse) e o vão de cima completa até o dia mais cheio: a altura de cada
+    // pedaço é proporcional às peças, sem medir nada na tela.
+    const coluna = (x) => `<span class="d3h-prv-col">${SEG_PREVIA_D3.filter(([k]) => x[k]).map(([k, c]) => `<i class="${c}" style="--n:${x[k]}"></i>`).join('')}${max > x.total ? `<i class="vz" style="--n:${max - x.total}"></i>` : ''}</span>`;
+    const colunas = porDia.map((x) => {
+      const cls = `d3h-prv-d${x.dia === hoje ? ' hoje' : x.dia < hoje ? ' passou' : ''}`, dica = esc(`${nomeLongo(x.dia)} ${dmD3(x.dia)}${x.dia === hoje ? ' (hoje)' : ''}: ${x.total ? resumo(x) : 'nada com esta data'}`);
+      const dentro = `<span class="d3h-prv-n"><b>${n0(x.prontas)}</b><small>/${n0(x.total)}</small></span>${coluna(x)}<span class="d3h-prv-dia">${nomeLongo(x.dia).slice(0, 3)} ${Number(x.dia.slice(8, 10))}</span>`;
+      const dados = `data-previa-dia="${x.dia}" data-n="${x.prontas}/${x.total}" title="${dica}"`;
+      return selecionavel ? `<button type="button" class="${cls}" data-semana-dia="${x.dia}" aria-pressed="${x.dia === sel}" ${dados} aria-label="${dica}">${dentro}</button>` : `<span class="${cls}" ${dados}>${dentro}</span>`;
+    }).join('');
+    const corpo = `<div class="d3h-prv" ${selecionavel ? 'role="group" aria-label="Escolher um dia"' : `role="img" aria-label="${esc(`Semana: ${resumo(G)}`)}"`}>${colunas}</div>`;
+    // O pé conta o mesmo que as colunas: a semana toda ou o dia escolhido.
+    const alvo = sel ? porDia.filter((x) => x.dia === sel) : porDia, T = {};
+    for (const x of alvo) for (const k of ['total', 'prontas', 'finalizadas', 'paraAgendar', 'agendadas', 'emProducao', 'atrasadas']) T[k] = (T[k] || 0) + (x[k] || 0);
+    const fases = T.prontas ? resumoProntasD3(T, { curto: true }) : '';
+    const deQual = campo === 'prazo' ? 'do prazo' : 'do cliente';
+    const pe = `<span class="d3h-sem-qual${sel ? '' : ' d3h-prv-semtoda'}">${sel ? `${nomeLongo(sel)} ${dmD3(sel)}` : 'Semana toda'} · ${n0(T.total)}</span>`
+      + `<span class="d3h-pill${T.prontas ? ' g' : ''}" title="${esc(`Prontas: ${T.prontas ? resumoProntasD3(T) : 'nenhuma'}. Pronta na semana é Finalizado, Para agendar ou Agendado.`)}"><i></i>Prontas ${n0(T.prontas)}${fases ? `<small class="d3h-prv-fases"> · ${esc(fases)}</small>` : ''}</span>`
+      + `<span class="d3h-pill" title="Com a data ${deQual} hoje ou adiante e ainda não prontas"><i></i>Em produção ${n0(T.emProducao)}</span>`
+      + `<span class="d3h-pill${T.atrasadas ? ' r' : ''}" title="A data ${deQual} já passou e a peça não está pronta"><i></i>Atrasadas ${n0(T.atrasadas)}</span>`
+      + (sel ? `<button type="button" class="d3h-link" data-espiar="semdia:${sel}|${campo === 'prazo' ? 'prazo_iso' : 'veiculacao_iso'}|${escopo}">lista</button><button type="button" class="d3h-link" data-semana-dia="">semana toda</button>` : '')
       + (abrir ? `<button type="button" class="d3h-link" data-abrir-gestao="semana">abrir</button>` : '');
-    return cartaoD3({ titulo, aux: `${comProntas ? '<span class="d3h-leg vsg-leg-fin"><i></i>finalizadas</span>' : ''}<span class="d3h-leg${comProntas ? ' vsg-leg-pronta' : ''}"${comProntas ? ' title="Prontas na semana: Finalizado, Para agendar e Agendado"' : ''}><i></i>prontas</span><span class="d3h-leg m"><i></i>previstas</span>`, corpo: svg + rotDias, pe, cls: 'd3h-semana', rotulo: 'Semana da agência' });
+    // Em cartão estreito o pé perde o "Semana toda · N" (CSS) e o total vem aqui no cabeçalho.
+    const total = `<span class="d3h-prv-tot">${plural(G.total || 0, 'peça', 'peças')}</span>`;
+    const legenda = `<span class="d3h-prv-leg" aria-hidden="true">${SEG_PREVIA_D3.map(([, c, rot]) => `<span><i class="${c}"></i>${rot}</span>`).join('')}</span>`;
+    const quando = `<span class="d3h-prv-campo">pela ${campo === 'prazo' ? 'data do prazo' : 'veiculação'}</span>`;
+    return cartaoD3({ titulo, aux: `${alternar}${total}${quando}${legenda}`, corpo, pe, cls: 'd3h-semana d3h-prv-cartao', rotulo: escopo === 'fila' ? 'Semana da minha fila' : 'Semana da agência' });
   }
   function pintarAgencia(el, { data, saud, nome }) {
     const N = numerosDoDono();
@@ -1449,7 +1486,12 @@
     // hoje, as que já estão em Finalizado (não as entregues hoje de qualquer data); "Prontas da semana" = das previstas da
     // semana, as prontas; "furando a data" = o alerta (furos da produção), e as que esperam postar vêm à parte.
     const H = N.hoje || {}, S = N.semana || {}, C = N.cobertura || {}, prevHoje = H.previstas || 0, feitasHoje = H.previstasFeitas ?? H.feitas ?? 0;
-    const PSD3 = prontasSemD3(S), prontasSemana = PSD3.prontas, furosProd = H.furosProducao ?? H.furos ?? 0, semPostar = H.semPostar || 0;
+    // Prontas da semana (Paulo, 24/11/2026: o 34/95 do Hoje não batia com a régua da Produção): o total e as prontas vêm da
+    // prévia única da semana (a mesma do cartão Semana e da régua: conteúdos e solicitações, pela data do cliente); sem ela,
+    // o motor de números (só conteúdos de clientes ativos).
+    const PV = previaD3({ campo: 'veiculacao', dias: Array.from({ length: 7 }, (_, i) => somar(utilDono().inicioDaSemana?.(hojeIso()) || hojeIso(), i)) });
+    const PSD3 = PV ? { prontas: PV.prontas, finalizadas: PV.finalizadas, paraAgendar: PV.paraAgendar, agendadas: PV.agendadas, previstas: PV.total } : prontasSemD3(S);
+    const prontasSemana = PSD3.prontas, previstasSemana = PSD3.previstas, furosProd = H.furosProducao ?? H.furos ?? 0, semPostar = H.semPostar || 0;
     const sem3 = C.sem3 || [], hoje = hojeIso();
     const emAtencao = (N.clientes || []).filter((c) => c.saude !== 'ok').length;
     // ===== Hoje · Agência pelo quadro D3-Agencia (Direção 3) =====
@@ -1499,7 +1541,7 @@
     const numeros = numerosD3([
       numD3({ rotulo: 'Atrasadas', valor: n0(H.atrasadas), tom: H.atrasadas ? 'r' : '', sub: H.atrasadas ? `${n0(furosProd)} furando a data` : 'nada atrasado', serie: serieAtrasadas, attrs: 'data-espiar="atrasadas"' }),
       numD3({ rotulo: 'Vão ao ar hoje', valor: n0(feitasHoje), de: prevHoje ? ` / ${n0(prevHoje)}` : '', barras: Array.from({ length: segHj }, (_, i) => ({ h: 70, on: i < Math.round(feitasHoje / prevHoje * segHj) })), sub: prevHoje ? 'prontas até agora' : 'nada previsto', attrs: 'data-espiar="faltam"' }),
-      numD3({ rotulo: 'Prontas da semana', valor: n0(prontasSemana), de: S.previstas ? ` / ${n0(S.previstas)}` : '', barra: S.previstas ? prontasSemana / S.previstas * 100 : null, sub: S.previstas ? `${n0(PSD3.finalizadas)} ${PSD3.finalizadas === 1 ? 'finalizada' : 'finalizadas'}` : 'nada previsto', attrs: `data-abrir-gestao="semana" title="${esc(`${S.previstas ? Math.round(prontasSemana / S.previstas * 100) + '% da semana: ' : ''}${resumoProntasD3(PSD3)}. Pronta na semana é Finalizado, Para agendar ou Agendado.`)}"` }),
+      numD3({ rotulo: 'Prontas da semana', valor: n0(prontasSemana), de: previstasSemana ? ` / ${n0(previstasSemana)}` : '', barra: previstasSemana ? prontasSemana / previstasSemana * 100 : null, sub: previstasSemana ? `${n0(PSD3.finalizadas)} ${PSD3.finalizadas === 1 ? 'finalizada' : 'finalizadas'}` : 'nada previsto', attrs: `data-abrir-gestao="semana" title="${esc(`${previstasSemana ? Math.round(prontasSemana / previstasSemana * 100) + '% da semana: ' : ''}${resumoProntasD3(PSD3)}. Pronta na semana é Finalizado, Para agendar ou Agendado. ${PV ? 'Conteúdos e solicitações, pela data do cliente (a mesma conta da régua da Produção).' : ''}`)}"` }),
       numD3({ rotulo: 'Para você decidir', valor: n0(fila.length), barras: fila.slice(0, 6).map((i) => ({ h: 30 + 70 * (i.horas ?? 0) / Math.max(1, antigaH), on: true })), sub: fila.length && antigaH >= 1 ? `a mais antiga há ${antigaH < 48 ? antigaH + ' h' : Math.round(antigaH / 24) + ' d'}` : fila.length ? 'chegou agora' : 'nada esperando', attrs: 'data-hoje-acao="decidir-lista"' }),
     ]);
     const online = presencaDoEscritorio();
@@ -1515,7 +1557,7 @@
     const html = `<div class="d3h d3h-agc d3q"><div class="d3q-main">${topoD3({ sub: `${diaD3()}${online.length ? ` · ${plural(online.length, 'pessoa online', 'pessoas online')}` : ''}`, dir: seg })}
       ${numeros}
       <div class="d3q-meio">${pede}<div class="d3q-acao">${laranja}</div></div>
-      <div class="d3q-pe">${lendoFila || fila.length ? decidirHtml() : semanaD3Html(N.graficoSemana)}${olhoAg}</div></div>
+      <div class="d3q-pe">${lendoFila || fila.length ? decidirHtml() : semanaD3Html(previaD3())}${olhoAg}</div></div>
       <aside class="d3h-lado d3q-lado" aria-label="Consulta">${ladoD3({ mini: miniAg })}${agendaD3Html()}${whatsappD3Html('agencia')}${agentesD3Html()}</aside></div>`;
     if (el.vvHtml !== html) { el.innerHTML = html; el.vvHtml = html; }
   }
@@ -2272,10 +2314,14 @@
     const diaDeRot = `Dia de <b>${esc(fila.users.map((u) => (String(u.id) === euId && varios ? 'você' : nomeCurto(u))).join(', '))}</b>`;
     const diaDe = filtroPessoas ? `<details class="v2t-dia d3h-dia"><summary class="v2t-chip"><i aria-hidden="true">${esc(iniciais(fila.users[0]))}</i>${diaDeRot}<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></summary><div class="v2t-dia-pop">${filtroPessoas}</div></details>`
       : !dono && !euId ? `<button type="button" class="v2t-chip d3h-dia" data-pessoas-atalho="trocar"><i aria-hidden="true">${esc(iniciais(fila.user))}</i>${diaDeRot}</button>` : '';
-    // A semana da pessoa em linha: feitas (acumuladas até hoje) contra o previsto (abertas e feitas pela data).
+    // A semana (Paulo, 24/11/2026): a prévia dia a dia pela data do cliente. O dono vê a da agência por padrão, com
+    // "Agência | Minha fila" (guardado neste navegador); quem não é dono vê a própria fila (abertas e feitas) no mesmo desenho.
     const semDias = Array.from({ length: 7 }, (_, i) => somar(iniSem, i));
-    const semanaPessoa = semanaD3Html({ campo: 'veiculacao', porDia: semDias.map((dia) => ({ dia, previstas: abertas.filter((x) => dataDe(x) === dia).length + feitas.filter((x) => x.ref === dia).length, entregues: feitas.filter((x) => x.ref === dia).length })) },
-      { pecas: [...abertas, ...feitas].map((x) => x.d), selecionavel: false, abrir: false });
+    const escolheSemana = dono && !verComo, escopoSem = escolheSemana && escopoSemanaTarefas !== 'fila' ? 'agencia' : 'fila';
+    const alternarSem = escolheSemana ? `<span class="d3h-prv-alt" role="radiogroup" aria-label="Qual semana ver">${[['agencia', 'Agência'], ['fila', varios ? 'Estas filas' : 'Minha fila']]
+      .map(([k, rot]) => `<button type="button" role="radio" aria-checked="${k === escopoSem}" data-semana-escopo="${k}">${rot}</button>`).join('')}</span>` : '';
+    const semanaPessoa = semanaD3Html(previaD3({ escopo: escopoSem, campo: 'veiculacao', dias: semDias, itens: escopoSem === 'fila' ? [...abertas, ...feitas].map((x) => x.d) : null }),
+      { abrir: escopoSem === 'agencia', alternar: alternarSem });
     // ===== Minhas tarefas pelo menu lateral (prancha V2-M-Minhas-Tarefas, aprovada pelo Paulo em 16/11/2026) =====
     // O módulo, não a aba do Hoje: só a fila, na ordem do guia (a data do cliente manda), em uma folha. Cada linha traz o
     // grupo (Agora, Atrasou, Hoje, Semana), o cliente e a peça, a trilha de etapas (do briefing até publicar), o status

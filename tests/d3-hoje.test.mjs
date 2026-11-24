@@ -21,13 +21,13 @@ test('peças comuns: topo "Hoje" com a data, faixa laranja, quatro números, car
 // baralho em leque (sem nada para decidir, a semana) e os clientes de olho; a consulta fica direto no vidro.
 test('Agência: laranja com o alerta mais grave, Pede ação em Agora/Depois, De olho, baralho ou semana, agenda, WhatsApp e agentes', () => {
   const ag = trecho('  function pintarAgencia(el', '  // ---------- Módulo Gestão');
-  naOrdem(ag, ["laranjaD3({ rotulo: 'VYBES · o mais grave agora'", 'topoD3({ sub: `${diaD3()}', '${numeros}', '<div class="d3q-meio">${pede}<div class="d3q-acao">${laranja}</div></div>', 'decidirHtml()', 'semanaD3Html(N.graficoSemana)', 'agendaD3Html()', "whatsappD3Html('agencia')", 'agentesD3Html()']);
+  naOrdem(ag, ["laranjaD3({ rotulo: 'VYBES · o mais grave agora'", 'topoD3({ sub: `${diaD3()}', '${numeros}', '<div class="d3q-meio">${pede}<div class="d3q-acao">${laranja}</div></div>', 'decidirHtml()', 'semanaD3Html(previaD3())', 'agendaD3Html()', "whatsappD3Html('agencia')", 'agentesD3Html()']);
   for (const r of ["rotulo: 'Atrasadas'", "rotulo: 'Vão ao ar hoje'", "rotulo: 'Prontas da semana'", "rotulo: 'Para você decidir'"]) assert.ok(ag.includes(r), r);
   assert.match(ag, /data-espiar="atencao"/); assert.match(ag, /data-espiar="sem3"/); assert.match(ag, /data-hoje-acao="decidir-lista"/);
   const sem = trecho('  function semanaD3Html(', '  function pintarAgencia(');
   assert.match(sem, /data-semana-dia="\$\{x\.dia\}" aria-pressed=/, 'tocar num dia escolhe o dia');
   assert.match(sem, /data-espiar="semdia:/, 'a lista do dia escolhido');
-  assert.match(sem, /<polyline class="meta"/, 'previstas tracejadas, prontas em linha');
+  assert.match(sem, /class="d3h-prv-col"/, 'prévia dia a dia em colunas (24/11/2026), não mais a linha acumulada');
 });
 
 test('Para você decidir: baralho com Aprovar, Pedir alteração e as setas, status com ponto e grupo em etiqueta; passar não repinta', () => {
