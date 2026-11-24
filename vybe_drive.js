@@ -454,6 +454,19 @@ export async function listarNoDrive(pastaId) {
   return d.files || [];
 }
 
+// A prévia do link de entrega (server/previa-entrega.js; Paulo, 24/11/2026: "se o video nao tiver capa não deveria
+// aparecer uma tumb do primeiro frame?"): o que a pasta tem de imagem, vídeo e subpasta, e se o Drive já gerou a
+// miniatura (de um vídeo, é um quadro dele). Só leitura.
+export async function listarMidiasNoDrive(pastaId) {
+  const q = encodeURIComponent(`'${String(pastaId).replace(/[\\']/g, '\\$&')}' in parents and trashed = false and (mimeType contains 'video/' or mimeType contains 'image/' or mimeType = 'application/vnd.google-apps.folder')`);
+  const d = await drive(`files?q=${q}&fields=files(id,name,mimeType,createdTime,hasThumbnail)&orderBy=name&pageSize=200&supportsAllDrives=true&includeItemsFromAllDrives=true&corpora=allDrives`);
+  return d.files || [];
+}
+// Um arquivo só (link de entrega que aponta para o arquivo, não para a pasta).
+export async function arquivoNoDrive(fileId) {
+  return drive(`files/${encodeURIComponent(fileId)}?fields=id,name,mimeType,createdTime,hasThumbnail&supportsAllDrives=true`);
+}
+
 export async function roteirosNoDrive({ desde = '' } = {}) {
   const filtro = ["trashed = false", "mimeType = 'application/vnd.google-apps.document'", "name contains 'oteiro'"];
   if (/^\d{4}-\d{2}-\d{2}$/.test(desde)) filtro.push(`modifiedTime > '${desde}T00:00:00'`);

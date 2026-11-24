@@ -565,7 +565,7 @@
     if (a <= LEQUE_LADO && thumb === undefined) buscarThumb(ref);
     return `<button type="button" class="d3a-leque-c${d === 0 ? ' vez' : d === 1 ? ' prox' : ''}" data-vc-leque="${k}" style="--lp:${d};--alp:${a}"${a > LEQUE_LADO ? ' hidden' : ''} tabindex="-1" title="${esc(nomeDaPeca(i))}: abrir em tela cheia" aria-label="Ver ${esc(nomeDaPeca(i))}">`
       + `<span class="d3m-a-ap-ig"><i aria-hidden="true">${ig.av}</i><b>${esc(ig.usuario || ig.nome)}</b>${i.formato ? `<span class="d3m-a-ap-selo">${esc(i.formato)}</span>` : ''}</span>`
-      + `<span class="d3m-a-ap-arte${thumb?.thumb ? '' : ' vazia'}">${arteHtml(ref, thumb, '', a <= LEQUE_LADO)}</span>${thumb?.thumb ? '' : `<span class="d3m-a-ap-nome"><b>${esc(tituloV2(i))}</b><small>${esc(primeiroCliente(i))}</small></span>`}</button>`;
+      + `<span class="d3m-a-ap-arte${thumb?.thumb || thumb?.video ? '' : ' vazia'}">${arteHtml(ref, thumb, '', a <= LEQUE_LADO)}</span>${thumb?.thumb || thumb?.video ? '' : `<span class="d3m-a-ap-nome"><b>${esc(tituloV2(i))}</b><small>${esc(primeiroCliente(i))}</small></span>`}</button>`;
   }
   // O que a peça da vez diz, à direita: o laranja com a decisão, a legenda, quem fez e os detalhes.
   function cartaV2(i, k, n) {
@@ -797,6 +797,10 @@
   // porque o Drive ainda não liberou a prévia), o detalhe da peça (/api/painel?area=peca), a mesma leitura da gaveta:
   // ele libera a prévia no Drive (tornarPublico) para quem já pode abrir a peça e traz todos os arquivos.
   // O resultado: { tipo: imagem | video | arquivo, thumb, abrir, nome, n } (n = imagens do carrossel) ou null sem arquivo.
+  // Sem arquivo anexado, o LINK DE ENTREGA (Paulo, 24/11/2026: "ao inves da previa preta, se o video nao tiver capa não
+  // deveria aparecer uma tumb do primeiro frame?"): /api/painel?area=previa_entrega escolhe o arquivo da pasta (ou o do
+  // link) do mesmo jeito e devolve a miniatura do Drive; vem com fonte: 'entrega'. null só quando não há nem arquivo nem link.
+  // video: endereço que o navegador carrega, para o primeiro quadro sair no próprio <video> quando não há miniatura.
   const EXT_VIDEO = /^(mp4|mov|m4v|webm|avi|mkv|wmv|mpe?g|3gp)$/i, EXT_IMAGEM = /^(png|jpe?g|gif|webp|heic|heif|avif|bmp|svg|tiff?)$/i;
   function tipoDoArquivo(nome, ext) {
     const e = String(ext || '').replace(/^\./, '') || (String(nome || '').includes('.') ? String(nome).split('.').pop() : '');
@@ -812,8 +816,32 @@
     const imagens = lista.filter((x) => x.tipo === 'imagem').sort(pelaOrdem), video = lista.find((x) => x.tipo === 'video');
     const escolha = imagens.length > 1 || (!video && imagens.length) ? imagens[0] : video || lista.slice().sort(pelaOrdem)[0];
     const a = escolha.a;
+    // O vídeo anexado sai pelo download autenticado (area=baixar, com Range); só até o teto dele (60 MB), acima disso
+    // o servidor manda para a página do Drive, que um <video> não toca.
+    const bytes = Number(a.file_size || 0), quadro = escolha.tipo === 'video' && a.local_id && bytes > 0 && bytes <= 60 * 1024 * 1024 ? `/api/painel?area=baixar&arquivo=${encodeURIComponent(a.local_id)}` : null;
     return { tipo: escolha.tipo, thumb: a.url_thumbnail || (escolha.tipo === 'imagem' ? a.public_url || '' : '') || null,
-      abrir: a.link_drive || a.public_url || a.url || null, nome: String(a.name || ''), n: imagens.length > 1 ? imagens.length : 0, detalhe: true };
+      abrir: a.link_drive || a.public_url || a.url || null, nome: String(a.name || ''), n: imagens.length > 1 ? imagens.length : 0, detalhe: true, video: quadro };
+  }
+  // O link de entrega registrado na peça (a nota "[Vybe OS · Link de entrega]", "Link final" ou "Entrega final"), o mesmo
+  // que a gaveta lê. O material bruto é outra nota e não entra.
+  const MARCA_ENTREGA = /Link de entrega|Link final|Entrega final/i;
+  function linkDeEntregaDo(det) {
+    for (const u of Array.isArray(det?.updates) ? det.updates : []) {
+      const texto = String(u?.body || '').replace(/<[^>]*>/g, ' ').replace(/&amp;/gi, '&');
+      if (!MARCA_ENTREGA.test(texto)) continue;
+      const url = (texto.match(/https?:\/\/[^\s<>"']+/i)?.[0] || '').replace(/[),.;]+$/, '');
+      if (url) return url;
+    }
+    return '';
+  }
+  async function previaDaEntrega(ref, det) {
+    const link = linkDeEntregaDo(det);
+    if (!link) return null;
+    // Sem ler o Drive (sem acesso, fora do ar), a prévia ainda diz que há link de entrega, com ▶ quando a peça é vídeo.
+    const video = /reels|v[ií]deo|audiovisual|motion/i.test(String(det?.ficha?.formato || det?.name || ''));
+    const soLink = { tipo: video ? 'video' : 'link', thumb: null, abrir: link, nome: video ? 'Vídeo · link de entrega' : 'Link de entrega', n: 0, fonte: 'entrega', detalhe: true };
+    try { const d = await lerJson(`/api/painel?area=previa_entrega&item=${encodeURIComponent(ref)}`); return d.previa ? { ...d.previa, detalhe: true } : soLink; }
+    catch { return soLink; }
   }
   const previas = st.thumbs, buscandoPrevia = new Map(), avisosPrevia = new Set();
   async function lerPrevia(ref) {
@@ -826,8 +854,9 @@
     return lerDetalhe(ref, curta);
   }
   async function lerDetalhe(ref, reserva = null) {
-    try { return previaDoDetalhe(await lerJson(`/api/painel?area=peca&item=${encodeURIComponent(ref)}`)) || reserva; }
-    catch { return reserva; }
+    let det;
+    try { det = await lerJson(`/api/painel?area=peca&item=${encodeURIComponent(ref)}`); } catch { return reserva; }
+    return previaDoDetalhe(det) || reserva || previaDaEntrega(ref, det);
   }
   function avisarPrevia(ref) {
     if (st.aberto && (st.peca === ref || st.aba === 'aprovar')) pintar();
@@ -845,18 +874,25 @@
   const buscarThumb = (id) => buscarPrevia(id);
   // O valor de agora (undefined enquanto busca) e a busca, se ainda não houve.
   function previaDe(ref) { const r = String(ref || ''); if (previas[r] === undefined) buscarPrevia(r); return previas[r]; }
-  // A arte do cartão: a imagem com ▶ (vídeo) ou "1/N" (carrossel); sem miniatura, um quadro com ▶ e o nome do arquivo.
+  // A arte do cartão: a imagem com ▶ (vídeo) ou "1/N" (carrossel). Vídeo sem miniatura: o primeiro quadro no próprio
+  // <video> (só os metadados, mudo, sem tocar) quando há um endereço que o navegador carrega; senão um quadro com ▶ e o
+  // nome do arquivo. Nunca a caixa vazia. Vale também longe da vez: o baralho só troca a posição das cartas ao passar, não
+  // as redesenha, e é raro (vídeo sem miniatura do Drive), então o custo é o de poucos metadados.
   function arteHtml(ref, p, alt, perto = true) {
     if (p === undefined) return perto ? '<span class="vc-previa-msg">Buscando a prévia…</span>' : '';
     if (!p) return '<span class="vc-previa-msg">Sem arquivo anexado</span>';
     const selo = p.tipo === 'video' ? '<i class="vc-previa-selo vc-previa-play" aria-label="Vídeo">▶</i>' : p.n > 1 ? `<i class="vc-previa-selo vc-previa-n" aria-label="Carrossel com ${p.n} imagens">1/${p.n}</i>` : '';
     if (p.thumb) return `<img src="${esc(p.thumb)}" alt="${esc(alt)}" width="480" height="600" loading="lazy" data-vc-previa="${esc(ref)}">${selo}`;
+    if (p.tipo === 'video' && p.video) return `<video class="vc-previa-video" src="${esc(String(p.video).split('#')[0])}#t=0.1" preload="metadata" muted playsinline disablepictureinpicture tabindex="-1" aria-label="${esc(alt || p.nome || 'Vídeo')}" data-vc-previa-video="${esc(ref)}"></video>${selo}`;
     return `<span class="vc-previa-quadro">${p.tipo === 'video' ? '<i class="vc-previa-play" aria-hidden="true">▶</i>' : ''}<b>${esc(p.nome || 'Arquivo anexado')}</b></span>${p.tipo === 'video' ? '' : selo}`;
   }
   // A miniatura não abriu (o Drive ainda não liberou a prévia do arquivo): o detalhe da peça libera e traz de novo;
   // se nem assim, fica o quadro com o nome do arquivo.
   document.addEventListener('error', (e) => {
-    const img = e.target; if (img?.tagName !== 'IMG' || !img.dataset?.vcPrevia) return;
+    const img = e.target;
+    // O <video> do primeiro quadro não carregou: fica o quadro com ▶ e o nome.
+    if (img?.tagName === 'VIDEO' && img.dataset?.vcPreviaVideo) { const r = img.dataset.vcPreviaVideo; if (previas[r]?.video) { previas[r] = { ...previas[r], video: null }; avisarPrevia(r); } return; }
+    if (img?.tagName !== 'IMG' || !img.dataset?.vcPrevia) return;
     const ref = img.dataset.vcPrevia, p = previas[ref];
     if (!p || buscandoPrevia.has(ref)) return;
     if (!p.detalhe) return buscarPrevia(ref, (r) => lerDetalhe(r, { ...p, thumb: null, detalhe: true }).then((x) => (x && x.thumb === p.thumb ? { ...x, thumb: null } : x)));
