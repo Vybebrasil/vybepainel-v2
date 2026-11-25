@@ -336,7 +336,14 @@
         const chao = Math.min(trilho.top, faixa?.height ? faixa.top : Infinity), teto = (hud.querySelector('.vv-barra-topo')?.getBoundingClientRect?.().bottom || 0) + 8;
         el.style.left = Math.max(8, Math.min(innerWidth - 300, r.left)) + 'px'; el.style.bottom = (innerHeight - chao + 8) + 'px'; el.style.maxHeight = Math.max(160, chao - 8 - teto) + 'px';
       }
-      else { el.style.left = (trilho.right + 8) + 'px'; el.style.top = Math.max(8, Math.min(innerHeight - el.offsetHeight - 8, r.top - 6)) + 'px'; }
+      else {
+        // Ao lado do menu, sem descer por cima da faixa das salas (varredura de responsividade, 24/11/2026: em 1280×720 a
+        // lista da Produção passava por trás do dock); se não couber, rola por dentro.
+        const faixa = document.querySelector('.vv-dock-salas-faixa:not([hidden])')?.getBoundingClientRect?.(), x0 = trilho.right + 8;
+        const chao = faixa?.height && faixa.top < innerHeight && faixa.left < x0 + (el.offsetWidth || 280) ? faixa.top : innerHeight;
+        el.style.left = x0 + 'px'; el.style.maxHeight = Math.max(160, chao - 16) + 'px';
+        el.style.top = Math.max(8, Math.min(chao - el.offsetHeight - 8, r.top - 6)) + 'px';
+      }
     }
     botao?.setAttribute?.('aria-expanded', 'true');
     el.addEventListener('click', (ev) => { const b = ev.target.closest('[data-submodulo]'); if (!b) return; fecharSetor(); if (b.matches('a[href]')) return; if (b.dataset.submodulo === '__visao') abrirVisaoSetor(id); else usarTrilho(b.dataset.submodulo); });
@@ -1868,15 +1875,18 @@
     const r = ancora.getBoundingClientRect(), w = Math.min(572, innerWidth - 16);
     espiaoEl.style.width = w + 'px';
     espiaoEl.style.left = Math.max(8, Math.min(innerWidth - w - 8, r.left)) + 'px';
-    // A altura vem do espaço: embaixo do número se couber a lista inteira; senão, em cima ou no maior dos dois lados.
-    const cabeEmbaixo = innerHeight - r.bottom - 14, cabeEmCima = r.top - 14;
+    // A altura vem do espaço: embaixo do número se couber a lista inteira; senão, em cima ou no maior dos dois lados. O chão
+    // é a faixa das salas quando ela está embaixo do painel (varredura de responsividade, 24/11/2026: a lista passava por cima do dock).
+    const faixa = document.querySelector('.vv-dock-salas-faixa:not([hidden])')?.getBoundingClientRect?.(), x0 = Math.max(8, Math.min(innerWidth - w - 8, r.left));
+    const chao = faixa?.height && faixa.top > r.bottom && faixa.top < innerHeight && faixa.left < x0 + w && faixa.right > x0 ? faixa.top : innerHeight;
+    const cabeEmbaixo = chao - r.bottom - 14, cabeEmCima = r.top - 14;
     const embaixo = cabeEmbaixo >= Math.min(700, innerHeight * 0.6) || cabeEmbaixo >= cabeEmCima;
     const alto = Math.max(220, Math.min(700, embaixo ? cabeEmbaixo : cabeEmCima, innerHeight - 16));
     espiaoEl.style.maxHeight = alto + 'px';
     espiaoEl.style.top = '0px';
     pintarEspiar();
     const h = espiaoEl.offsetHeight;
-    espiaoEl.style.top = (embaixo ? Math.min(r.bottom + 6, innerHeight - h - 8) : Math.max(8, r.top - h - 6)) + 'px';
+    espiaoEl.style.top = (embaixo ? Math.min(r.bottom + 6, chao - h - 8) : Math.max(8, r.top - h - 6)) + 'px';
   }
   // Fechar o mini painel fixo devolve o foco ao número que o abriu (quando o foco estava nele ou se perdeu).
   function fecharEspiar() {
