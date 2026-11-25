@@ -62,6 +62,64 @@ export async function pecaDoPlanejamento(sql, conteudoId) {
      AND estado = ANY(${['aprovado', 'cadastrado']}) ORDER BY mes DESC, id DESC LIMIT 12`;
  return pecaDoPlanejamentoEm(planos, id);
 }
+// A LEGENDA EDITADA NA CONFERÊNCIA (frente s-z, Paulo, 25/11/2026: "seria bom poder editar o que não está ok... a
+// legenda tá sem legenda cadastrada, poderia ter ali já a opção de editar legenda"). A conferência lê a legenda da peça
+// do planejamento aprovado (pecaDoPlanejamento); editarPlanejamento recusa planejamento aprovado ("reabra antes de
+// editar"), e reabrir derrubaria a aprovação do cliente inteira por uma legenda. Por isso esta gravação estreita: a MESMA
+// peça que pecaDoPlanejamento escolhe (mesma consulta e mesma ordem), só o campo legenda, a mesma permissão de editar o
+// planejamento (head do cliente e quem administra, podeEditarCliente), sobe a versão (uma edição aberta em outra tela
+// não apaga esta) e fica nos eventos do planejamento. O estado não muda.
+export const LEGENDA_MAX = 5000;
+async function planoDaPeca(tx, id, { travar = false } = {}) {
+ const planos = travar
+  ? await tx`SELECT id, cliente_id, mes, versao, conteudo FROM vybe_planejamentos
+    WHERE cliente_id IN (SELECT cliente_id FROM vybe_conteudo_clientes WHERE conteudo_id = ${Number(id)})
+      AND estado = ANY(${['aprovado', 'cadastrado']}) ORDER BY mes DESC, id DESC LIMIT 12 FOR UPDATE`
+  : await tx`SELECT id, cliente_id, mes, versao, conteudo FROM vybe_planejamentos
+    WHERE cliente_id IN (SELECT cliente_id FROM vybe_conteudo_clientes WHERE conteudo_id = ${Number(id)})
+      AND estado = ANY(${['aprovado', 'cadastrado']}) ORDER BY mes DESC, id DESC LIMIT 12`;
+ return (planos || []).find((p) => (Array.isArray(p?.conteudo?.pecas) ? p.conteudo.pecas : []).some((x) => String(x?.conteudo_id || '') === id)) || null;
+}
+// Se a pessoa pode editar a legenda que a conferência mostra (o botão só aparece com true). Sem planejamento: false.
+export async function podeEditarLegendaDaPeca(sql, pessoa, conteudoId) {
+ const id = String(conteudoId ?? '');
+ if (!pessoa?.id && !pessoa?.admin) return false;
+ if (!/^\d{1,18}$/.test(id) || !await planejamentosProntos(sql)) return false;
+ const p = await planoDaPeca(sql, id);
+ return p ? podeEditarCliente(sql, pessoa, p.cliente_id) : false;
+}
+// A tela conhece a peça pelo item (o id do Monday ou vybe:N), não pelo id do banco: o mesmo par que area=peca usa.
+export async function conteudoDoItem(sql, item) {
+ const ref = String(item ?? '').trim();
+ if (/^vybe:\d{1,18}$/.test(ref)) return ref.slice(5);
+ if (!/^\d{1,18}$/.test(ref)) return '';
+ const [c] = await sql`SELECT id FROM vybe_conteudos WHERE monday_item_id = ${ref} AND removido_em IS NULL LIMIT 1`;
+ return c ? String(c.id) : '';
+}
+export async function editarLegendaDaPeca(sql, pessoa, { item, conteudo_id: conteudoId, legenda } = {}) {
+ await exigir(sql);
+ const id = conteudoId != null && conteudoId !== '' ? String(conteudoId) : await conteudoDoItem(sql, item);
+ if (!/^\d{1,18}$/.test(id)) throw erro('Peça inválida.');
+ if (typeof legenda !== 'string') throw erro('Falta o texto da legenda. Nada foi alterado.');
+ const nova = texto(legenda, LEGENDA_MAX + 1);
+ if (nova.length > LEGENDA_MAX) throw erro(`Legenda muito longa (máximo ${LEGENDA_MAX} caracteres).`);
+ return sql.comTransacao(async (tx) => {
+  const p = await planoDaPeca(tx, id, { travar: true });
+  if (!p) throw erro('Esta peça não está num planejamento aprovado.', 404);
+  await exigirEditor(tx, pessoa, p.cliente_id);
+  const pecas = Array.isArray(p.conteudo?.pecas) ? p.conteudo.pecas : [];
+  const i = pecas.findIndex((x) => String(x?.conteudo_id || '') === id);
+  const antes = texto(pecas[i]?.legenda, LEGENDA_MAX);
+  if (antes === nova) return { planejamento_id: String(p.id), legenda: nova, mudou: false, versao: Number(p.versao) };
+  const conteudo = { ...p.conteudo, pecas: pecas.map((x, k) => (k === i ? { ...x, legenda: nova } : x)) };
+  const [n] = await tx`UPDATE vybe_planejamentos SET conteudo=${JSON.stringify(conteudo)}::jsonb, versao=versao+1, atualizado_em=now()
+   WHERE id=${p.id} RETURNING versao`;
+  // 'comentario' é o tipo que a tabela já aceita (CHECK de 2026-10-20) para nota livre, como o ajuste do head: sem migração.
+  await registrar(tx, p.id, 'comentario', { autor: pessoa?.id ?? null, versao: n?.versao ?? null,
+   texto: `Legenda editada na conferência (Peça ${i + 1}, ${rotuloDaPeca(pecas[i] || {})}): ${nova || '(sem legenda)'}`.slice(0, 4000) });
+  return { planejamento_id: String(p.id), legenda: nova, mudou: true, versao: Number(n?.versao ?? p.versao) };
+ });
+}
 const exigir = async (sql) => { if (!await planejamentosProntos(sql)) throw erro('Os planejamentos ainda estão sendo ligados.', 503); };
 
 // --- Conteúdo padrão ---------------------------------------------------------

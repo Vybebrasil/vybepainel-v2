@@ -247,11 +247,11 @@ function janelaDeConferenciaHtml({ item, option, titulo, sub, cab, idForm = '', 
       </div>
       <div class="vbc-textos">
         <section id="vbc-legenda" class="vbc-bloco vbc-texto" aria-labelledby="vbc-legenda-tit">
-          <div class="vbc-bloco-cab"><b id="vbc-legenda-tit">Legenda</b><span id="vbc-legenda-info" class="vbc-bloco-info"></span><button type="button" id="vbc-legenda-copiar" class="vbj-btn vbc-copiar" hidden onclick="copiarLegendaDaConferencia()">Copiar</button></div>
+          <div class="vbc-bloco-cab"><b id="vbc-legenda-tit">Legenda</b><span id="vbc-legenda-info" class="vbc-bloco-info"></span><button type="button" id="vbc-legenda-editar" class="vbj-btn vbc-editar" hidden onclick="editarTextoDaConferencia('legenda')">Editar</button><button type="button" id="vbc-legenda-copiar" class="vbj-btn vbc-copiar" hidden onclick="copiarLegendaDaConferencia()">Copiar</button></div>
           <div id="vbc-legenda-corpo" class="vbc-bloco-corpo" tabindex="0" aria-label="Texto da legenda"><p class="vbc-bloco-vazio">Carregando…</p></div>
         </section>
         <section id="vbc-briefing" class="vbc-bloco vbc-texto" aria-labelledby="vbc-briefing-tit">
-          <div class="vbc-bloco-cab"><b id="vbc-briefing-tit">Briefing</b><span id="vbc-briefing-info" class="vbc-bloco-info"></span></div>
+          <div class="vbc-bloco-cab"><b id="vbc-briefing-tit">Briefing</b><span id="vbc-briefing-info" class="vbc-bloco-info"></span><button type="button" id="vbc-briefing-editar" class="vbj-btn vbc-editar" hidden onclick="editarTextoDaConferencia('briefing')">Editar</button></div>
           <div id="vbc-briefing-corpo" class="vbc-bloco-corpo" tabindex="0" aria-label="Briefing da peça"><p class="vbc-bloco-vazio">Carregando…</p></div>
         </section>
       </div>
@@ -715,6 +715,125 @@ function pintarTextosDaConferencia(detail){
   pintar('vbc-legenda', detail?legendaDaConferenciaHtml(t.legenda):'<p class="vbc-bloco-vazio">Não foi possível ler a legenda agora.</p>', t.legenda.origem);
   pintar('vbc-briefing', detail?briefingDaConferenciaHtml(t.briefing):'<p class="vbc-bloco-vazio">Não foi possível ler o briefing agora.</p>', t.briefing.origem);
   const copiar=document.getElementById('vbc-legenda-copiar'); if(copiar) copiar.hidden=!t.legenda.texto;
+  // Editar ali mesmo (frente s-z): o botão só aparece para quem pode gravar no lugar de onde o texto vem.
+  EDICAO_DA_CONFERENCIA=null;
+  const botao=(id, pode, vazio, rotuloVazio)=>{ const b=document.getElementById(id); if(!b) return; b.hidden=!pode; b.disabled=false; b.textContent=vazio?rotuloVazio:'Editar'; };
+  botao('vbc-legenda-editar', Boolean(detail && destinoDaLegendaDaConferencia(detail)), !t.legenda.texto, 'Escrever legenda');
+  botao('vbc-briefing-editar', podeEditarBriefingDaConferencia(detail), !briefingDaPecaNaConferencia(detail), 'Escrever briefing');
+}
+// ── EDITAR A LEGENDA E O BRIEFING NA CONFERÊNCIA (frente s-z, Paulo, 25/11/2026: "seria bom poder editar o que não está
+// ok... poderia ter ali já a opção de editar legenda") ─────────────────────────────────────────────────────────────────
+// Grava no MESMO lugar de onde a janela lê (textosDaConferencia): a legenda do planejamento aprovado quando a peça está
+// nele (a mesma que o VybeHub e a página de aprovação mostram), pela ação legenda_da_peca de area=planejamentos, com a
+// permissão de editar o planejamento (detail.planejamento.pode_editar vem do servidor); senão, a seção "Legenda" do
+// briefing, pela rota de sempre do briefing (gravarBriefing). O briefing inteiro vai pela mesma rota do briefing, que a
+// gaveta já usa para qualquer pessoa da equipe com sessão. Nada disso marca a caixa "Copy, legenda e CTA revisados".
+let EDICAO_DA_CONFERENCIA=null;
+const briefingDaPecaNaConferencia=(detail)=>(typeof briefingDaPeca==='function' ? briefingDaPeca(detail)?.texto || '' : String(detail?.briefing || '').trim());
+// 'planejamento', 'briefing' ou '' (sem botão). Planejamento com legenda: só quem edita o planejamento (senão a janela
+// continuaria mostrando a do planejamento e a gravada no briefing ficaria escondida). Planejamento sem legenda: grava
+// nele quem pode (o cliente passa a ver no VybeHub); quem não pode grava no briefing, que é o que a janela mostra.
+function destinoDaLegendaDaConferencia(detail){
+  if(!detail || typeof detail!=='object') return '';
+  const plan=detail.planejamento && typeof detail.planejamento==='object' ? detail.planejamento : null;
+  if(plan && plan.pode_editar===true) return 'planejamento';
+  if(plan && String(plan.legenda||'').trim()) return '';
+  return podeEditarBriefingDaConferencia(detail) ? 'briefing' : '';
+}
+// O briefing: a mesma regra da gaveta (editarBriefing aparece para quem abre a peça), com a ficha lida e a peça na mesa.
+function podeEditarBriefingDaConferencia(detail){
+  return Boolean(detail && typeof detail==='object' && String(detail.id ?? '') && typeof gravarBriefing==='function');
+}
+// O briefing com a legenda nova: troca o corpo da seção "Legenda" (ou tira a linha "Legenda: …" e põe a seção no fim).
+// A legenda vai entre cercas (```), que o leitor do briefing não interpreta: quebras e "Link: …" ficam como estão.
+function briefingComLegenda(texto, legenda){
+  const linhas=String(texto||'').replace(/\r\n?/g,'\n').split('\n');
+  const nova=String(legenda||'').replace(/\r\n?/g,'\n').replace(/^`{3,}/gm,"'''").trim();
+  const ehTitulo=(l)=>typeof briefingEhTitulo==='function' ? briefingEhTitulo(l.replace(/^#+\s*/,'')) : /^[^a-zà-ÿ]{4,80}$/.test(l);
+  const tituloLimpo=(l)=>typeof briefingTituloLimpo==='function' ? briefingTituloLimpo(l.replace(/^#+\s*/,'')) : l;
+  let cerca=false, inicio=-1, fim=linhas.length, linhaSolta=-1;
+  linhas.forEach((l, i)=>{
+    const s=l.trim();
+    if(/^`{3,}/.test(s)){ cerca=!cerca; return; }
+    if(cerca || !s) return;
+    if(ehTitulo(s)){
+      if(inicio>=0 && fim===linhas.length && i>inicio) fim=i;
+      else if(inicio<0 && /^legenda/i.test(tituloLimpo(s))) inicio=i;
+      return;
+    }
+    if(inicio<0 && linhaSolta<0 && /^[-–—•*]?\s*legenda( do post)?\s*:\s*\S/i.test(s)) linhaSolta=i;
+  });
+  const bloco=nova ? ['```', nova, '```'] : [];
+  let saida;
+  if(inicio>=0) saida=nova ? [...linhas.slice(0, inicio+1), ...bloco, '', ...linhas.slice(fim)] : [...linhas.slice(0, inicio), ...linhas.slice(fim)];
+  else {
+    const corpo=(linhaSolta>=0 ? linhas.filter((_, i)=>i!==linhaSolta) : linhas).join('\n').trim();
+    saida=nova ? [corpo, corpo ? '' : null, 'LEGENDA DO POST', ...bloco].filter((x)=>x!==null) : [corpo];
+  }
+  return saida.join('\n').replace(/\n{3,}/g,'\n\n').trim();
+}
+function editarTextoDaConferencia(campo){
+  const detail=DETALHE_DA_CONFERENCIA;
+  if(!detail || (campo!=='legenda' && campo!=='briefing')) return;
+  const destino=campo==='legenda' ? destinoDaLegendaDaConferencia(detail) : podeEditarBriefingDaConferencia(detail) ? 'briefing' : '';
+  if(!destino) return;
+  if(EDICAO_DA_CONFERENCIA) cancelarTextoDaConferencia();
+  const corpo=document.getElementById(`vbc-${campo}-corpo`);
+  if(!corpo) return;
+  const atual=campo==='legenda' ? LEGENDA_DA_CONFERENCIA : briefingDaPecaNaConferencia(detail);
+  EDICAO_DA_CONFERENCIA={ campo, destino, html:corpo.innerHTML };
+  const b=document.getElementById(`vbc-${campo}-editar`); if(b) b.hidden=true;
+  const onde=campo==='briefing' ? 'no briefing da peça' : destino==='planejamento' ? 'no planejamento aprovado (o cliente vê no VybeHub)' : 'na seção Legenda do briefing';
+  corpo.innerHTML=`<div class="vbc-editor"><textarea id="vbc-campo" class="vbc-campo" rows="${campo==='briefing' ? 10 : 6}" aria-label="${campo==='briefing' ? 'Briefing da peça' : 'Legenda do post'}"></textarea>
+    <div class="vbc-editor-acoes"><span class="vbc-editor-dica">Grava ${safeText(onde)} · Ctrl+Enter salva</span><button type="button" class="vbj-btn" onclick="cancelarTextoDaConferencia()">Cancelar</button><button type="button" id="vbc-campo-salvar" class="vbj-btn k" onclick="salvarTextoDaConferencia()">Salvar</button></div></div>`;
+  const area=document.getElementById('vbc-campo');
+  area.value=atual;
+  area.addEventListener('keydown', (e)=>{
+    if(e.key==='Enter' && (e.ctrlKey || e.metaKey)){ e.preventDefault(); salvarTextoDaConferencia(); }
+    else if(e.key==='Escape'){ e.preventDefault(); e.stopPropagation(); cancelarTextoDaConferencia(); }
+  });
+  area.focus();
+  area.setSelectionRange(area.value.length, area.value.length);
+}
+function cancelarTextoDaConferencia(){
+  const ed=EDICAO_DA_CONFERENCIA;
+  if(!ed) return;
+  EDICAO_DA_CONFERENCIA=null;
+  const corpo=document.getElementById(`vbc-${ed.campo}-corpo`); if(corpo) corpo.innerHTML=ed.html;
+  const b=document.getElementById(`vbc-${ed.campo}-editar`); if(b) b.hidden=false;
+}
+async function gravarLegendaNoPlanejamento(itemId, legenda){
+  const r=await fetch('/api/painel?area=planejamentos', { method:'POST', credentials:'same-origin', headers:{ 'Content-Type':'application/json' },
+    body:JSON.stringify({ acao:'legenda_da_peca', item:String(itemId), legenda:String(legenda ?? '') }) });
+  const d=await r.json().catch(()=>({}));
+  if(!r.ok || !d?.ok) throw new Error(d?.error || `Não foi possível salvar (${r.status}).`);
+  return d;
+}
+async function salvarTextoDaConferencia(){
+  const ed=EDICAO_DA_CONFERENCIA, detail=DETALHE_DA_CONFERENCIA;
+  const area=document.getElementById('vbc-campo'), salvar=document.getElementById('vbc-campo-salvar');
+  if(!ed || !detail || !area || salvar?.disabled) return;
+  const texto=area.value.replace(/\r\n?/g,'\n').trim();
+  const itemId=String(detail.id ?? pendingWorkflowChange?.item?.id ?? '');
+  if(salvar){ salvar.disabled=true; salvar.textContent='Salvando…'; }
+  try {
+    if(ed.campo==='legenda' && ed.destino==='planejamento'){
+      const d=await gravarLegendaNoPlanejamento(itemId, texto);
+      detail.planejamento={ ...detail.planejamento, legenda:String(d.legenda ?? texto) };
+    } else {
+      const novo=ed.campo==='briefing' ? texto : briefingComLegenda(briefingDaPecaNaConferencia(detail), texto);
+      const d=await gravarBriefing(itemId, novo);
+      detail.briefing=String(d?.briefing ?? novo); detail.briefing_origem='cadastro';
+    }
+    // O histórico da peça leva a legenda nova (a nota segue o padrão "[Vybe OS · …]" das outras da conferência).
+    if(ed.campo==='legenda') postItemUpdate(itemId, `[Vybe OS · Legenda editada na conferência]\n${texto || '(legenda apagada)'}`);
+    EDICAO_DA_CONFERENCIA=null;
+    if(DETALHE_DA_CONFERENCIA===detail) pintarTextosDaConferencia(detail);
+    if(typeof showToast==='function') showToast(ed.campo==='legenda' ? 'Legenda salva.' : 'Briefing salvo.', 'ok', 3000);
+  } catch(e){
+    if(salvar){ salvar.disabled=false; salvar.textContent='Salvar'; }
+    if(typeof showToast==='function') showToast(`Não foi possível salvar: ${e.message}`, 'err', 7000);
+  }
 }
 function copiarLegendaDaConferencia(){
   if(!LEGENDA_DA_CONFERENCIA) return;
