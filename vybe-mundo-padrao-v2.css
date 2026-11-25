@@ -12460,7 +12460,7 @@ body.mundo #fc-overlay#fc-overlay .nd.nd-em-passos .nd-pe > #fc-nota{text-align:
   body.mundo #mundo-hud #vv-hoje .d3q .d3h-decidir.d3v-laranja > .d3h-decidir-acoes > .d3v-vao{display:none}
   body.mundo #mundo-hud #vv-hoje .d3q .d3h-decidir.d3v-laranja > .d3h-decidir-acoes > .d3h-btn{height:36px;min-width:0;padding:0 8px}
   body.mundo #mundo-hud #vv-hoje .d3q .d3h-tarefas > .d3h-filtros{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
-  body.mundo #mundo-hud #vv-hoje .d3q .d3h-tarefas > .d3h-filtros > *{flex:none}
+  body.mundo #mundo-hud #vv-hoje .d3q .d3h-tarefas > .d3h-filtros > *,body.mundo #mundo-hud #vv-hoje .d3q .d3h-tarefas > .d3h-filtros > .v2t-fichas > *{flex:none}
   /* Visão geral do setor: uma coluna só na ordem do que importa (os números, o laranja, Pede ação e as linhas que abrem) */
   body.mundo section.vv-setor-visao.vv-setor-visao .g2.vst{display:flex;flex-direction:column;gap:10px}
   body.mundo section.vv-setor-visao.vv-setor-visao .vst > :is(.vst-esq,.vst-dir),
