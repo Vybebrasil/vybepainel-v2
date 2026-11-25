@@ -1,0 +1,102 @@
+/* Frente s-x (25/11/2026): o que sobrou da responsividade depois do s-w (PR #778). Paulo: "Sim, ataca". Regra dele:
+   nada cobre nada, nada exige rolar para ver o que importa, nenhum rótulo cortado pela metade. */
+
+/* 1 · Loja, Inventário, Carteira e Conquistas: os botões do topo à vista e clicáveis, igual ao Ranking. A janela
+   (#office-catalogo) abria como modal, na camada de cima de tudo, e cobria a barra do topo. No mundo ela abre como janela
+   (show(), vybe-escritorio-editor.js) na camada das janelas, sem o fundo escurecido (as janelas do mundo não têm), e a
+   barra do topo fica por cima com body.com-loja-janela. O Hoje, a placa e o Centro, que moram na mesma camada da barra,
+   ficam escondidos atrás dela enquanto a janela está aberta. */
+body.mundo #office-catalogo.d3m-f-lojaj[data-sem-modal][open]{z-index:841}
+body.mundo.com-loja-janela #mundo-hud{z-index:842}
+body.mundo.com-loja-janela #mundo-hud > :is(#vv-hoje,#vv-placa,#d3-centro,.vv-controles){visibility:hidden}
+body.mundo.com-loja-janela #mundo-hud > .vv-topo{visibility:visible}
+@media (min-width:901px){
+  /* a barra fica no canto da janela, com os sete botões de 34 px; o cabeçalho da Loja reserva o lugar deles */
+  body.mundo.com-loja-janela #mundo-hud > .vv-topo{pointer-events:none}
+  body.mundo.com-loja-janela #mundo-hud > .vv-topo .vv-ilha.vv-barra-topo{padding:23px 16px 0 0;background:none;box-shadow:none;pointer-events:none;align-items:flex-start}
+  body.mundo.com-loja-janela #mundo-hud > .vv-topo .vv-ferramentas{justify-content:flex-end;gap:6px;pointer-events:none}
+  body.mundo.com-loja-janela #mundo-hud > .vv-topo .vv-ferramentas > *{pointer-events:auto;margin-left:0}
+  body.mundo.com-loja-janela #mundo-hud > .vv-topo .vv-ferramentas > .vv-botao,
+  body.mundo.com-loja-janela #mundo-hud > .vv-topo .vv-mais-menu > summary.vv-botao{width:34px;max-width:34px;height:34px;min-width:0;padding:0;justify-content:center;border-radius:var(--d3-r-botao)}
+  body.mundo.com-loja-janela #mundo-hud > .vv-topo .vv-ferramentas > .vv-botao.vv-busca-larga{flex:none;width:34px;margin-left:auto;margin-right:0;padding:0 0 0 9px;gap:0;color:var(--d3-fume-texto)}
+  body.mundo.com-loja-janela #mundo-hud > .vv-topo .vv-busca-larga > :is(kbd,.vv-busca-texto){display:none}
+  body.mundo.com-loja-janela #mundo-hud > .vv-topo .vv-topo-sala:not([hidden]){flex:none;min-width:34px;height:34px;margin:0;padding:0 4px;gap:0;justify-content:center;border-radius:var(--d3-r-botao);background:var(--d3-fume-veu);box-shadow:none;color:var(--d3-fume-texto)}
+  body.mundo.com-loja-janela #mundo-hud > .vv-topo .vv-topo-sala :is(.vv-topo-sala-nome,.vv-topo-sala-entrar){display:none}
+  body.mundo.com-loja-janela #mundo-hud > .vv-topo .vv-topo-sala-rostos > i:nth-child(n+2){display:none}
+  body.mundo.com-loja-janela #office-catalogo.d3m-f-lojaj .d3m-f-loja > .d3m-e-topo{flex-wrap:wrap;row-gap:12px;padding-right:300px}
+  body.mundo.com-loja-janela #office-catalogo.d3m-f-lojaj .d3m-f-loja > .d3m-e-topo > .d3m-e-tit{flex:1 1 280px;min-width:0}
+}
+/* janela mais estreita que o título + as partes + os botões do topo: as partes, a busca e o fechar descem de linha */
+@media (min-width:901px) and (max-width:1365px){
+  body.mundo.com-loja-janela #office-catalogo.d3m-f-lojaj .d3m-f-loja > .d3m-e-topo > .d3m-e-acoes{flex:1 0 calc(100% + 300px);justify-content:flex-end;margin-right:-300px}
+}
+
+/* 2 · Celular: a Visão geral do setor Clientes por prioridade (a casca vem de vybe-mundo.js, sxClientes, só no
+   celular). O topo numa linha com o título, o atualizar só no ícone e o fechar; os setores e o botão principal logo
+   abaixo. O resumo: a fala do Mateus e os três números numa faixa (a linha de baixo de cada número segue em "Todos os
+   números" e em "Ver a conta"). O que pede ação à vista. Os Módulos numa linha que abre (.sw-dobra, do s-w) e o "Todos
+   os números" numa linha de 44 px. Meta: menos da metade (1.437 → menos de 720 px em 390×844). */
+@media (max-width:600px){
+  section.vv-setor-visao.sx-cli{padding-top:12px}
+  section.vv-setor-visao.sx-cli > .g2-topo{flex-direction:row;flex-wrap:wrap;align-items:center;gap:8px;margin:0 0 12px}
+  section.vv-setor-visao.sx-cli > .g2-topo > h2{flex:1 1 auto;order:0;min-width:0;margin:0}
+  section.vv-setor-visao.sx-cli > .g2-topo > .g2-atualizar{flex:none;order:1;width:38px;min-width:38px;height:38px;padding:0;justify-content:center;font-size:0;gap:0}
+  section.vv-setor-visao.sx-cli > .g2-topo > .g2-atualizar > svg{width:16px;height:16px}
+  section.vv-setor-visao.sx-cli > .g2-topo > .g2-fechar{flex:none;order:2}
+  section.vv-setor-visao.sx-cli > .g2-topo > .g2-seg{flex:1 0 100%;order:3;max-width:100%}
+  /* o botão principal é o mesmo "Ver a saúde" da primeira linha do Pede ação (data-setor-sub="carteira"): sai do topo */
+  section.vv-setor-visao.sx-cli > .g2-topo > .g2-vaga{display:none}
+  section.vv-setor-visao.sx-cli{padding-bottom:12px}
+  section.vv-setor-visao.sx-cli .g2{gap:8px}
+  section.vv-setor-visao.sx-cli .g2-duas{gap:8px}
+  /* a fala: o botão "Ver a conta" na mesma linha do texto, à direita */
+  section.vv-setor-visao.sx-cli .g2-fala{padding:12px}
+  section.vv-setor-visao.sx-cli .g2-fala .g2-fala-lin{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:start;gap:4px 10px}
+  section.vv-setor-visao.sx-cli .g2-fala .g2-fala-lin > .g2-btn{grid-column:2;justify-self:start}
+  /* os três números numa faixa */
+  section.vv-setor-visao.sx-cli .g2-tres{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+  section.vv-setor-visao.sx-cli .g2-tres > .g2-kpi{min-width:0;padding:10px}
+  section.vv-setor-visao.sx-cli .g2-tres > .g2-kpi > small:first-child{display:block;min-height:2.6em;font-size:var(--d3-fs-apoio);line-height:1.3;overflow-wrap:anywhere}
+  section.vv-setor-visao.sx-cli .g2-tres .g2-kpi-v{font-size:22px;line-height:1.15}
+  section.vv-setor-visao.sx-cli .g2-tres .g2-kpi-v.frase{font-size:var(--d3-fs-texto);line-height:1.6}
+  section.vv-setor-visao.sx-cli .g2-tres .g2-kpi-sub{display:none}
+  /* Todos os números: uma linha de 44 px que abre no lugar */
+  section.vv-setor-visao.sx-cli details.g2-mais > summary{display:flex;align-items:center;gap:8px;height:44px;min-height:44px;padding:0 14px 0 16px;box-sizing:border-box}
+  section.vv-setor-visao.sx-cli details.g2-mais > summary > span{flex:1 1 auto;min-width:0;white-space:nowrap}
+}
+
+/* 3 · Tablet em pé e telas estreitas (601 a 1100): nenhum rótulo cortado. O que não cabe no menu vai para o "Mais"
+   (vybe-mundo.js, sxTrilhoCaber); o dock vira uma linha só com os ícones (o nome no title e no aria-label), a sala sem
+   o nome quando não couber (sx-sem-nome; o nome vai na dica) e o que sobrar vai para o "Mais" do dock (sxDockCaber). */
+body.mundo #mundo-hud .vv-trilho > .sx-fora,
+body.mundo #mundo-hud .vv-trilho > .sx-mais[hidden],
+#vv-dock-salas-faixa .vq-dock > .sx-fora{display:none}
+@media (min-width:601px) and (max-width:900px){
+  /* a barra de baixo: cada botão do tamanho do nome inteiro (era 64 px fixo com o nome cortado em 60) e sem rolar de lado */
+  body.mundo #mundo-hud .vv-ilha.vv-trilho{overflow-x:hidden;justify-content:space-between}
+  body.mundo #mundo-hud .vv-trilho > .vv-trilho-btn{flex:0 0 auto;min-width:56px;padding-left:6px;padding-right:6px}
+  body.mundo #mundo-hud .vv-trilho > .vv-trilho-btn > span{max-width:none;overflow:visible;text-overflow:clip}
+}
+@media (min-width:901px){
+  /* o menu lateral de ícones não rola: o fim dele vai para o "Mais" */
+  body.mundo:not(.trilho-largo) #mundo-hud .vv-ilha.vv-trilho{overflow-y:hidden}
+}
+@media (min-width:601px) and (max-width:1100px){
+  #vv-dock-salas-faixa.dock-compacto > .vq-dock.vv-dock-salas{flex-wrap:nowrap;justify-content:center;overflow:hidden}
+  #vv-dock-salas-faixa.dock-compacto .vq-dock .vq-item{width:auto}
+  #vv-dock-salas-faixa.dock-compacto .vq-dock .vq-voz{max-width:none}
+  #vv-dock-salas-faixa.dock-compacto .vq-dock .vq-voz > span:not(.vq-rostos){white-space:nowrap;overflow:visible;text-overflow:clip}
+  #vv-dock-salas-faixa.dock-compacto.sx-sem-nome .vq-dock .vq-voz > span:not(.vq-rostos){display:none}
+}
+
+/* a folha do "Mais" (menu e dock): os botões que ficaram de fora, com o ícone e o nome inteiro */
+.sx-mais-folha{position:fixed;z-index:850;display:flex;flex-direction:column;gap:2px;min-width:220px;max-width:min(320px,calc(100vw - 16px));max-height:calc(100dvh - 16px);padding:8px;box-sizing:border-box;overflow-y:auto;border-radius:var(--d3-r-cartao);background:var(--d3-cartao);color:var(--d3-tinta);box-shadow:0 0 0 1px var(--d3-borda),var(--d3-folha-sombra);font:400 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif)}
+.sx-mais-folha > .sx-mais-tit{padding:6px 10px 4px;font-size:var(--d3-fs-apoio);font-weight:600;color:var(--d3-rotulo)}
+.sx-mais-folha > button{appearance:none;display:flex;align-items:center;gap:10px;width:100%;min-height:40px;margin:0;padding:0 10px;border:0;border-radius:var(--d3-r-botao);background:none;color:var(--d3-tinta);font:inherit;text-align:left;cursor:pointer}
+.sx-mais-folha > button > svg{flex:none;width:18px;height:18px}
+.sx-mais-folha > button > span{flex:1 1 auto;min-width:0;white-space:normal}
+.sx-mais-folha > button:hover{background:var(--d3-veu)}
+.sx-mais-folha > button:focus-visible{outline:2px solid var(--d3-acao);outline-offset:-2px}
+.sx-mais-folha > button:disabled{color:var(--d3-apagado);cursor:default}
+.sx-mais-folha > button.trancado{color:var(--d3-rotulo)}
+#mundo-hud .vv-trilho > .sx-mais[aria-expanded="true"]{background:var(--d3-veu)}

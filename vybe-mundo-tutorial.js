@@ -59,7 +59,7 @@
             texto: 'Aqui em cima ficam as ferramentas: buscar qualquer coisa (⌘K ou Ctrl+K), avisos, a conversa da equipe, suas notas e a sua conta, onde também se troca o tema.' },
           { id: 'vistas', alvo: '.vv-barra-topo .vv-vistas', lado: 'baixo', titulo: 'Cidade, Prédio e Cérebro',
             texto: 'Aqui você troca o que vê: a Cidade, o Prédio da Vybe, onde cada andar é um setor com os agentes dele, e o Cérebro, com tudo o que eu sei e consulto antes de agir.' },
-          { id: 'mapa', alvo: '[data-trilho="centro"]', titulo: 'O Centro',
+          { id: 'mapa', alvo: ['[data-trilho="centro"]', '.vv-trilho > .sx-mais'], titulo: 'O Centro', // no tablet o Centro pode estar no "Mais" do menu (frente s-x)
             texto: 'No Centro fica o Prédio da Vybe com a loja de cada cliente em volta. As bolinhas mostram o status das peças de cada um; clique na loja para abrir o cliente.' },
           { id: 'voz', alvo: '.vv-chamada', lado: 'cima', marca: 'chamada', titulo: 'Barra de voz',
             texto: 'Essa é a barra de voz. Por ela você entra no Escritório, fala com quem está na mesma sala, põe uma música e chama alguém para perto.' },

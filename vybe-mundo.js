@@ -3026,9 +3026,35 @@
   }
   function swSetor(el) {
     if (!el) return;
-    if (!celSw?.matches) { if (el.querySelector('.sw-dobra, .sw-mais')) swDesfazer(el); return; }
+    if (!celSw?.matches) { if (el.querySelector('.sw-dobra, .sw-mais')) swDesfazer(el); el.classList?.remove?.('sx-cli'); return; }
     swDobrar(el, '.vst-pc > .d3s-pessoas, .vst-pc > .vst-dias, .vst-dir > .d3s-status', 'setor');
     swTres(el.querySelector('.vst-pede'), '.vst-rolo > .vst-lin', 'setor:pede');
+    sxClientes(el);
+  }
+  // Frente s-x (25/11/2026): a Visão geral do setor Clientes no celular passava de 1.430 px (o esqueleto g2, sem as
+  // classes da Produção). Na mesma lógica: o topo numa linha (título, atualizar e fechar), o resumo (a fala do Mateus e
+  // os três números numa faixa) e o que pede ação à vista; os Módulos viram uma linha que abre e o "Todos os números"
+  // uma linha de 44 px; o que ficou aberto é lembrado no mesmo vybe.cel.dobras. A primeira linha do Pede ação abre
+  // fechada no celular (o detalhe continua a um toque). No computador nada muda: a classe sai quando a tela alarga.
+  function sxClientes(el) {
+    const cli = Boolean(celSw?.matches && el.querySelector('.g2-seg [data-setor-ir="setor:clientes"][aria-pressed="true"]'));
+    el.classList.toggle('sx-cli', cli);
+    if (!cli) return;
+    swDobrar(el, '.g2-duas > .g2-mods', 'setor:clientes');
+    const mais = el.querySelector('.g2 > details.g2-mais');
+    if (mais && !mais.dataset.sxDobra) {
+      const k = 'setor:clientes:todos-os-numeros';
+      mais.dataset.sxDobra = k; mais.open = swAbertas.has(k);
+      mais.addEventListener('toggle', () => { if (mais.open) swAbertas.add(k); else swAbertas.delete(k); swGuardar(); });
+      // a linha diz só "Todos os números" (cabe inteira em 44 px); a frase inteira fica na dica e no nome do botão
+      const sum = mais.querySelector(':scope > summary'), rot = sum?.querySelector(':scope > span');
+      if (sum && rot) { const tudo = rot.textContent.trim(); sum.title = tudo; sum.setAttribute('aria-label', tudo); rot.dataset.sxTudo = tudo; rot.textContent = 'Todos os números'; }
+    }
+    const primeira = el.querySelector('.g2-pede .g2-linha.v2-abre[aria-expanded="true"]');
+    if (primeira && !primeira.dataset.sxFechada) {
+      primeira.dataset.sxFechada = '1'; primeira.setAttribute('aria-expanded', 'false');
+      primeira.querySelector('[data-g2-abre]')?.setAttribute('aria-expanded', 'false');
+    }
   }
   let swSetorEl = null;
   window.VybeCelDobras = { setor: (el) => { swSetorEl = el; swSetor(el); } };
@@ -3465,7 +3491,8 @@
     const situacao = ['conectando', 'reconectando', 'caiu'].includes(st.fase) ? '' : naVoz ? n0(naVoz) + ' na voz' : 'vazia';
     const dicaVoz = { 'na-sala': 'Você está na chamada', conectando: 'Conectando à voz', reconectando: 'A conexão caiu, voltando sozinho', caiu: `A voz não conectou${st.motivo ? ': ' + st.motivo : ''}`, fora: 'Fora da chamada', 'sem-voz': 'Lugar sem voz', 'outra-aba': 'Voz em outra aba', indisponivel: st.motivo || 'Sem voz' }[st.fase] || '';
     const textoVoz = `${esc(e.zona ? nome(e.zona) : 'Fora das salas')}${e.zona && situacao ? ` · ${situacao}` : ''}${quemTela.length ? ` · ${esc(quemTela.join(' e '))} na tela` : ''}`;
-    partes.push(`<span class="vq-voz" data-fase="${st.fase}" title="${esc(dicaVoz)}"><span class="vq-rostos" aria-hidden="true">${rostosVoz}</span><span>${textoVoz}</span>${botaoVozHtml(st)}</span>` + sep);
+    // a dica leva a sala inteira: no dock compacto estreito o nome some e ficam só os rostos e o botão (frente s-x)
+    partes.push(`<span class="vq-voz" data-fase="${st.fase}" title="${textoVoz}${dicaVoz ? ' · ' + esc(dicaVoz) : ''}"><span class="vq-rostos" aria-hidden="true">${rostosVoz}</span><span>${textoVoz}</span>${botaoVozHtml(st)}</span>` + sep);
     // Microfone: ligado (verde), mudo, bloqueado ou sem microfone (com o motivo e o clique que tenta liberar), apagado fora.
     const erroMic = e.erroMic || {}, rotMicErro = erroMic.tipo === 'negado' ? 'Bloqueado' : erroMic.tipo === 'ocupado' ? 'Ocupado' : 'Sem mic';
     const foraDica = st.fase === 'conectando' || st.fase === 'reconectando' ? 'O microfone liga quando a voz conectar' : 'Liga dentro de uma sala';
@@ -3600,8 +3627,11 @@
     if (medidaDock.compacto !== chaveCompacto) {
       medidaDock.compacto = chaveCompacto;
       faixaDock.classList.remove('dock-compacto');
+      sxDockSolto(nav);
       const r = nav.getBoundingClientRect?.();
-      if (r && r.width && (r.right > innerWidth - 4 || r.left < 4 || nav.scrollWidth > nav.clientWidth + 2)) faixaDock.classList.add('dock-compacto');
+      // Frente s-x: entre 601 e 1100 px o dock é sempre compacto (uma linha, só os ícones); antes ele quebrava em duas
+      // linhas com os nomes, e o nome da sala saía cortado ("Sala…").
+      if (r && r.width && (sxFaixaCompacta() || r.right > innerWidth - 4 || r.left < 4 || nav.scrollWidth > nav.clientWidth + 2)) { faixaDock.classList.add('dock-compacto'); sxDockCaber(nav); }
       else if (!r || !r.width) medidaDock.compacto = ''; // ainda sem medida: tenta de novo na próxima pintura
     }
     // Celular: dentro de uma sala o dock toma o lugar da barra de baixo; fora, o cartão. Na tela estreita (dock em cima
@@ -4951,6 +4981,126 @@
   }
   // Ao passar para o computador (girar o tablet, abrir a janela), o "Mais" do celular sai.
   if (typeof addEventListener === 'function') addEventListener('resize', () => { if (!noCelular()) fecharMaisCel(); });
+
+  // ---------- Tablet e telas estreitas: nenhum rótulo cortado no menu e no dock (frente s-x, 25/11/2026) ----------
+  // Entre 601 e 1100 px o menu de baixo cortava os nomes ("Recurs…", "Equipe o…") e rolava de lado com o fim escondido,
+  // o menu lateral escondia os últimos botões (VYBES) atrás de uma rolagem, e o dock quebrava em duas linhas com o nome
+  // da sala cortado ("Sala…"). Agora: no menu cada botão mostra o nome inteiro (ou só o ícone, no menu lateral de
+  // ícones); o que não cabe vai para um "Mais" no fim do menu, que lista os mesmos botões com o nome inteiro. No dock,
+  // uma linha só com os ícones (o nome no title e no aria-label); se a sala não couber, fica só os rostos e o botão (o
+  // nome vai para a dica), e os botões que ainda sobrarem vão para um "Mais" do dock. Cada item do "Mais" chama o MESMO
+  // botão de antes: nenhuma função sai da tela, só muda de lugar. No celular (até 600) segue o "Mais" da barra de baixo.
+  function sxMaisIc() { return svg('<circle cx="5" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="19" cy="12" r="1.3"/>'); }
+  function sxFaixaCompacta() { return typeof matchMedia === 'function' && matchMedia('(min-width:601px) and (max-width:1100px)').matches; }
+  function sxNomeDe(b) { return (b.querySelector(':scope > span:not([class]), :scope > .vq-rotulo')?.textContent || b.dataset.nome || b.getAttribute('aria-label') || b.title || '').trim(); }
+  function fecharSxMais(devolverFoco = false) {
+    const f = document.querySelector('.sx-mais-folha'); if (!f) return false;
+    const dono = f.sxDono; f.remove(); document.removeEventListener('pointerdown', foraDoSxMais, true);
+    dono?.setAttribute('aria-expanded', 'false');
+    if (devolverFoco) dono?.focus?.();
+    return true;
+  }
+  function foraDoSxMais(e) { if (!e.target.closest?.('.sx-mais-folha, .sx-mais')) fecharSxMais(); }
+  // A folha do "Mais": os botões que ficaram de fora, com o ícone e o nome inteiro; o clique chama o botão original.
+  function abrirSxMais(dono, itens, titulo) {
+    fecharSxMais();
+    const f = document.createElement('section'); f.className = 'sx-mais-folha d3-tema'; f.setAttribute('role', 'dialog'); f.setAttribute('aria-label', titulo); f.sxDono = dono;
+    f.innerHTML = `<b class="sx-mais-tit">${esc(titulo)}</b>` + itens.map((b, i) => `<button type="button" data-sx-orig="${i}"${b.disabled ? ' disabled' : ''}${b.classList.contains('trancado') ? ' class="trancado"' : ''} title="${esc(b.title || sxNomeDe(b))}">${b.querySelector('svg')?.outerHTML || ''}<span>${esc(sxNomeDe(b))}</span></button>`).join('');
+    f.addEventListener('click', (e) => {
+      const b = e.target.closest('button[data-sx-orig]'); if (!b) return;
+      e.stopPropagation();
+      const orig = itens[Number(b.dataset.sxOrig)]; fecharSxMais(); orig?.click();
+    });
+    f.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); fecharSxMais(true); return; }
+      if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
+      const bs = [...f.querySelectorAll('button:not([disabled])')], i = bs.indexOf(document.activeElement);
+      e.preventDefault(); bs[(i + (e.key === 'ArrowDown' ? 1 : -1) + bs.length) % bs.length]?.focus();
+    });
+    document.body.append(f);
+    // Onde abrir: em cima do botão (barra de baixo e dock) ou ao lado dele (menu lateral), sempre dentro da tela.
+    const q = dono.getBoundingClientRect(), r = f.getBoundingClientRect(), m = 8;
+    const lado = Boolean(dono.closest('.vv-trilho')) && innerWidth > 900;
+    const x = lado ? q.right + m : q.right - r.width, y = lado ? q.bottom - r.height : q.top - m - r.height;
+    f.style.left = `${Math.max(m, Math.min(innerWidth - r.width - m, x))}px`;
+    f.style.top = `${Math.max(m, Math.min(innerHeight - r.height - m, y))}px`;
+    dono.setAttribute('aria-expanded', 'true');
+    setTimeout(() => document.addEventListener('pointerdown', foraDoSxMais, true), 0);
+    f.querySelector('button:not([disabled])')?.focus?.();
+  }
+  // Menu (barra de baixo de 601 a 900, menu lateral de ícones acima disso): esconde do fim para o começo o que não cabe.
+  function sxTrilhoCaber() {
+    const tr = hud.querySelector('.vv-trilho'); if (!tr) return;
+    for (const x of tr.querySelectorAll('.sx-fora')) x.classList.remove('sx-fora');
+    let mais = tr.querySelector(':scope > .sx-mais');
+    const ativo = typeof matchMedia === 'function' && matchMedia('(min-width:601px)').matches && !dockLargo();
+    if (!ativo) { if (mais) mais.hidden = true; fecharSxMais(); return; }
+    if (!mais) {
+      mais = document.createElement('button'); mais.type = 'button'; mais.className = 'vv-trilho-btn sx-mais'; mais.hidden = true;
+      mais.title = 'Mais: os outros módulos do menu'; mais.setAttribute('aria-label', 'Mais módulos'); mais.setAttribute('aria-haspopup', 'dialog'); mais.setAttribute('aria-expanded', 'false');
+      mais.innerHTML = `${sxMaisIc()}<span>Mais</span>`;
+      mais.addEventListener('click', (e) => { e.stopPropagation(); if (fecharSxMais(true)) return; abrirSxMais(mais, sxForaDoTrilho(tr), 'Mais módulos'); });
+    }
+    const vybes = tr.querySelector(':scope > [data-trilho="vybes"]');
+    if (mais.nextElementSibling !== vybes && vybes) tr.insertBefore(mais, vybes); else if (!vybes && mais.parentElement !== tr) tr.append(mais);
+    const deitado = innerWidth <= 900, sobra = () => (deitado ? tr.scrollWidth - tr.clientWidth : tr.scrollHeight - tr.clientHeight);
+    const comFoco = document.activeElement === mais; // medir de novo não tira o foco de quem está no Mais
+    mais.hidden = true;
+    if (sobra() <= 1) { fecharSxMais(); return; }
+    mais.hidden = false;
+    // do fim para o começo (o VYBES fica: é o último, ao lado do Mais), nunca Criar, Hoje nem a tela aberta agora
+    const candidatos = [...tr.children].filter((x) => x !== mais && x !== vybes && x.classList.contains('vv-trilho-btn') && !['criar', 'hoje'].includes(x.dataset.trilho) && !x.hasAttribute('aria-current') && x.getClientRects().length).reverse();
+    for (const x of candidatos) { if (sobra() <= 1) break; x.classList.add('sx-fora'); }
+    if (sobra() > 1 && vybes?.getClientRects().length) vybes.classList.add('sx-fora');
+    if (comFoco) mais.focus({ preventScroll: true });
+  }
+  // O que está fora, na ordem do menu; o "Prédio, Jogos, Loja…" vira os próprios Prédio, Jogos, Loja, Ranking e Conquistas.
+  function sxForaDoTrilho(tr) {
+    const out = [];
+    for (const x of tr.querySelectorAll(':scope > .sx-fora')) {
+      if (x.hasAttribute('data-trilho-resto')) out.push(...tr.querySelectorAll(':scope > .vv-trilho-resto[data-trilho]'));
+      else out.push(x);
+    }
+    return [...new Set(out)].filter((b) => !b.hidden);
+  }
+  // Dock: tira o que sobrou de uma medida anterior (o nome escondido e o "Mais").
+  function sxDockSolto(nav) {
+    faixaDock.classList.remove('sx-sem-nome');
+    if (typeof nav?.querySelectorAll !== 'function') return;
+    nav.querySelector(':scope > .sx-mais')?.remove();
+    for (const x of nav.querySelectorAll(':scope > .sx-fora')) x.classList.remove('sx-fora');
+  }
+  function sxDockCaber(nav) {
+    if (!sxFaixaCompacta()) return;
+    const sobra = () => { const r = nav.getBoundingClientRect(); return Math.max(nav.scrollWidth - nav.clientWidth, r.right - (innerWidth - 4), 4 - r.left); };
+    if (sobra() <= 1) return;
+    // 1º a sala vira só os rostos e o botão (o nome inteiro segue na dica da peça)
+    faixaDock.classList.add('sx-sem-nome');
+    if (sobra() <= 1) return;
+    // 2º os últimos botões vão para o "Mais" do dock
+    const mais = document.createElement('button'); mais.type = 'button'; mais.className = 'vq-item sx-mais';
+    mais.title = 'Mais: os outros botões do dock'; mais.setAttribute('aria-label', 'Mais botões do dock'); mais.setAttribute('aria-haspopup', 'dialog'); mais.setAttribute('aria-expanded', 'false');
+    mais.innerHTML = `<span class="vq-icone">${sxMaisIc()}</span><span class="vq-rotulo">Mais</span>`;
+    mais.addEventListener('click', (e) => { e.stopPropagation(); if (fecharSxMais(true)) return; abrirSxMais(mais, [...nav.querySelectorAll(':scope > .vq-item.sx-fora')], 'Mais do dock'); });
+    nav.append(mais);
+    for (const x of [...nav.querySelectorAll(':scope > .vq-item:not(.sx-mais):not(.vq-voltar):not(.vq-mic)')].reverse()) { if (sobra() <= 1) break; x.classList.add('sx-fora'); }
+  }
+  {
+    const tr = hud.querySelector('.vv-trilho');
+    let pend = false, restoAntes = tr?.classList.contains('resto-aberto');
+    const quadro = typeof requestAnimationFrame === 'function' ? requestAnimationFrame : (f) => setTimeout(f, 16);
+    const agendar = () => { if (pend) return; pend = true; quadro(() => { pend = false; sxTrilhoCaber(); }); };
+    if (tr && typeof ResizeObserver === 'function') new ResizeObserver(agendar).observe(tr);
+    // botões que aparecem ou somem (permissão, resto aberto, a tela atual, favoritos): mede de novo; o próprio Mais não conta
+    const naoEhOMais = (n) => !n.classList?.contains('sx-mais');
+    const conta = (m) => naoEhOMais(m.target) && (m.attributeName === 'hidden' || m.attributeName === 'aria-current' || (m.type === 'childList' && [...m.addedNodes, ...m.removedNodes].some(naoEhOMais)));
+    if (tr && typeof MutationObserver === 'function') new MutationObserver((ms) => {
+      const resto = tr.classList.contains('resto-aberto'), mudouResto = resto !== restoAntes; restoAntes = resto;
+      if (mudouResto || ms.some(conta)) agendar();
+    }).observe(tr, { childList: true, attributes: true, attributeFilter: ['hidden', 'class', 'aria-current'], subtree: true });
+    if (typeof addEventListener === 'function') addEventListener('resize', () => { fecharSxMais(); agendar(); });
+    agendar();
+  }
   // O "Mais" fecha com clique fora e com Esc.
   document.addEventListener?.('pointerdown', (e) => { const m = hud.querySelector('.vv-mais-menu[open]'); if (m && !m.contains(e.target)) m.removeAttribute('open'); }, true);
   document.addEventListener?.('keydown', (e) => { const m = e.key === 'Escape' && hud.querySelector('.vv-mais-menu[open]'); if (m) { m.removeAttribute('open'); e.stopPropagation(); } }, true);

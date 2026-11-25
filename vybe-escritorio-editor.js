@@ -1064,6 +1064,47 @@ function escritorioSelectRaridadeHtml(ativa, aoMudar) {
   if (!faixas.length) return "";
   return `<select aria-label="Raridade" onchange="${aoMudar}"><option value="">Todas as raridades</option>${faixas.map((r) => `<option value="${safeText(r.chave)}"${ativa === r.chave ? " selected" : ""}>${safeText(r.nome)}</option>`).join("")}</select>`;
 }
+// Frente s-x (25/11/2026): no mundo a Loja (com Inventário, Carteira e Conquistas) abre como janela, não como modal. O
+// modal (showModal) ia para a camada de cima de tudo e cobria os botões do topo (Buscar, Agenda, WhatsApp, Avisos,
+// Conversa, Mais e Conta), que ficavam mortos com a janela aberta. Agora ela fica na camada das janelas (como o Ranking)
+// com a barra do topo por cima, pela classe no body (padrao-v2/s-x.css), e sem o fundo escurecido, que as janelas do
+// mundo não têm. Continua: Esc e o X fecham; o Tab roda dentro da janela; o foco volta para quem abriu. Um toque no
+// menu lateral fecha a janela antes de abrir a outra tela. Fora do mundo (?legado=1) segue modal, como era.
+function escritorioAbrirJanelaSemModal(d, classeBody) {
+  if (d.open) return;
+  if (!document.body.classList.contains("mundo")) { d.showModal(); return; }
+  if (!d.dataset.semModal) {
+    d.dataset.semModal = classeBody;
+    const focaveis = () => [...d.querySelectorAll('a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), summary, [tabindex]:not([tabindex="-1"])')].filter((x) => x.getClientRects().length);
+    d.addEventListener("keydown", (ev) => {
+      if (ev.key !== "Tab") return;
+      const f = focaveis(); if (!f.length) return;
+      const ultimo = f[f.length - 1];
+      if (ev.shiftKey && (document.activeElement === f[0] || !d.contains(document.activeElement))) { ev.preventDefault(); ultimo.focus(); }
+      else if (!ev.shiftKey && document.activeElement === ultimo) { ev.preventDefault(); f[0].focus(); }
+    });
+    // Esc fecha com o foco na janela ou solto na página; um modal aberto por cima (a ficha do móvel) fecha antes, sozinho.
+    document.addEventListener("keydown", (ev) => {
+      if (ev.key !== "Escape" || !d.open || ev.defaultPrevented) return;
+      const a = document.activeElement;
+      if (a && a !== document.body && !d.contains(a)) return;
+      ev.preventDefault(); d.close();
+    });
+    // O menu lateral troca de tela: a janela sai antes (o "Mais" do menu e o "Prédio, Jogos, Loja…" só abrem a lista).
+    document.addEventListener("click", (ev) => {
+      if (!d.open || !ev.target?.closest?.(".vv-trilho [data-trilho]")) return;
+      d.close();
+    }, true);
+    d.addEventListener("close", () => {
+      document.body.classList.remove(d.dataset.semModal);
+      const volta = d.vbFocoDeVolta; d.vbFocoDeVolta = null;
+      if (volta?.isConnected && (!document.activeElement || document.activeElement === document.body || d.contains(document.activeElement))) volta.focus?.();
+    });
+  }
+  d.vbFocoDeVolta = document.activeElement && document.activeElement !== document.body ? document.activeElement : null;
+  document.body.classList.add(classeBody);
+  d.show();
+}
 function abrirCatalogoEscritorio(aba) {
   // Sem o Escritório carregado (celular, Loja aberta direto do dock): a base é pedida já, junto do catálogo, e não
   // depois de a janela desenhar (redesign r5, quadro 35: o pedido só saía ~2 s depois do toque).
@@ -1088,7 +1129,7 @@ function abrirCatalogoEscritorio(aba) {
   // A casca (vybe-escritorio-loja.js): o título no vidro com as partes, a folha dos itens com as fichas na cabeça e a
   // grade, as folhas das Conquistas e a consulta. Os ids de sempre continuam (abas, faixas, info, grade e ficha).
   d.innerHTML = escritorioLojaCascaHtml(escritorio.cat);
-  if (!d.open) d.showModal();
+  if (!d.open) escritorioAbrirJanelaSemModal(d, "com-loja-janela");
   redesenharCatalogoJanelaEscritorio();
   if (escritorio.cat.aba === "loja" || escritorio.cat.aba === "inventario") d.querySelector(".v2l-busca")?.focus();
   // Sem o Escritório carregado (celular, Loja aberta direto do dock): a Loja pede a base sozinha e se redesenha.
