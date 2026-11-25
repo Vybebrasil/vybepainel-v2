@@ -23,7 +23,13 @@ test('s-w.css entra no CSS juntado, sem !important, sem :has com [style], sem ht
 });
 
 test('1 · Ranking e Performance: a barra do topo fica por cima e o cabeçalho reserva o lugar dela', () => {
-  const p1 = trecho(css, '@media (min-width:901px){\n  body.mundo:has(#workflow-modal.d3m-f-rkj) #mundo-hud{z-index:842}', '\n}\n');
+  const p1 = trecho(css, '@media (min-width:901px){\n  body.mundo.com-ranking-janela #mundo-hud{z-index:842}', '\n}\n');
+  // o Ranking aberto vira classe no body (sem :has no body): posta ao abrir, tirada ao fechar ou trocar a janela
+  assert.doesNotMatch(css, /body\.mundo:has\(/);
+  assert.match(lf('vybe-escritorio-ficha.js'), /document\.body\.classList\.add\("com-ranking-janela"\)/);
+  const portoes = lf('vybe-portoes.js');
+  assert.match(portoes, /function closeWorkflowModal\(\) \{ document\.body\.classList\.remove\('com-ranking-janela'\);/);
+  assert.match(portoes, /function openWorkflowModal\(html\) \{ document\.body\.classList\.remove\('com-ranking-janela'\);/);
   assert.match(p1, /#mundo-hud > \.vv-topo\{visibility:visible;pointer-events:none\}/);
   assert.match(p1, /\.vv-ferramentas > \*\{pointer-events:auto;margin-left:0\}/);
   assert.match(p1, /\.d3m-e-topo\.d3m-e-topo,[\s\S]*?\{flex-wrap:wrap;row-gap:12px;padding-right:300px\}/);
@@ -48,6 +54,11 @@ test('2 · Celular: o Hoje e a Visão geral põem os blocos de consulta em linha
   assert.match(cel, /\.d3h-nums\{grid-template-columns:repeat\(4,minmax\(0,1fr\)\)/);
   assert.match(cel, /\.vst \.vst-nums\{order:0;grid-template-columns:repeat\(4,minmax\(0,1fr\)\)/);
   assert.match(cel, /\.vst \.vst-laranja\{order:1/);
+  // Minhas tarefas: as abas numa linha própria que corre para o lado; a lupa e o Por status embaixo
+  assert.match(cel, /\.d3h-tarefas > \.d3h-filtros\{flex-wrap:wrap;row-gap:8px\}/);
+  assert.match(cel, /> \.v2t-fichas\{display:flex;flex:1 0 100%;flex-wrap:nowrap;[^}]*overflow-x:auto/);
+  // o chip da miniatura corta com reticências dentro dele
+  assert.match(css, /\.d3h-arte > span:not\(\[class\]\)\{display:block;[^}]*text-overflow:ellipsis\}/);
 });
 
 test('3 · A coluna de consulta não rola entre 1280 e 1536: resumo por bloco, o resto no "abrir"', () => {

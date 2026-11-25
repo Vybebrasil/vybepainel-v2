@@ -12348,22 +12348,22 @@ body.mundo #fc-overlay#fc-overlay .nd.nd-em-passos .nd-pe > #fc-nota{text-align:
    dela: título à esquerda, as ações da tela (período, "Por que essa ordem?", fechar) logo antes dos botões do topo. Sem
    largura para os dois na mesma linha, as ações descem para uma linha própria abaixo do título. */
 @media (min-width:901px){
-  body.mundo:has(#workflow-modal.d3m-f-rkj) #mundo-hud{z-index:842}
+  body.mundo.com-ranking-janela #mundo-hud{z-index:842}
   /* a largura vem dos lados (era min(940px, 94vw) e, de 901 a 1100, a janela passava da tela pela direita) */
   body.mundo #workflow-modal.rk2-janela.ofc-ranking-janela.d3m-f-rkj{--wm-largura:auto}
   /* o trilho continua como era com o ranking aberto: o toque nele cai no fundo da janela */
-  body.mundo:has(#workflow-modal.d3m-f-rkj) #mundo-hud > .vv-trilho{pointer-events:none}
-  :is(body.mundo.mundo-gestao,body.mundo:has(#workflow-modal.d3m-f-rkj)) #mundo-hud > .vv-topo{visibility:visible;pointer-events:none}
-  :is(body.mundo.mundo-gestao,body.mundo:has(#workflow-modal.d3m-f-rkj)) #mundo-hud > .vv-topo .vv-ilha.vv-barra-topo{padding:23px 16px 0 0;background:none;box-shadow:none;pointer-events:none;align-items:flex-start}
-  :is(body.mundo.mundo-gestao,body.mundo:has(#workflow-modal.d3m-f-rkj)) #mundo-hud > .vv-topo .vv-ferramentas{justify-content:flex-end;gap:6px;pointer-events:none}
-  :is(body.mundo.mundo-gestao,body.mundo:has(#workflow-modal.d3m-f-rkj)) #mundo-hud > .vv-topo .vv-ferramentas > *{pointer-events:auto;margin-left:0}
-  :is(body.mundo.mundo-gestao,body.mundo:has(#workflow-modal.d3m-f-rkj)) #mundo-hud > .vv-topo .vv-ferramentas > .vv-botao,
-  :is(body.mundo.mundo-gestao,body.mundo:has(#workflow-modal.d3m-f-rkj)) #mundo-hud > .vv-topo .vv-mais-menu > summary.vv-botao{width:34px;max-width:34px;height:34px;min-width:0;padding:0;justify-content:center;border-radius:var(--d3-r-botao)}
-  :is(body.mundo.mundo-gestao,body.mundo:has(#workflow-modal.d3m-f-rkj)) #mundo-hud > .vv-topo .vv-ferramentas > .vv-botao.vv-busca-larga{flex:none;width:34px;margin-left:auto;margin-right:0;padding:0 0 0 9px;gap:0;color:var(--d3-fume-texto)}
-  :is(body.mundo.mundo-gestao,body.mundo:has(#workflow-modal.d3m-f-rkj)) #mundo-hud > .vv-topo .vv-busca-larga > :is(kbd,.vv-busca-texto){display:none}
-  :is(body.mundo.mundo-gestao,body.mundo:has(#workflow-modal.d3m-f-rkj)) #mundo-hud > .vv-topo .vv-topo-sala:not([hidden]){flex:none;min-width:34px;height:34px;margin:0;padding:0 4px;gap:0;justify-content:center;border-radius:var(--d3-r-botao);background:var(--d3-fume-veu);box-shadow:none;color:var(--d3-fume-texto)}
-  :is(body.mundo.mundo-gestao,body.mundo:has(#workflow-modal.d3m-f-rkj)) #mundo-hud > .vv-topo .vv-topo-sala :is(.vv-topo-sala-nome,.vv-topo-sala-entrar){display:none}
-  :is(body.mundo.mundo-gestao,body.mundo:has(#workflow-modal.d3m-f-rkj)) #mundo-hud > .vv-topo .vv-topo-sala-rostos > i:nth-child(n+2){display:none}
+  body.mundo.com-ranking-janela #mundo-hud > .vv-trilho{pointer-events:none}
+  :is(body.mundo.mundo-gestao,body.mundo.com-ranking-janela) #mundo-hud > .vv-topo{visibility:visible;pointer-events:none}
+  :is(body.mundo.mundo-gestao,body.mundo.com-ranking-janela) #mundo-hud > .vv-topo .vv-ilha.vv-barra-topo{padding:23px 16px 0 0;background:none;box-shadow:none;pointer-events:none;align-items:flex-start}
+  :is(body.mundo.mundo-gestao,body.mundo.com-ranking-janela) #mundo-hud > .vv-topo .vv-ferramentas{justify-content:flex-end;gap:6px;pointer-events:none}
+  :is(body.mundo.mundo-gestao,body.mundo.com-ranking-janela) #mundo-hud > .vv-topo .vv-ferramentas > *{pointer-events:auto;margin-left:0}
+  :is(body.mundo.mundo-gestao,body.mundo.com-ranking-janela) #mundo-hud > .vv-topo .vv-ferramentas > .vv-botao,
+  :is(body.mundo.mundo-gestao,body.mundo.com-ranking-janela) #mundo-hud > .vv-topo .vv-mais-menu > summary.vv-botao{width:34px;max-width:34px;height:34px;min-width:0;padding:0;justify-content:center;border-radius:var(--d3-r-botao)}
+  :is(body.mundo.mundo-gestao,body.mundo.com-ranking-janela) #mundo-hud > .vv-topo .vv-ferramentas > .vv-botao.vv-busca-larga{flex:none;width:34px;margin-left:auto;margin-right:0;padding:0 0 0 9px;gap:0;color:var(--d3-fume-texto)}
+  :is(body.mundo.mundo-gestao,body.mundo.com-ranking-janela) #mundo-hud > .vv-topo .vv-busca-larga > :is(kbd,.vv-busca-texto){display:none}
+  :is(body.mundo.mundo-gestao,body.mundo.com-ranking-janela) #mundo-hud > .vv-topo .vv-topo-sala:not([hidden]){flex:none;min-width:34px;height:34px;margin:0;padding:0 4px;gap:0;justify-content:center;border-radius:var(--d3-r-botao);background:var(--d3-fume-veu);box-shadow:none;color:var(--d3-fume-texto)}
+  :is(body.mundo.mundo-gestao,body.mundo.com-ranking-janela) #mundo-hud > .vv-topo .vv-topo-sala :is(.vv-topo-sala-nome,.vv-topo-sala-entrar){display:none}
+  :is(body.mundo.mundo-gestao,body.mundo.com-ranking-janela) #mundo-hud > .vv-topo .vv-topo-sala-rostos > i:nth-child(n+2){display:none}
   /* o cabeçalho da tela reserva o lugar dos botões do topo (7 de 34 px com 6 de vão, mais o respiro) */
   #ofc-ranking > .d3m-f-rk > .d3m-e-topo.d3m-e-topo,
   section.vv-gestao > .vv-g-corpo > .d3m-e-tela > .d3m-e-topo,
@@ -12459,8 +12459,13 @@ body.mundo #fc-overlay#fc-overlay .nd.nd-em-passos .nd-pe > #fc-nota{text-align:
   body.mundo #mundo-hud #vv-hoje .d3q .d3h-decidir.d3v-laranja > .d3h-decidir-acoes{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.4fr) 36px 36px;gap:6px}
   body.mundo #mundo-hud #vv-hoje .d3q .d3h-decidir.d3v-laranja > .d3h-decidir-acoes > .d3v-vao{display:none}
   body.mundo #mundo-hud #vv-hoje .d3q .d3h-decidir.d3v-laranja > .d3h-decidir-acoes > .d3h-btn{height:36px;min-width:0;padding:0 8px}
-  body.mundo #mundo-hud #vv-hoje .d3q .d3h-tarefas > .d3h-filtros{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
-  body.mundo #mundo-hud #vv-hoje .d3q .d3h-tarefas > .d3h-filtros > *,body.mundo #mundo-hud #vv-hoje .d3q .d3h-tarefas > .d3h-filtros > .v2t-fichas > *{flex:none}
+  /* as abas (Hoje, Semana, Todas, Atrasadas, Feitas) numa linha própria que corre para o lado; a lupa e o "Por status" na
+     linha de baixo. Nenhum texto passa por cima de outro. */
+  body.mundo #mundo-hud #vv-hoje .d3q .d3h-tarefas > .d3h-filtros{flex-wrap:wrap;row-gap:8px}
+  body.mundo #mundo-hud #vv-hoje .d3q .d3h-tarefas > .d3h-filtros > .v2t-fichas{display:flex;flex:1 0 100%;flex-wrap:nowrap;gap:2px;min-width:0;overflow-x:auto;scrollbar-width:none}
+  body.mundo #mundo-hud #vv-hoje .d3q .d3h-tarefas > .d3h-filtros > .v2t-fichas > *{flex:none}
+  body.mundo #mundo-hud #vv-hoje .d3q .d3h-tarefas > .d3h-filtros > .v2t-busca{margin-left:0}
+  body.mundo #mundo-hud #vv-hoje .d3q .d3h-tarefas > .d3h-filtros > .d3h-btn{margin-left:auto}
   /* Visão geral do setor: uma coluna só na ordem do que importa (os números, o laranja, Pede ação e as linhas que abrem) */
   body.mundo section.vv-setor-visao.vv-setor-visao .g2.vst{display:flex;flex-direction:column;gap:10px}
   body.mundo section.vv-setor-visao.vv-setor-visao .vst > :is(.vst-esq,.vst-dir),
@@ -12587,6 +12592,9 @@ body.mundo #mundo-hud > #vv-placa > .vv-elevador-lista > .vv-elevador-aviso{marg
 @media (max-width:900px){
   body.mundo.mundo-centro:not(.d3c-painel) #mundo-hud > #vv-placa:has(> .vv-elevador-lista){top:auto;bottom:var(--vv-pe-janela,76px);left:var(--vv-m,8px);right:var(--vv-m,8px);width:auto;max-height:min(46dvh,420px);overflow-y:auto;overscroll-behavior:contain;z-index:6}
 }
+
+/* o chip da miniatura ("Reels · sem arquivo") corta com reticências dentro dele, em qualquer tamanho */
+body.mundo #mundo-hud #vv-hoje .d3q .d3h-arte > span:not([class]){display:block;line-height:20px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
 /* ===== padrao-v2/status.css ===== */
 /* PADRÃO V2 · TROCA DE STATUS (quadro Status do moodboard): menu curto com próximo, seguinte e volta; "Todos os N status".
