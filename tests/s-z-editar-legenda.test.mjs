@@ -17,7 +17,7 @@ const esc = (t) => String(t ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '
 // O pedaço da mesa que lê e grava os textos, com um DOM mínimo (elementos por id) e as gravações de mentira.
 function mesa() {
   const els = new Map();
-  const el = (id) => { if (!els.has(id)) els.set(id, { id, hidden: true, disabled: false, textContent: '', innerHTML: '', value: '', classes: new Set(), addEventListener() {}, focus() {}, setSelectionRange() {} }); const x = els.get(id); x.classList ??= { toggle: (k, on) => (on ? x.classes.add(k) : x.classes.delete(k)), contains: (k) => x.classes.has(k) }; return x; };
+  const el = (id) => { if (!els.has(id)) els.set(id, { id, hidden: true, disabled: false, textContent: '', innerHTML: '', value: '', classes: new Set(), addEventListener() {}, focus() {}, setSelectionRange() {} }); const x = els.get(id); x.classList ??= { add: (k) => x.classes.add(k), remove: (k) => x.classes.delete(k), toggle: (k, on) => (on ? x.classes.add(k) : x.classes.delete(k)), contains: (k) => x.classes.has(k) }; return x; };
   const _ignorar = () => { return els.get(id); };
   const chamadas = { fetch: [], briefing: [], historico: [], toast: [] };
   const c = vm.createContext({
@@ -170,7 +170,9 @@ test('a janela: os botões no cabeçalho dos blocos, Cancelar volta o texto, e a
   const antes = el('vbc-briefing-corpo').innerHTML;
   c.editarTextoDaConferencia('briefing');
   assert.equal(el('vbc-briefing-editar').hidden, true);
+  assert.equal(el('vbc-briefing').classList.contains('vbc-editando'), true, 'editando, o bloco cresce');
   c.cancelarTextoDaConferencia();
+  assert.equal(el('vbc-briefing').classList.contains('vbc-editando'), false);
   assert.equal(el('vbc-briefing-corpo').innerHTML, antes);
   assert.equal(el('vbc-briefing-editar').hidden, false);
 });
