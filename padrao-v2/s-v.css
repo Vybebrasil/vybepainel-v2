@@ -25,13 +25,23 @@
 
 /* Hoje com o menu largo (ou janela estreita, 1280 a 1440): os cartões ficam com 360 a 440 px. No Pede ação o nome do
    cliente encolhia a 2 ou 3 letras; com pouco espaço, o status fica só no ponto colorido (o nome inteiro continua no
-   title da linha) e o nome ganha a largura. Os botões do Para você decidir e do laranja quebram linha em vez de passar
-   da borda do cartão (Pedir alteração e a seta da próxima peça ficavam cortados). */
+   title da linha) e o nome ganha a largura. No Para você decidir, com a faixa de baixo estreita, a imagem encolhe e os
+   botões vão para uma linha inteira embaixo (como já era abaixo de 900 px): Pedir alteração e a seta da próxima peça
+   saíam do cartão. No laranja, os botões quebram linha. */
 #vv-hoje .d3h-cartao > .d3h-corpo{container-type:inline-size}
 @container (max-width:440px){
   #vv-hoje .d3h-lin > .d3h-st .d3v-st{gap:0;font-size:0}
 }
-#vv-hoje .d3h-decidir-acoes{flex-wrap:wrap;row-gap:8px}
+#vv-hoje .d3h-decidir.d3v-laranja > .d3h-decidir-acoes{flex-wrap:wrap;row-gap:8px}
+/* (classe repetida: os fragmentos zm-* vêm depois deste e têm a mesma força) */
+#vv-hoje .d3q-main > .d3q-pe{container:svpe / inline-size}
+@container svpe (max-width:760px){
+  #vv-hoje .d3q .d3v-leque.d3v-leque{grid-template-columns:120px minmax(0,1fr);column-gap:14px}
+  #vv-hoje .d3q .d3v-leque.d3v-leque > .d3h-decidir-acoes{grid-column:1 / -1;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.4fr) 40px 40px;margin-top:12px}
+  #vv-hoje .d3q .d3v-leque.d3v-leque > .d3h-decidir-acoes > .d3v-vao{display:none}
+  #vv-hoje .d3q .d3v-leque.d3v-leque > .d3h-decidir-acoes > .d3h-btn{width:auto;padding:0 8px}
+  #vv-hoje .d3q .d3v-leque.d3v-leque .d3h-arte{height:100%}
+}
 /* Celular: alvo de toque com pelo menos 28 px de altura (a varredura achou chips de 26 px no Nova demanda, links de 15 px
    e o seletor do mês da agenda com 22 px). Só cresce a área de toque; texto, cor e função ficam iguais. */
 @media (max-width:600px){

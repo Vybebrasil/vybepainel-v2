@@ -41,7 +41,14 @@ test('Demandas numa coluna: a lista vem antes da consulta', () => {
 
 test('Hoje, Minhas tarefas e Direção de arte: cartões estreitos não espremem o texto', () => {
   assert.match(css, /#vv-hoje \.d3h-cartao > \.d3h-corpo\{container-type:inline-size\}/);
-  assert.match(css, /#vv-hoje \.d3h-decidir-acoes\{flex-wrap:wrap;row-gap:8px\}/);
+  assert.match(css, /#vv-hoje \.d3h-decidir\.d3v-laranja > \.d3h-decidir-acoes\{flex-wrap:wrap;row-gap:8px\}/);
+  // Para você decidir com a faixa de baixo estreita: imagem menor e botões numa linha inteira, sem quebrar por cima do texto
+  assert.match(css, /#vv-hoje \.d3q-main > \.d3q-pe\{container:svpe \/ inline-size\}/);
+  const pe = trecho(css, '@container svpe (max-width:760px){', '\n}\n');
+  assert.match(pe, /\.d3v-leque\.d3v-leque\{grid-template-columns:120px minmax\(0,1fr\);column-gap:14px\}/);
+  assert.match(pe, /\.d3v-leque\.d3v-leque > \.d3h-decidir-acoes\{grid-column:1 \/ -1;display:grid;/);
+  assert.match(pe, /\.d3v-leque\.d3v-leque \.d3h-arte\{height:100%\}/);
+  assert.doesNotMatch(css, /^#vv-hoje \.d3h-decidir-acoes\{flex-wrap/m, 'quebrar linha no Para você decidir jogava os botões por cima do texto (1440/1536)');
   assert.match(css, /#vv-hoje \.d3q \.d3h-ola > small\{max-width:100%;white-space:normal\}/);
   assert.match(css, /#vv-hoje \.d3m-a-da \.d3m-a-da-arte\{container-type:inline-size\}/);
   assert.match(css, /@container \(max-width:320px\)\{\n  #vv-hoje \.d3m-a-da-arte \.d3m-a-da-img\{width:96px;height:128px\}/);
