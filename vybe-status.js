@@ -387,6 +387,8 @@ async function commitStatusChange(item, option) {
   } finally {
     statusEmGravacao.delete(id);
   }
+  // Quem chamou sabe se a troca entrou (o Checklist de qualidade oferece "Conferir a próxima" só depois de dar certo).
+  return confirmado;
 }
 // O servidor recusa um status que o quadro nao tem, e a mensagem dele e para
 // quem escreveu o banco. Quem esta na tela precisa saber o que FAZER — e a

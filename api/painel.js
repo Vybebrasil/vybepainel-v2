@@ -15,7 +15,7 @@ import { trocarEscolha, trocarStatus, comentar, criarConteudoNaTransacao } from 
 import { salvarHeadsCliente } from '../server/clientes-heads.js';
 import { garantirCicloDeVida, criarCliente, cicloCliente, criarPessoa, cicloPessoa, listarSubsolo } from '../server/ciclo-de-vida.js';
 import { areaPlanejamentos, paginaDeAprovacao, conectorAgentes, portalDoCliente, logoDoCliente } from '../server/planejamentos-api.js';
-import { pecaDoPlanejamento } from '../server/planejamentos.js';
+import { pecaDoPlanejamento, podeEditarLegendaDaPeca } from '../server/planejamentos.js';
 import { areaVybes } from '../server/vybes.js';
 // api/painel.js — as telas que o painel ganhou depois do Monday.
 //
@@ -540,6 +540,8 @@ async function areaPeca(req, res, quem) {
   // A peça do planejamento aprovado (legenda e pedido), para a conferência do checklist. Só leitura; qualquer falha
   // (tabela ausente, banco lento, leitura isolada da ficha) vira null e a ficha abre igual.
   const planejamento = await Promise.resolve().then(() => pecaDoPlanejamento(db, c.id)).catch(() => null);
+  // Quem pode editar essa legenda ali mesmo (frente s-z): a permissão de editar o planejamento. Falha vira false (sem botão).
+  if (planejamento) planejamento.pode_editar = await Promise.resolve().then(() => podeEditarLegendaDaPeca(db, quem?.pessoa, c.id)).catch(() => false);
   return res.status(200).json({
     ok: true,
     id: item,

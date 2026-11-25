@@ -96,14 +96,27 @@ export function escolherDaPasta(arquivos = [], peca = {}) {
   const imagens = grupo.filter((a) => a.tipo === 'imagem').sort(pelaOrdem);
   const videos = grupo.filter((a) => a.tipo === 'video').map((a, i) => ({ a, i, nota: notaDoVideo(a, peca) })).sort((x, y) => y.nota - x.nota || x.i - y.i).map((x) => x.a);
   const escolha = imagens.length > 1 || (!videos.length && imagens.length) ? imagens[0] : videos[0];
-  return escolha ? { ...escolha, n: imagens.length > 1 ? imagens.length : 0 } : null;
+  // Frente s-z (25/11/2026, "um botão pra ir pro próximo ou voltar"): o grupo inteiro vai junto (as imagens pela ordem do
+  // número no nome, 01, 02…, e os vídeos depois), para a conferência passar entre todos os arquivos da peça em vez de
+  // mostrar só o primeiro com "1 de N na pasta". A escolha da capa (o baralho) não muda.
+  const grupoTodo = [...imagens, ...videos].slice(0, ITENS_DA_PASTA_MAX);
+  return escolha ? { ...escolha, n: imagens.length > 1 ? imagens.length : 0, ...(grupoTodo.length > 1 ? { grupo: grupoTodo } : {}) } : null;
 }
+export const ITENS_DA_PASTA_MAX = 30;
 
+// Um arquivo da pasta como a conferência mostra: a miniatura pequena (a fita embaixo do palco), a grande (o palco) e o
+// vídeo pelo quadro assinado. A assinatura não leva o tamanho, então a grande é a mesma URL com outro sz.
+const itemDaPasta = (a) => ({
+  id: a.id, tipo: a.tipo, nome: String(a.nome || ''), abrir: `https://drive.google.com/file/d/${a.id}/view`,
+  thumb: a.miniatura ? miniaturaDaEntrega(a.id) : null, grande: a.miniatura ? miniaturaDaEntrega(a.id, 1600) : null,
+  ...(a.tipo === 'video' ? { quadro: videoDaEntrega(a.id) } : {}),
+});
 const previaDoArquivo = (a, url) => ({
   tipo: a.tipo, thumb: a.miniatura ? miniaturaDaEntrega(a.id) : null, abrir: `https://drive.google.com/file/d/${a.id}/view`,
   nome: String(a.nome || ''), n: a.n || 0, fonte: 'entrega', link: url,
   // Vídeo: o endereço do quadro de ~1 s (area=video_entrega), que a carta usa quando a miniatura do Drive vem preta.
   ...(a.tipo === 'video' ? { quadro: videoDaEntrega(a.id) } : {}),
+  ...(Array.isArray(a.grupo) && a.grupo.length > 1 ? { itens: a.grupo.map(itemDaPasta) } : {}),
 });
 // Quando não dá para ler o Drive (sem acesso, fora do Drive): a prévia diz que há link de entrega, com ▶ quando é vídeo.
 const soOLink = (url, video) => ({ tipo: video ? 'video' : 'link', thumb: null, abrir: url, nome: video ? 'Vídeo · link de entrega' : 'Link de entrega', n: 0, fonte: 'entrega', link: url });
@@ -150,8 +163,11 @@ export async function areaPreviaEntrega(req, res, quem, { db, listar, arquivo, a
         EXISTS(SELECT 1 FROM vybe_conteudo_arquivos a WHERE a.conteudo_id = c.id AND a.ausente_em IS NULL) AS tem_arquivo
       FROM vybe_conteudos c WHERE (c.monday_item_id = ${item} OR c.id = ${local}) AND c.removido_em IS NULL`;
   if (!c) return res.status(404).json({ error: 'Conteúdo não encontrado no banco.' });
-  // Com arquivo anexado a prévia é a do arquivo (area=arquivos / area=peca); o link de entrega só entra sem nenhum.
-  if (c.tem_arquivo) return res.status(200).json({ ok: true, previa: null, motivo: 'tem_arquivo' });
+  // Com arquivo anexado a prévia é a do arquivo (area=arquivos / area=peca); o link de entrega só entra sem nenhum. A
+  // conferência (frente s-z) pede com todos=1: ela junta os anexos com a pasta de entrega, porque o "01" anexado costuma
+  // ter o "02" e o "03" só na pasta.
+  const todos = String(req.query?.todos || '') === '1';
+  if (c.tem_arquivo && !todos) return res.status(200).json({ ok: true, previa: null, motivo: 'tem_arquivo' });
   const notas = await db`SELECT corpo FROM vybe_conteudo_updates WHERE conteudo_id = ${c.id}
       AND corpo ~* 'Link de entrega|Link final|Entrega final' ORDER BY criado_em DESC NULLS LAST, id DESC LIMIT 5`;
   const url = linkDeEntrega(notas);

@@ -68,6 +68,9 @@ export async function areaPlanejamentos(req, res, quem, sql) {
   if (acao === 'aprovar_head') return res.status(200).json({ ok: true, planejamento: await P.aprovarPeloHead(sql, pessoa, b) });
   if (acao === 'revisar_peca') return res.status(200).json({ ok: true, resumo: await P.revisarPecaHead(sql, pessoa, b) });
   if (acao === 'comentar') return res.status(200).json(await P.comentarPlanejamento(sql, pessoa, b));
+  // A legenda de uma peça do planejamento aprovado, editada no Checklist de qualidade (frente s-z): só o campo legenda, a
+  // mesma permissão de editar o planejamento (P.editarLegendaDaPeca).
+  if (acao === 'legenda_da_peca') return res.status(200).json({ ok: true, ...(await P.editarLegendaDaPeca(sql, pessoa, b)) });
   if (acao === 'identidade') {
    if (!await P.podeEditarCliente(sql, pessoa, b.cliente_id)) return res.status(403).json({ error: 'Só o head do cliente e quem administra mudam a identidade.' });
    const limpa = { cor: /^#[0-9a-f]{6}$/i.test(b.cor || '') ? b.cor : null, cor_apoio: /^#[0-9a-f]{6}$/i.test(b.cor_apoio || '') ? b.cor_apoio : null,

@@ -242,15 +242,16 @@ function janelaDeConferenciaHtml({ item, option, titulo, sub, cab, idForm = '', 
       <div class="vbc-dir vbc-bloco" id="vbc-bloco-peca">
         <div class="vbc-prev-cab"><b>A peça</b><span id="vbc-prev-info">procurando</span></div>
         <div id="material-review-preview" class="vbc-palco"><div class="vbc-vazio">Carregando a peça…</div></div>
+        <div id="vbc-fita" class="vbc-fita" role="group" aria-label="Arquivos da peça" hidden></div>
         <div id="vbc-prev-acoes" class="vbc-prev-acoes"></div>
       </div>
       <div class="vbc-textos">
         <section id="vbc-legenda" class="vbc-bloco vbc-texto" aria-labelledby="vbc-legenda-tit">
-          <div class="vbc-bloco-cab"><b id="vbc-legenda-tit">Legenda</b><span id="vbc-legenda-info" class="vbc-bloco-info"></span><button type="button" id="vbc-legenda-copiar" class="vbj-btn vbc-copiar" hidden onclick="copiarLegendaDaConferencia()">Copiar</button></div>
+          <div class="vbc-bloco-cab"><b id="vbc-legenda-tit">Legenda</b><span id="vbc-legenda-info" class="vbc-bloco-info"></span><button type="button" id="vbc-legenda-editar" class="vbj-btn vbc-editar" hidden onclick="editarTextoDaConferencia('legenda')">Editar</button><button type="button" id="vbc-legenda-copiar" class="vbj-btn vbc-copiar" hidden onclick="copiarLegendaDaConferencia()">Copiar</button></div>
           <div id="vbc-legenda-corpo" class="vbc-bloco-corpo" tabindex="0" aria-label="Texto da legenda"><p class="vbc-bloco-vazio">Carregando…</p></div>
         </section>
         <section id="vbc-briefing" class="vbc-bloco vbc-texto" aria-labelledby="vbc-briefing-tit">
-          <div class="vbc-bloco-cab"><b id="vbc-briefing-tit">Briefing</b><span id="vbc-briefing-info" class="vbc-bloco-info"></span></div>
+          <div class="vbc-bloco-cab"><b id="vbc-briefing-tit">Briefing</b><span id="vbc-briefing-info" class="vbc-bloco-info"></span><button type="button" id="vbc-briefing-editar" class="vbj-btn vbc-editar" hidden onclick="editarTextoDaConferencia('briefing')">Editar</button></div>
           <div id="vbc-briefing-corpo" class="vbc-bloco-corpo" tabindex="0" aria-label="Briefing da peça"><p class="vbc-bloco-vazio">Carregando…</p></div>
         </section>
       </div>
@@ -278,6 +279,35 @@ function alvoDoCheckDaConferencia(texto) {
 // há arquivo nem link. Vídeo anexado toca pelo download autenticado (area=baixar) até 60 MB, como a prévia do Conteúdo;
 // acima disso, a capa com "Abrir". Itens: { tipo: imagem | video, src, capa, nome, abrir, imagem (índice na Prévia grande) }.
 const VIDEO_ANEXO_TETO = 60 * 1024 * 1024;
+// A ORDEM DOS ARQUIVOS DA PEÇA (frente s-z): pelo número do fim do nome ("… QUARTA SEM PRESSA - 01.png", 02, 03…), que é
+// como o time numera as lâminas. Sem número, o arquivo fica depois dos numerados, na ordem em que veio (o vídeo antes da
+// capa, como antes). Repetido (o mesmo arquivo anexado e na pasta, pelo id do Drive ou pelo nome) entra uma vez só, o
+// anexo primeiro.
+function numeroDoArquivo(nome) {
+  const m = String(nome || '').replace(/\.[a-z0-9]{2,5}$/i, '').match(/(\d{1,4})\D*$/);
+  return m ? Number(m[1]) : null;
+}
+function juntarArquivosDaPeca(anexos = [], daPasta = []) {
+  const vistos = new Set(), todos = [];
+  for (const it of [...anexos, ...daPasta]) {
+    const nome = String(it?.nome || '').trim().toLowerCase(), chave = String(it?.chave || '');
+    if ((chave && vistos.has('id:' + chave)) || (nome && vistos.has('nome:' + nome))) continue;
+    if (chave) vistos.add('id:' + chave);
+    if (nome) vistos.add('nome:' + nome);
+    todos.push(it);
+  }
+  return todos.map((it, i) => ({ it, i, n: numeroDoArquivo(it.nome) }))
+    .sort((a, b) => (a.n ?? Infinity) - (b.n ?? Infinity) || a.i - b.i).map((x) => x.it);
+}
+// Um arquivo da pasta de entrega (server/previa-entrega.js, itemDaPasta) no formato do palco.
+function itemDaPastaNaConferencia(x) {
+  if (!x || (x.tipo !== 'imagem' && x.tipo !== 'video')) return null;
+  const capa = x.thumb || '';
+  const it = x.tipo === 'video'
+    ? { tipo: 'video', src: x.quadro || '', capa, nome: String(x.nome || 'Vídeo da pasta'), abrir: x.abrir || '' }
+    : { tipo: 'imagem', src: x.grande || capa, capa, nome: String(x.nome || 'Imagem da pasta'), abrir: x.abrir || '' };
+  return it.src || it.capa ? { ...it, chave: String(x.id || ''), origem: 'entrega' } : null;
+}
 function midiaDaConferencia(detail, entrega = null) {
   const ehVideo = typeof eVideoDoMaterial === 'function' ? eVideoDoMaterial
     : (a) => /^\.?(mp4|mov|webm|m4v|avi|mkv)$/i.test(String(a?.file_extension || '')) || /\.(mp4|mov|webm|m4v)(?:$|[?#])/i.test(String(a?.name || ''));
@@ -286,12 +316,24 @@ function midiaDaConferencia(detail, entrega = null) {
   const videos = todos.filter(ehVideo).map((a) => {
     const bytes = Number(a.file_size || 0), local = a.local_id && bytes > 0 && bytes <= VIDEO_ANEXO_TETO;
     return { tipo: 'video', src: local ? `/api/painel?area=baixar&arquivo=${encodeURIComponent(a.local_id)}` : '', capa: a.url_thumbnail || '',
-      nome: String(a.name || 'Vídeo anexado'), abrir: a.link_drive || a.public_url || a.url || '' };
+      nome: String(a.name || 'Vídeo anexado'), abrir: a.link_drive || a.public_url || a.url || '', chave: String(a.id || '') };
   });
-  const itens = [...videos, ...imagens.map((a, i) => ({ tipo: 'imagem', src: a.public_url || a.url || a.url_thumbnail || '', capa: a.url_thumbnail || '',
-    nome: String(a.name || 'Imagem anexada'), abrir: a.link_drive || a.public_url || a.url || '', imagem: i }))].filter((x) => x.src || x.capa);
-  if (itens.length) return { fonte: 'anexo', itens, n: itens.length, abrir: itens[0].abrir };
+  const anexos = [...videos, ...imagens.map((a) => ({ tipo: 'imagem', src: a.public_url || a.url || a.url_thumbnail || '', capa: a.url_thumbnail || '',
+    nome: String(a.name || 'Imagem anexada'), abrir: a.link_drive || a.public_url || a.url || '', chave: String(a.id || ''), asset: a }))].filter((x) => x.src || x.capa);
   const e = entrega && typeof entrega === 'object' ? entrega : null;
+  // Frente s-z: os arquivos da pasta do link de entrega (previa_entrega com a lista inteira) entram junto com os anexos.
+  // O "01" anexado com o "02" e o "03" só na pasta era o caso do print (Gonzalez, "Dezembro começa à mesa").
+  const daPasta = Array.isArray(e?.itens) ? e.itens.map(itemDaPastaNaConferencia).filter(Boolean) : [];
+  if (anexos.length || daPasta.length) {
+    const itens = juntarArquivosDaPeca(anexos, daPasta);
+    // As imagens, na ordem do palco, são as da Prévia grande (Ver grande passa entre todas, as da pasta também).
+    const material = [];
+    for (const it of itens) if (it.tipo === 'imagem') { it.imagem = material.length; material.push(it.asset || { name: it.nome, url_thumbnail: it.capa, public_url: it.src, link_drive: it.abrir }); }
+    itens.forEach((it) => { delete it.asset; delete it.chave; });
+    const fonte = anexos.length ? 'anexo' : 'entrega';
+    const comPasta = anexos.length > 0 && itens.some((it) => it.origem === 'entrega');
+    return { fonte, itens, n: itens.length, abrir: fonte === 'entrega' ? (e.abrir || e.link || itens[0].abrir) : itens[0].abrir, material, comPasta };
+  }
   if (e) {
     const abrir = e.abrir || e.link || '';
     // quadroDe: a miniatura que o Conteúdo mediu e achou preta (vybe-mundo-conteudo.js); ela não serve de capa.
@@ -363,10 +405,11 @@ function palcoDaConferenciaHtml(midia, indice = 0) {
       : '<div class="vbc-vazio"><b>Sem prévia</b>Nenhum arquivo ou link de entrega foi localizado nesta peça.</div>';
   }
   const total = midia.itens.length;
+  // Frente s-z: setas grandes sobre a mídia (← → no teclado) e o "i de N" no alto do palco.
   const setas = total > 1
-    ? `<button type="button" class="vbj-ic vbc-seta antes" aria-label="Anterior" title="Anterior" onclick="passarPreviaDaConferencia(-1)">${vbjIcone('esq', 16)}</button><button type="button" class="vbj-ic vbc-seta depois" aria-label="Próxima" title="Próxima" onclick="passarPreviaDaConferencia(1)">${vbjIcone('dir', 16)}</button>`
+    ? `<button type="button" class="vbj-ic vbc-seta antes" aria-label="Arquivo anterior" title="Arquivo anterior (←)" onclick="passarPreviaDaConferencia(-1)">${vbjIcone('esq', 22)}</button><button type="button" class="vbj-ic vbc-seta depois" aria-label="Próximo arquivo" title="Próximo arquivo (→)" onclick="passarPreviaDaConferencia(1)">${vbjIcone('dir', 22)}</button><span class="vbc-midia-conta" aria-live="polite">${indice + 1} de ${total}</span>`
     : '';
-  const pasta = midia.fonte === 'entrega' && midia.n > 1 ? ` · 1 de ${midia.n} na pasta` : '';
+  const pasta = midia.fonte === 'entrega' && midia.n > total && total < 2 ? ` · 1 de ${midia.n} na pasta` : '';
   const conta = total > 1 ? `${indice + 1} de ${total} · ` : '';
   const legenda = `<small id="material-review-caption" class="vbc-legenda">${safeText(conta + (it.nome || 'Peça') + pasta)}</small>`;
   if (it.tipo === 'video' && it.src) {
@@ -385,10 +428,11 @@ function openQualityGate(item, option) {
     cab: `Antes de mandar para ${option.label}`, idForm: 'quality-checklist-form', mudar: 'updateQualityGateState()', checks: qualityChecklistFor(item),
     nota: 'O registro fica no histórico da peça. Alterações diretas no Monday não passam por esta conferência.',
     idBotao: 'quality-submit', onclick: 'submitQualityChecklist()', acao: 'Continuar' }), 'vbc vbc-mesa');
+  ligarFilaDaConferencia(item, option, 'qualidade');
   loadMaterialReviewPreview(item.id);
   updateQualityGateState();
 }
-async function submitQualityChecklist() { const flow=pendingWorkflowChange; const form=document.getElementById('quality-checklist-form'); if (!flow || !form) return; const checks=[...form.querySelectorAll('label')].map(label=>label.textContent.trim()).filter(Boolean); const button=document.getElementById('quality-submit'); if (button) button.disabled=true; try { await postItemUpdate(flow.item.id, `[Vybe OS · Checklist de qualidade]\nDestino: ${flow.option.label}\nFormato: ${flow.item.formato || flow.item.tipo || 'Conteúdo'}\nValidado: ${checks.join(' | ')}`); const {item,option}=flow; closeWorkflowModal(); if(statusNeedsMaterialReview(option)) return openMaterialReviewGate(item,option); if (statusNeedsHandoff(item,option)) openHandoffGate(item,option); else await commitStatusChange(item,option); } catch(e) { if(button) button.disabled=false; showToast(`Não foi possível registrar o checklist: ${e.message}`,'err',7000); } }
+async function submitQualityChecklist() { const flow=pendingWorkflowChange; const form=document.getElementById('quality-checklist-form'); if (!flow || !form) return; const checks=[...form.querySelectorAll('label')].map(label=>label.textContent.trim()).filter(Boolean); const button=document.getElementById('quality-submit'); if (button) button.disabled=true; try { await postItemUpdate(flow.item.id, `[Vybe OS · Checklist de qualidade]\nDestino: ${flow.option.label}\nFormato: ${flow.item.formato || flow.item.tipo || 'Conteúdo'}\nValidado: ${checks.join(' | ')}`); const {item,option}=flow; const seguinte=proximaDaConferencia(); closeWorkflowModal(); if(statusNeedsMaterialReview(option)) return openMaterialReviewGate(item,option); if (statusNeedsHandoff(item,option)) openHandoffGate(item,option); else oferecerProximaConferencia(seguinte, await commitStatusChange(item,option)); } catch(e) { if(button) button.disabled=false; showToast(`Não foi possível registrar o checklist: ${e.message}`,'err',7000); } }
 function materialReviewChecklistFor(item, option) { const target=normalizedWorkflowStatus(option?.label); const scheduled=target==='agendado'; const format=String(item?.formato||item?.tipo||'conteúdo'); return scheduled ? [`Conferi a prévia final de ${format} antes do agendamento`,`Confirmei que legenda, CTA, canal e data de publicação estão corretos`,`O arquivo ou link aberto corresponde a esta demanda`] : [`Conferi a prévia do material entregue ou publicado`,`Confirmei que o destino final corresponde a esta demanda`,`Não há pendência de publicação ou material incorreto antes de finalizar`]; }
 function updateMaterialReviewState(){ pintarConferidos(document.getElementById('material-review-form')); const checks=[...document.querySelectorAll('input[data-material-review-check]')]; const button=document.getElementById('material-review-submit'); if(button) button.disabled=!checks.length||checks.some(check=>!check.checked); }
 function materialReviewPreviewFailed(image){ const fallback=String(image?.dataset?.fallbackSrc||''); if(fallback&&image.dataset.fallbackTried!=='true'){ image.dataset.fallbackTried='true'; image.src=fallback; return; } const holder=image.closest('.vbc-palco'); if(holder) holder.innerHTML='<div class="vbc-vazio"><b>Prévia indisponível</b>Abra o material vinculado para conferir o arquivo final.</div>'; }
@@ -405,6 +449,27 @@ function acoesDaPreviaDaConferencia({ temArte = false, abrir = '' } = {}) {
 let MIDIA_DA_CONFERENCIA = { fonte: 'nada', itens: [], n: 0, abrir: '' };
 let MIDIA_DA_CONFERENCIA_INDICE = 0;
 let LEGENDA_DA_CONFERENCIA = '';
+// O detalhe da peça aberta na mesa (a legenda e o briefing editados ali saem dele e voltam para ele).
+let DETALHE_DA_CONFERENCIA = null;
+// Só o link de entrega registrado conta (a nota "[Vybe OS · Link de entrega]"): workspaceDeliveryInfo cai no próprio
+// anexo quando não há link, e o anexo já está no palco.
+function linkDeEntregaDaConferencia(detail) {
+  const d = typeof workspaceDeliveryInfo === 'function' ? workspaceDeliveryInfo(detail) : null;
+  return d?.url && d.label === 'LINK DE ENTREGA REGISTRADO' ? d.url : '';
+}
+const ehPastaDoDrive = (url) => /drive\.google\.com\/drive\/(?:u\/\d+\/)?folders\//i.test(String(url || ''));
+// A pasta da entrega com a lista inteira, mesmo com anexo (todos=1, server/previa-entrega.js). null em 15 s no pior caso.
+function pastaDaEntregaDaConferencia(itemId, prazo = 15000) {
+  const pedido = fetch(`/api/painel?area=previa_entrega&todos=1&item=${encodeURIComponent(String(itemId || ''))}`, { credentials: 'same-origin' })
+    .then((r) => (r.ok ? r.json() : null)).then((d) => d?.previa || null).catch(() => null);
+  return Promise.race([pedido, new Promise((ok) => setTimeout(() => ok(null), prazo))]);
+}
+function infoDaMidiaDaConferencia(midia) {
+  const n = midia.itens.length;
+  if (midia.fonte === 'anexo') return midia.comPasta ? `anexo e pasta de entrega · ${n} arquivos` : n > 1 ? `anexo · ${n} arquivos` : 'anexo da peça';
+  if (midia.fonte === 'entrega') return n > 1 ? `link de entrega · ${n} arquivos` : 'link de entrega';
+  return 'sem arquivo';
+}
 async function loadMaterialReviewPreview(itemId){
   const holder=document.getElementById('material-review-preview');
   if(!holder) return;
@@ -417,15 +482,26 @@ async function loadMaterialReviewPreview(itemId){
     holder.innerHTML='<div class="vbc-vazio"><b>Prévia indisponível</b>Não foi possível carregar os arquivos da demanda agora. Feche e tente novamente antes de confirmar.</div>';
     if(info) info.textContent='indisponível';
     acoesDaPreviaDaConferencia({});
+    DETALHE_DA_CONFERENCIA=null;
     pintarTextosDaConferencia(null);
     return;
   }
   if(!document.body.contains(holder)) return;
+  DETALHE_DA_CONFERENCIA=detail;
   pintarTextosDaConferencia(detail);
-  const imagens=statusContextPreviewAssets(detail).filter((a)=>!(typeof eVideoDoMaterial==='function'&&eVideoDoMaterial(a)));
-  PREVIA_MATERIAL=imagens; PREVIA_DA_PECA='';
+  PREVIA_DA_PECA='';
   PREVIA_GRANDE_INDICE=0;
+  const mostrar=(midia, manter='')=>{
+    // Ao chegar a pasta, o palco fica no mesmo arquivo que a pessoa está vendo (pelo nome), não volta para o 1.
+    const i=manter ? midia.itens.findIndex((x)=>x.nome===manter) : -1;
+    MIDIA_DA_CONFERENCIA=midia; MIDIA_DA_CONFERENCIA_INDICE=i>=0?i:0;
+    PREVIA_MATERIAL=midia.material||[];
+    pintarPalcoDaConferencia();
+    if(info) info.textContent=infoDaMidiaDaConferencia(midia);
+    acoesDaPreviaDaConferencia({ temArte: PREVIA_MATERIAL.length>0, abrir: midia.abrir||'' });
+  };
   let midia=midiaDaConferencia(detail);
+  const link=linkDeEntregaDaConferencia(detail);
   if(midia.fonte==='nada'){
     const delivery=workspaceDeliveryInfo(detail);
     if(delivery?.url){
@@ -435,11 +511,17 @@ async function loadMaterialReviewPreview(itemId){
       if(!document.body.contains(holder)) return;
       midia=midiaDaConferencia(detail, previa || { abrir: delivery.url });
     }
+    return mostrar(midia);
   }
-  MIDIA_DA_CONFERENCIA=midia; MIDIA_DA_CONFERENCIA_INDICE=0;
-  pintarPalcoDaConferencia();
-  if(info) info.textContent=midia.fonte==='anexo'?(midia.itens.length>1?`anexo · ${midia.itens.length} arquivos`:'anexo da peça'):midia.fonte==='entrega'?'link de entrega':'sem arquivo';
-  acoesDaPreviaDaConferencia({ temArte: imagens.length>0, abrir: midia.abrir||'' });
+  mostrar(midia);
+  // Com anexo e link de entrega para uma pasta: os outros arquivos da peça costumam estar só lá. Mostra o anexo já e
+  // junta a pasta quando ela chegar.
+  if(midia.fonte==='anexo' && ehPastaDoDrive(link)){
+    const previa=await pastaDaEntregaDaConferencia(itemId);
+    if(!document.body.contains(holder) || !Array.isArray(previa?.itens)) return;
+    const junta=midiaDaConferencia(detail, previa);
+    if(junta.itens.length>midia.itens.length) mostrar(junta, MIDIA_DA_CONFERENCIA.itens[MIDIA_DA_CONFERENCIA_INDICE]?.nome||'');
+  }
 }
 function pintarPalcoDaConferencia(){
   const holder=document.getElementById('material-review-preview');
@@ -448,6 +530,31 @@ function pintarPalcoDaConferencia(){
   const v=holder.querySelector('video'); if(v) v.muted=true;
   const it=MIDIA_DA_CONFERENCIA.itens[MIDIA_DA_CONFERENCIA_INDICE];
   if(Number.isInteger(it?.imagem)) PREVIA_GRANDE_INDICE=it.imagem;
+  pintarFitaDaConferencia();
+}
+// A fita de miniaturas embaixo do palco (só com mais de um arquivo): tocar numa leva o palco até ela.
+function fitaDaConferenciaHtml(midia, indice = 0) {
+  const itens = midia?.itens || [];
+  if (itens.length < 2) return '';
+  return itens.map((it, i) => {
+    const capa = it.capa || (it.tipo === 'imagem' ? it.src : '');
+    const rosto = capa ? `<img src="${safeText(capa)}" alt="" loading="lazy">` : `<span class="vbc-fita-sem" aria-hidden="true">${it.tipo === 'video' ? '▶' : i + 1}</span>`;
+    return `<button type="button" class="vbc-fita-item${i === indice ? ' on' : ''}" aria-label="Arquivo ${i + 1} de ${itens.length}: ${safeText(it.nome || '')}"${i === indice ? ' aria-current="true"' : ''} title="${safeText(it.nome || '')}" onclick="irParaPreviaDaConferencia(${i})">${rosto}${it.tipo === 'video' && capa ? '<i aria-hidden="true">▶</i>' : ''}</button>`;
+  }).join('');
+}
+function pintarFitaDaConferencia() {
+  const fita = document.getElementById('vbc-fita');
+  if (!fita) return;
+  const html = fitaDaConferenciaHtml(MIDIA_DA_CONFERENCIA, MIDIA_DA_CONFERENCIA_INDICE);
+  fita.hidden = !html;
+  fita.innerHTML = html;
+  // Só a fita rola para a miniatura da vez (scrollIntoView rolaria a janela inteira no celular).
+  const on = fita.querySelector('.on');
+  if (on) {
+    const l = on.offsetLeft, r = l + on.offsetWidth;
+    if (l < fita.scrollLeft) fita.scrollLeft = Math.max(0, l - 4);
+    else if (r > fita.scrollLeft + fita.clientWidth) fita.scrollLeft = r - fita.clientWidth + 4;
+  }
 }
 // A prévia da entrega pela mesma leitura do Conteúdo (VybeConteudo.previaDe: area=arquivos, area=peca e
 // area=previa_entrega, guardada por sessão e com a miniatura preta já medida). Sem o módulo (fora do mundo), o
@@ -484,6 +591,123 @@ function passarPreviaDaConferencia(passo) {
   MIDIA_DA_CONFERENCIA_INDICE = (MIDIA_DA_CONFERENCIA_INDICE + passo + total) % total;
   pintarPalcoDaConferencia();
 }
+function irParaPreviaDaConferencia(indice) {
+  const i = Number(indice);
+  if (!Number.isInteger(i) || i < 0 || i >= MIDIA_DA_CONFERENCIA.itens.length || i === MIDIA_DA_CONFERENCIA_INDICE) return;
+  MIDIA_DA_CONFERENCIA_INDICE = i;
+  pintarPalcoDaConferencia();
+}
+
+// ── A FILA DA CONFERÊNCIA (frente s-z, Paulo, 25/11/2026: "um botão pra ir pro próximo ou voltar") ────────────────────
+// "‹ Anterior · 3 de 12 · Próxima ›" no alto da janela passa para a peça vizinha que está no MESMO status de origem, com
+// a mesma conferência e o mesmo destino, para a mesma pessoa conferir uma atrás da outra. A fila é a de "Para aprovar
+// agora" (VybeConteudo.filaParaAprovar, a mesma conta do filaDecidir do Hoje: aprovação interna, a data do cliente
+// primeiro) quando a peça está nela; senão, as peças do mesmo status visíveis no quadro (DADOS), pela data do cliente.
+// Sem fila clara (peça sozinha, fora das duas) o botão não aparece. Os checks marcados não passam de uma peça para outra:
+// trocar reabre a janela do zero.
+let FILA_DA_CONFERENCIA = null;
+const dataDaFila = (p) => String(p?.veiculacao_iso || p?.veiculacao || p?.prazo_iso || p?.prazo || '9');
+function filaDaConferenciaDe({ item, option, aprovar = null, quadro = [], opcoesDe = () => [] } = {}) {
+  const id = String(item?.id ?? ''), alvo = normalizedWorkflowStatus(option?.label);
+  if (!id || !alvo) return null;
+  let lista = null, origem = '';
+  const daFila = Array.isArray(aprovar) ? aprovar.map((x) => x?.item).filter(Boolean) : [];
+  if (daFila.some((p) => String(p.id) === id)) { lista = daFila; origem = 'aprovar'; }
+  else {
+    const st = normalizedWorkflowStatus(item.status);
+    const mesmos = st ? (Array.isArray(quadro) ? quadro : []).filter((p) => p && normalizedWorkflowStatus(p.status) === st) : [];
+    if (mesmos.some((p) => String(p.id) === id)) {
+      lista = mesmos.map((p, i) => ({ p, i })).sort((a, b) => dataDaFila(a.p).localeCompare(dataDaFila(b.p)) || a.i - b.i).map((x) => x.p);
+      origem = 'quadro';
+    }
+  }
+  if (!lista) return null;
+  // O mesmo destino na vizinha: a opção do quadro dela com o mesmo nome. A que não tem fica fora (outra conferência).
+  const destino = (p) => (opcoesDe(p) || []).find((o) => o && o.ativa !== false && normalizedWorkflowStatus(o.label) === alvo) || null;
+  const vistos = new Set();
+  const pecas = lista.filter((p) => { const k = String(p.id); if (vistos.has(k)) return false; vistos.add(k); return true; })
+    .map((p) => (String(p.id) === id ? { item, option } : { item: p, option: destino(p) })).filter((x) => x.option);
+  const indice = pecas.findIndex((x) => String(x.item.id) === id);
+  return pecas.length > 1 && indice >= 0 ? { pecas, indice, origem } : null;
+}
+function filaDaConferenciaAgora(item, option) {
+  const vc = globalThis.VybeConteudo;
+  let aprovar = null;
+  try {
+    const f = vc?.filaParaAprovar?.();
+    if (Array.isArray(f?.fila)) aprovar = f.fila.map((i) => ({ ...i, item: vc.itemDaFila ? vc.itemDaFila(i) : null }));
+  } catch { aprovar = null; }
+  const quadro = typeof DADOS !== 'undefined' && Array.isArray(DADOS) ? DADOS : [];
+  const opcoesDe = (p) => (typeof operationalStatusOptions === 'function' ? operationalStatusOptions(p) : (typeof STATUS_OPTIONS !== 'undefined' ? STATUS_OPTIONS : [])) || [];
+  try { return filaDaConferenciaDe({ item, option, aprovar, quadro, opcoesDe }); } catch { return null; }
+}
+function filaDaConferenciaHtml(fila) {
+  if (!fila || fila.pecas.length < 2) return '';
+  const i = fila.indice, n = fila.pecas.length;
+  return `<nav class="vbc-fila" aria-label="Peças da fila"><button type="button" class="vbj-btn vbc-fila-btn" onclick="passarPecaDaConferencia(-1)" title="Peça anterior (Shift+← ou PageUp)"${i === 0 ? ' disabled' : ''}>${vbjIcone('esq', 14)}Anterior</button><span class="vbc-fila-conta" aria-live="polite">${i + 1} de ${n}</span><button type="button" class="vbj-btn vbc-fila-btn" onclick="passarPecaDaConferencia(1)" title="Próxima peça (Shift+→ ou PageDown)"${i >= n - 1 ? ' disabled' : ''}>Próxima${vbjIcone('dir', 14)}</button></nav>`;
+}
+// Chamada por cada conferência depois de abrir a janela: calcula a fila e põe os botões no cabeçalho, ao lado do de → para.
+function ligarFilaDaConferencia(item, option, porta) {
+  const fila = filaDaConferenciaAgora(item, option);
+  FILA_DA_CONFERENCIA = fila ? { ...fila, porta } : null;
+  const peca = document.querySelector('#workflow-modal .vbc-peca');
+  if (peca && fila) { peca.insertAdjacentHTML('beforeend', filaDaConferenciaHtml(fila)); peca.classList.add('com-fila'); }
+}
+function abrirConferenciaDaFila(item, option, porta) {
+  const atual = (typeof findOperationalItem === 'function' && findOperationalItem(item?.id)) || item;
+  const peca = { ...atual, status: atual.status || item.status };
+  if (porta === 'visual') return abrirConferenciaVisual(peca, option);
+  if (porta === 'material') return openMaterialReviewGate(peca, option);
+  return openQualityGate(peca, option);
+}
+function passarPecaDaConferencia(passo) {
+  const f = FILA_DA_CONFERENCIA;
+  const alvo = f?.pecas?.[f.indice + passo];
+  if (!alvo) return;
+  closeWorkflowModal();
+  abrirConferenciaDaFila(alvo.item, alvo.option, f.porta);
+}
+// A que vem depois desta (ou a de antes, se esta era a última): guardada ANTES de a troca de status tirar esta da fila.
+function proximaDaConferencia() {
+  const f = FILA_DA_CONFERENCIA;
+  if (!f) return null;
+  const alvo = f.pecas[f.indice + 1] || f.pecas[f.indice - 1];
+  return alvo ? { ...alvo, porta: f.porta, status: alvo.item.status } : null;
+}
+// Depois de "Continuar" dar certo: "Conferir a próxima" numa janela pequena. Só se a vizinha ainda estiver no status de
+// origem. Não é o aviso curto do canto: ele vira pílula escondida no celular e vai direto para o sino quando não há canto
+// livre (ajustarAvisosCurtos), e a oferta sumiria. O Desfazer da troca fica por cima da janela (z-index próprio).
+function oferecerProximaConferencia(seguinte, ok) {
+  if (!ok || !seguinte) return;
+  const agora = (typeof findOperationalItem === 'function' && findOperationalItem(seguinte.item.id)) || seguinte.item;
+  if (normalizedWorkflowStatus(agora?.status) !== normalizedWorkflowStatus(seguinte.status)) return;
+  const abrir = () => abrirConferenciaDaFila(agora, seguinte.option, seguinte.porta);
+  const frase = [agora.cliente, agora.nome].filter(Boolean).join(' · ');
+  abrirJanelaV2(`${vbjTopoHtml({ titulo: 'Feito', sub: frase ? `a próxima da fila: ${frase}` : 'a próxima peça da fila está esperando' })}
+    <div class="vbj-pe"><span class="vbj-passos">Conferir a próxima peça agora?</span><button type="button" class="vbj-btn" onclick="closeWorkflowModal()">Fechar</button><button type="button" id="vbc-conferir-proxima" class="vbj-btn k">Conferir a próxima</button></div>`, 'vbc-proxima');
+  const b = document.getElementById('vbc-conferir-proxima');
+  if (b) { b.onclick = () => { closeWorkflowModal(); abrir(); }; b.focus(); }
+}
+// Teclado da mesa: ← → passam os arquivos; Shift+← Shift+→ (ou PageUp PageDown) passam as peças. Nada disso vale
+// escrevendo (legenda, briefing), num vídeo com foco (as setas dele andam no tempo) ou com a Prévia grande aberta.
+function teclaDaConferencia(e) {
+  const j = document.getElementById('workflow-modal');
+  if (!j || !j.classList.contains('vbc-mesa') || e.defaultPrevented || e.altKey || e.ctrlKey || e.metaKey) return;
+  const grande = document.getElementById('previa-grande');
+  if (grande && grande.style.display !== 'none' && grande.getClientRects().length) return;
+  const t = e.target, tag = String(t?.tagName || '');
+  if (tag === 'TEXTAREA' || tag === 'SELECT' || t?.isContentEditable || (tag === 'INPUT' && !/^(checkbox|radio|button)$/i.test(t.type || ''))) return;
+  const peca = e.key === 'PageDown' || (e.shiftKey && e.key === 'ArrowRight') ? 1 : e.key === 'PageUp' || (e.shiftKey && e.key === 'ArrowLeft') ? -1 : 0;
+  if (peca) {
+    if (!j.querySelector('.vbc-fila')) return;
+    e.preventDefault(); e.stopPropagation();
+    return passarPecaDaConferencia(peca);
+  }
+  if (e.shiftKey || (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') || tag === 'VIDEO' || MIDIA_DA_CONFERENCIA.itens.length < 2) return;
+  e.preventDefault(); e.stopPropagation();
+  passarPreviaDaConferencia(e.key === 'ArrowRight' ? 1 : -1);
+}
+if (typeof document !== 'undefined' && document.addEventListener) document.addEventListener('keydown', teclaDaConferencia, true);
 function pintarTextosDaConferencia(detail){
   const t=detail?textosDaConferencia(detail):{ legenda:{ texto:'', origem:'' }, briefing:{ tem:false, essencial:[], secoes:[], origem:'' } };
   LEGENDA_DA_CONFERENCIA=t.legenda.texto;
@@ -491,6 +715,144 @@ function pintarTextosDaConferencia(detail){
   pintar('vbc-legenda', detail?legendaDaConferenciaHtml(t.legenda):'<p class="vbc-bloco-vazio">Não foi possível ler a legenda agora.</p>', t.legenda.origem);
   pintar('vbc-briefing', detail?briefingDaConferenciaHtml(t.briefing):'<p class="vbc-bloco-vazio">Não foi possível ler o briefing agora.</p>', t.briefing.origem);
   const copiar=document.getElementById('vbc-legenda-copiar'); if(copiar) copiar.hidden=!t.legenda.texto;
+  // Editar ali mesmo (frente s-z): o botão só aparece para quem pode gravar no lugar de onde o texto vem.
+  EDICAO_DA_CONFERENCIA=null;
+  ['vbc-legenda', 'vbc-briefing'].forEach((id)=>document.getElementById(id)?.classList?.remove('vbc-editando'));
+  const botao=(id, pode, vazio, rotuloVazio)=>{ const b=document.getElementById(id); if(!b) return; b.hidden=!pode; b.disabled=false; b.textContent=vazio?rotuloVazio:'Editar'; };
+  botao('vbc-legenda-editar', Boolean(detail && destinoDaLegendaDaConferencia(detail)), !t.legenda.texto, 'Escrever legenda');
+  botao('vbc-briefing-editar', podeEditarBriefingDaConferencia(detail), !briefingDaPecaNaConferencia(detail), 'Escrever briefing');
+}
+// ── EDITAR A LEGENDA E O BRIEFING NA CONFERÊNCIA (frente s-z, Paulo, 25/11/2026: "seria bom poder editar o que não está
+// ok... poderia ter ali já a opção de editar legenda") ─────────────────────────────────────────────────────────────────
+// Grava no MESMO lugar de onde a janela lê (textosDaConferencia): a legenda do planejamento aprovado quando a peça está
+// nele (a mesma que o VybeHub e a página de aprovação mostram), pela ação legenda_da_peca de area=planejamentos, com a
+// permissão de editar o planejamento (detail.planejamento.pode_editar vem do servidor); senão, a seção "Legenda" do
+// briefing, pela rota de sempre do briefing (gravarBriefing). O briefing inteiro vai pela mesma rota do briefing, que a
+// gaveta já usa para qualquer pessoa da equipe com sessão. Nada disso marca a caixa "Copy, legenda e CTA revisados".
+let EDICAO_DA_CONFERENCIA=null;
+// A legenda tem o teto do Instagram, o mesmo do VybeHub e do servidor (LEGENDA_MAX em server/planejamentos.js).
+const LEGENDA_MAX_CONFERENCIA=2200;
+function contarLegendaDaConferencia(){
+  const area=document.getElementById('vbc-campo'), conta=document.getElementById('vbc-campo-conta'), salvar=document.getElementById('vbc-campo-salvar');
+  if(!area || !conta) return;
+  const n=String(area.value||'').replace(/\r\n?/g,'\n').trim().length, max=LEGENDA_MAX_CONFERENCIA;
+  conta.textContent=`${n}/${max}`;
+  conta.classList.toggle('perto', n>=max*0.9);
+  conta.classList.toggle('passou', n>max);
+  if(salvar && salvar.textContent!=='Salvando…') salvar.disabled=n>max;
+}
+const briefingDaPecaNaConferencia=(detail)=>(typeof briefingDaPeca==='function' ? briefingDaPeca(detail)?.texto || '' : String(detail?.briefing || '').trim());
+// 'planejamento', 'briefing' ou '' (sem botão). Planejamento com legenda: só quem edita o planejamento (senão a janela
+// continuaria mostrando a do planejamento e a gravada no briefing ficaria escondida). Planejamento sem legenda: grava
+// nele quem pode (o cliente passa a ver no VybeHub); quem não pode grava no briefing, que é o que a janela mostra.
+function destinoDaLegendaDaConferencia(detail){
+  if(!detail || typeof detail!=='object') return '';
+  const plan=detail.planejamento && typeof detail.planejamento==='object' ? detail.planejamento : null;
+  if(plan && plan.pode_editar===true) return 'planejamento';
+  if(plan && String(plan.legenda||'').trim()) return '';
+  return podeEditarBriefingDaConferencia(detail) ? 'briefing' : '';
+}
+// O briefing: a mesma regra da gaveta (editarBriefing aparece para quem abre a peça), com a ficha lida e a peça na mesa.
+function podeEditarBriefingDaConferencia(detail){
+  return Boolean(detail && typeof detail==='object' && String(detail.id ?? '') && typeof gravarBriefing==='function');
+}
+// O briefing com a legenda nova: troca o corpo da seção "Legenda" (ou tira a linha "Legenda: …" e põe a seção no fim).
+// A legenda vai entre cercas (```), que o leitor do briefing não interpreta: quebras e "Link: …" ficam como estão.
+function briefingComLegenda(texto, legenda){
+  const linhas=String(texto||'').replace(/\r\n?/g,'\n').split('\n');
+  const nova=String(legenda||'').replace(/\r\n?/g,'\n').replace(/^`{3,}/gm,"'''").trim();
+  const ehTitulo=(l)=>typeof briefingEhTitulo==='function' ? briefingEhTitulo(l.replace(/^#+\s*/,'')) : /^[^a-zà-ÿ]{4,80}$/.test(l);
+  const tituloLimpo=(l)=>typeof briefingTituloLimpo==='function' ? briefingTituloLimpo(l.replace(/^#+\s*/,'')) : l;
+  let cerca=false, inicio=-1, fim=linhas.length, linhaSolta=-1;
+  linhas.forEach((l, i)=>{
+    const s=l.trim();
+    if(/^`{3,}/.test(s)){ cerca=!cerca; return; }
+    if(cerca || !s) return;
+    if(ehTitulo(s)){
+      if(inicio>=0 && fim===linhas.length && i>inicio) fim=i;
+      else if(inicio<0 && /^legenda/i.test(tituloLimpo(s))) inicio=i;
+      return;
+    }
+    if(inicio<0 && linhaSolta<0 && /^[-–—•*]?\s*legenda( do post)?\s*:\s*\S/i.test(s)) linhaSolta=i;
+  });
+  const bloco=nova ? ['```', nova, '```'] : [];
+  let saida;
+  if(inicio>=0) saida=nova ? [...linhas.slice(0, inicio+1), ...bloco, '', ...linhas.slice(fim)] : [...linhas.slice(0, inicio), ...linhas.slice(fim)];
+  else {
+    const corpo=(linhaSolta>=0 ? linhas.filter((_, i)=>i!==linhaSolta) : linhas).join('\n').trim();
+    saida=nova ? [corpo, corpo ? '' : null, 'LEGENDA DO POST', ...bloco].filter((x)=>x!==null) : [corpo];
+  }
+  return saida.join('\n').replace(/\n{3,}/g,'\n\n').trim();
+}
+function editarTextoDaConferencia(campo){
+  const detail=DETALHE_DA_CONFERENCIA;
+  if(!detail || (campo!=='legenda' && campo!=='briefing')) return;
+  const destino=campo==='legenda' ? destinoDaLegendaDaConferencia(detail) : podeEditarBriefingDaConferencia(detail) ? 'briefing' : '';
+  if(!destino) return;
+  if(EDICAO_DA_CONFERENCIA) cancelarTextoDaConferencia();
+  const corpo=document.getElementById(`vbc-${campo}-corpo`);
+  if(!corpo) return;
+  const atual=campo==='legenda' ? LEGENDA_DA_CONFERENCIA : briefingDaPecaNaConferencia(detail);
+  EDICAO_DA_CONFERENCIA={ campo, destino, html:corpo.innerHTML };
+  // Editando, o bloco cresce o quanto o campo pede (a legenda tem teto de metade da coluna só para ler).
+  document.getElementById(`vbc-${campo}`)?.classList?.add('vbc-editando');
+  const b=document.getElementById(`vbc-${campo}-editar`); if(b) b.hidden=true;
+  const onde=campo==='briefing' ? 'no briefing da peça' : destino==='planejamento' ? 'no planejamento aprovado (o cliente vê no VybeHub)' : 'na seção Legenda do briefing';
+  corpo.innerHTML=`<div class="vbc-editor"><textarea id="vbc-campo" class="vbc-campo" rows="${campo==='briefing' ? 10 : 6}" aria-label="${campo==='briefing' ? 'Briefing da peça' : 'Legenda do post'}"></textarea>
+    ${campo==='legenda' ? '<span id="vbc-campo-conta" class="vbc-campo-conta" aria-live="polite"></span>' : ''}
+    <div class="vbc-editor-acoes"><span class="vbc-editor-dica">Grava ${safeText(onde)} · Ctrl+Enter salva</span><button type="button" class="vbj-btn" onclick="cancelarTextoDaConferencia()">Cancelar</button><button type="button" id="vbc-campo-salvar" class="vbj-btn k" onclick="salvarTextoDaConferencia()">Salvar</button></div></div>`;
+  const area=document.getElementById('vbc-campo');
+  area.value=atual;
+  area.addEventListener('keydown', (e)=>{
+    if(e.key==='Enter' && (e.ctrlKey || e.metaKey)){ e.preventDefault(); salvarTextoDaConferencia(); }
+    else if(e.key==='Escape'){ e.preventDefault(); e.stopPropagation(); cancelarTextoDaConferencia(); }
+  });
+  if(campo==='legenda'){ area.addEventListener('input', contarLegendaDaConferencia); contarLegendaDaConferencia(); }
+  area.focus();
+  area.setSelectionRange(area.value.length, area.value.length);
+}
+function cancelarTextoDaConferencia(){
+  const ed=EDICAO_DA_CONFERENCIA;
+  if(!ed) return;
+  EDICAO_DA_CONFERENCIA=null;
+  document.getElementById(`vbc-${ed.campo}`)?.classList?.remove('vbc-editando');
+  const corpo=document.getElementById(`vbc-${ed.campo}-corpo`); if(corpo) corpo.innerHTML=ed.html;
+  const b=document.getElementById(`vbc-${ed.campo}-editar`); if(b) b.hidden=false;
+}
+async function gravarLegendaNoPlanejamento(itemId, legenda){
+  const r=await fetch('/api/painel?area=planejamentos', { method:'POST', credentials:'same-origin', headers:{ 'Content-Type':'application/json' },
+    body:JSON.stringify({ acao:'legenda_da_peca', item:String(itemId), legenda:String(legenda ?? '') }) });
+  const d=await r.json().catch(()=>({}));
+  if(!r.ok || !d?.ok) throw new Error(d?.error || `Não foi possível salvar (${r.status}).`);
+  return d;
+}
+async function salvarTextoDaConferencia(){
+  const ed=EDICAO_DA_CONFERENCIA, detail=DETALHE_DA_CONFERENCIA;
+  const area=document.getElementById('vbc-campo'), salvar=document.getElementById('vbc-campo-salvar');
+  if(!ed || !detail || !area || salvar?.textContent==='Salvando…') return;
+  const texto=area.value.replace(/\r\n?/g,'\n').trim();
+  // Acima do teto nada sai (nem pelo Ctrl+Enter): o aviso diz quanto passou.
+  if(ed.campo==='legenda' && texto.length>LEGENDA_MAX_CONFERENCIA){ if(typeof showToast==='function') showToast(`A legenda tem ${texto.length} caracteres; o máximo é ${LEGENDA_MAX_CONFERENCIA} (o limite do Instagram).`, 'err', 7000); return; }
+  const itemId=String(detail.id ?? pendingWorkflowChange?.item?.id ?? '');
+  if(salvar){ salvar.disabled=true; salvar.textContent='Salvando…'; }
+  try {
+    if(ed.campo==='legenda' && ed.destino==='planejamento'){
+      const d=await gravarLegendaNoPlanejamento(itemId, texto);
+      detail.planejamento={ ...detail.planejamento, legenda:String(d.legenda ?? texto) };
+    } else {
+      const novo=ed.campo==='briefing' ? texto : briefingComLegenda(briefingDaPecaNaConferencia(detail), texto);
+      const d=await gravarBriefing(itemId, novo);
+      detail.briefing=String(d?.briefing ?? novo); detail.briefing_origem='cadastro';
+    }
+    // O histórico da peça leva a legenda nova (a nota segue o padrão "[Vybe OS · …]" das outras da conferência).
+    if(ed.campo==='legenda') postItemUpdate(itemId, `[Vybe OS · Legenda editada na conferência]\n${texto || '(legenda apagada)'}`);
+    EDICAO_DA_CONFERENCIA=null;
+    if(DETALHE_DA_CONFERENCIA===detail) pintarTextosDaConferencia(detail);
+    if(typeof showToast==='function') showToast(ed.campo==='legenda' ? 'Legenda salva.' : 'Briefing salvo.', 'ok', 3000);
+  } catch(e){
+    if(salvar){ salvar.disabled=false; salvar.textContent='Salvar'; }
+    if(typeof showToast==='function') showToast(`Não foi possível salvar: ${e.message}`, 'err', 7000);
+  }
 }
 function copiarLegendaDaConferencia(){
   if(!LEGENDA_DA_CONFERENCIA) return;
@@ -526,10 +888,11 @@ function openMaterialReviewGate(item, option) {
     nota: scheduled ? 'A conferência fica no histórico da peça junto com a troca de status. Não é preciso justificar.'
       : 'A conferência fica no histórico da peça junto com a troca de status. Nenhuma justificativa é exigida para finalizar.',
     idBotao: 'material-review-submit', onclick: 'submitMaterialReview()', acao: scheduled ? 'Confirmar e agendar' : 'Confirmar e finalizar' }), 'vbc vbc-mesa');
+  ligarFilaDaConferencia(item, option, 'material');
   loadMaterialReviewPreview(item.id);
   updateMaterialReviewState();
 }
-async function submitMaterialReview(){ const flow=pendingWorkflowChange; const checks=[...document.querySelectorAll('input[data-material-review-check]')]; if(!flow||!checks.length) return; if(checks.some(check=>!check.checked)) return showToast('Confirme a conferência visual antes de continuar.','info'); const button=document.getElementById('material-review-submit'); if(button){button.disabled=true;button.textContent='Registrando...';} try { const checked=checks.map(check=>check.parentElement.textContent.trim()).filter(Boolean); await postItemUpdate(flow.item.id,`[Vybe OS · Conferência final]\nEtapa: ${flow.item.status} → ${flow.option.label}\nMaterial conferido: ${checked.join(' | ')}`); const {item,option}=flow; closeWorkflowModal(); await commitStatusChange(item,option); } catch(error){ if(button){button.disabled=false;button.textContent=normalizedWorkflowStatus(flow?.option?.label)==='agendado'?'Confirmar e agendar':'Confirmar e finalizar';} showToast(`Não foi possível registrar a conferência: ${error.message}`,'err',7000); } }
+async function submitMaterialReview(){ const flow=pendingWorkflowChange; const checks=[...document.querySelectorAll('input[data-material-review-check]')]; if(!flow||!checks.length) return; if(checks.some(check=>!check.checked)) return showToast('Confirme a conferência visual antes de continuar.','info'); const button=document.getElementById('material-review-submit'); if(button){button.disabled=true;button.textContent='Registrando...';} try { const checked=checks.map(check=>check.parentElement.textContent.trim()).filter(Boolean); await postItemUpdate(flow.item.id,`[Vybe OS · Conferência final]\nEtapa: ${flow.item.status} → ${flow.option.label}\nMaterial conferido: ${checked.join(' | ')}`); const {item,option}=flow; const seguinte=proximaDaConferencia(); closeWorkflowModal(); oferecerProximaConferencia(seguinte, await commitStatusChange(item,option)); } catch(error){ if(button){button.disabled=false;button.textContent=normalizedWorkflowStatus(flow?.option?.label)==='agendado'?'Confirmar e agendar':'Confirmar e finalizar';} showToast(`Não foi possível registrar a conferência: ${error.message}`,'err',7000); } }
 // ── conferencia visual ────────────────────────────────────────────────────────
 // A arte ao lado, e duas saidas: voltar ou mandar. Sem campo obrigatorio, sem
 // checklist, sem trava. Se a peca tiver mais de um arquivo, as setas do palco
@@ -541,6 +904,7 @@ function abrirConferenciaVisual(item, option) {
   abrirJanelaV2(janelaDeConferenciaHtml({ item, option, titulo: 'Confira antes de mandar', sub: `a arte vai para ${option.label}`,
     cab: 'A arte que vai para aprovação', nota: 'Sem campo obrigatório: olhe a arte e confirme. A troca fica no histórico da peça.',
     idBotao: 'conferencia-confirmar', onclick: 'confirmarConferenciaVisual()', acao: 'Confirmar', desligado: false }), 'vbc vbc-mesa conferencia-visual');
+  ligarFilaDaConferencia(item, option, 'visual');
   loadMaterialReviewPreview(item.id);
 }
 
@@ -552,8 +916,9 @@ async function confirmarConferenciaVisual() {
   const { item, option } = fluxo;
   // A nota de historico nao segura a troca — a mesma regra de todos os portoes.
   void postItemUpdate(item.id, `[Vybe OS · Conferência visual]\nEtapa: ${item.status} → ${option.label}`);
+  const seguinte = proximaDaConferencia();
   closeWorkflowModal();
-  await commitStatusChange(item, option);
+  oferecerProximaConferencia(seguinte, await commitStatusChange(item, option));
 }
 
 // Uma pergunta por vez: o que ficou pronto vira botões que escrevem o
