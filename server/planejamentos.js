@@ -36,6 +36,32 @@ export async function legendasDasPecas(sql, clienteId, ids) {
  }
  return mapa;
 }
+// A peça do planejamento que virou esta demanda, para a conferência do checklist (Paulo, 25/11/2026: "deixa a publicação
+// com a legenda e o briefing, pra conferir"): a legenda que o cliente aprovou e o pedido dela (objetivo, tema, linha,
+// telas, referência, observação e o ajuste que o cliente pediu). Mesma ligação e mesma regra de legendasDasPecas
+// (conteudo_id, só planejamento aprovado ou cadastrado), procurada nos clientes da peça. Só leitura; null sem nada.
+export function pecaDoPlanejamentoEm(planos, conteudoId) {
+ const id = String(conteudoId ?? '');
+ if (!id) return null;
+ const t = (v, max) => String(v ?? '').replace(/\r\n?/g, '\n').trim().slice(0, max);
+ for (const p of planos || []) {
+  const peca = (Array.isArray(p?.conteudo?.pecas) ? p.conteudo.pecas : []).find((x) => String(x?.conteudo_id || '') === id);
+  if (!peca) continue;
+  const telas = (Array.isArray(peca.telas) ? peca.telas : []).map((x) => t(typeof x === 'object' ? x?.texto : x, 600)).filter(Boolean).slice(0, 20);
+  return { legenda: t(peca.legenda, 5000), objetivo: t(peca.objetivo, 800), tema: t(peca.tema, 200), linha: t(peca.linha, 80), telas,
+   referencia: t(peca.referencia, 6000), observacao: t(peca.observacao, 1500), ajuste_cliente: t(peca.ajuste_cliente, 1500),
+   mes: String(p.mes || '').slice(0, 10) };
+ }
+ return null;
+}
+export async function pecaDoPlanejamento(sql, conteudoId) {
+ const id = String(conteudoId ?? '');
+ if (!/^\d{1,18}$/.test(id) || !await planejamentosProntos(sql)) return null;
+ const planos = await sql`SELECT mes, conteudo FROM vybe_planejamentos
+   WHERE cliente_id IN (SELECT cliente_id FROM vybe_conteudo_clientes WHERE conteudo_id = ${Number(id)})
+     AND estado = ANY(${['aprovado', 'cadastrado']}) ORDER BY mes DESC, id DESC LIMIT 12`;
+ return pecaDoPlanejamentoEm(planos, id);
+}
 const exigir = async (sql) => { if (!await planejamentosProntos(sql)) throw erro('Os planejamentos ainda estão sendo ligados.', 503); };
 
 // --- Conteúdo padrão ---------------------------------------------------------

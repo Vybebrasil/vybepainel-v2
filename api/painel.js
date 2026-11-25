@@ -15,6 +15,7 @@ import { trocarEscolha, trocarStatus, comentar, criarConteudoNaTransacao } from 
 import { salvarHeadsCliente } from '../server/clientes-heads.js';
 import { garantirCicloDeVida, criarCliente, cicloCliente, criarPessoa, cicloPessoa, listarSubsolo } from '../server/ciclo-de-vida.js';
 import { areaPlanejamentos, paginaDeAprovacao, conectorAgentes, portalDoCliente, logoDoCliente } from '../server/planejamentos-api.js';
+import { pecaDoPlanejamento } from '../server/planejamentos.js';
 import { areaVybes } from '../server/vybes.js';
 // api/painel.js — as telas que o painel ganhou depois do Monday.
 //
@@ -536,11 +537,15 @@ async function areaPeca(req, res, quem) {
 
   const bruto = resolverMaterialBruto(c);
   const briefing = resolverBriefing(c);
+  // A peça do planejamento aprovado (legenda e pedido), para a conferência do checklist. Só leitura; sem ela a ficha
+  // abre igual.
+  const planejamento = await pecaDoPlanejamento(db, c.id).catch(() => null);
   return res.status(200).json({
     ok: true,
     id: item,
     name: c.titulo,
     created_at: c.criado_em,
+    planejamento,
     // O briefing nasce aqui quando a peca e cadastrada pelo painel; quando ela
     // veio do Monday, ele esta no corpo de um update. A tela procura nos dois.
     briefing: briefing?.texto || '',

@@ -1,0 +1,89 @@
+/* ===================================================================================================================
+   V2 · S · FRENTE Y (25/11/2026): o checklist mostra a peça, a legenda e o briefing. Paulo: "tem vários checklists mas
+   não dá pra ver nada... deixa a publicação com a legenda e o briefing, pra conferir o briefing, legenda e o conteúdo".
+   As três conferências (Checklist de qualidade, Conferir antes de agendar/finalizar e a conferência visual) viram uma
+   mesa (#workflow-modal.vbc-mesa): a peça no alto e, embaixo, o checklist | a peça de verdade | legenda e briefing. A
+   janela ocupa a área livre entre o trilho (à esquerda) e o topo, sem cobrir nenhum dos dois; cada bloco rola só por
+   dentro. No celular tudo empilha com a peça primeiro, entre o topo e o dock. Só tokens --d3-*, sem !important novo.
+   =================================================================================================================== */
+
+/* 1. A janela na área livre: à direita do trilho (14 + 68 + 14) e abaixo do topo (14 + 52 + 12). */
+@media (min-width:901px){
+  body.mundo #workflow-modal.vbj.vbc.vbc-mesa{
+    --wm-largura:min(1480px,calc(100vw - 112px));
+    top:calc(78px + max(0px,(100dvh - 94px - 940px) / 2));left:calc(96px + max(0px,(100vw - 112px - 1480px) / 2));transform:none;
+    height:min(calc(100dvh - 94px),940px);max-height:none;box-sizing:border-box}
+}
+
+/* 2. A grade: checklist | peça | legenda e briefing, na altura que sobra. */
+:is(#workflow-modal.vbj.vbc-mesa) .vbc-grade.vbc-mesa{flex:1;min-height:0;height:auto;display:grid;grid-template-columns:minmax(260px,300px) minmax(0,1fr) minmax(300px,380px);gap:16px}
+:is(#workflow-modal.vbj.vbc-mesa) .vbc-esq{overflow-y:auto;padding-right:2px}
+:is(#workflow-modal.vbj.vbc-mesa) .vbc-conta{flex:none;white-space:nowrap}
+:is(#workflow-modal.vbj.vbc-mesa) .vbc-textos{display:flex;flex-direction:column;gap:12px;min-width:0;min-height:0}
+:is(#workflow-modal.vbj.vbc-mesa) .vbc-bloco{box-sizing:border-box;padding:12px;border-radius:var(--d3-r-caixa);background:var(--d3-fume-veu);transition:box-shadow .2s ease}
+:is(#workflow-modal.vbj.vbc-mesa) .vbc-bloco.vbc-apontado{box-shadow:inset 0 0 0 1px var(--d3-fume-borda),0 0 0 1px var(--d3-fume-apagado)}
+:is(#workflow-modal.vbj.vbc-mesa) .vbc-bloco.vbc-realce{box-shadow:0 0 0 2px var(--d3-fume-texto)}
+:is(#workflow-modal.vbj.vbc-mesa) .vbc-texto{display:flex;flex-direction:column;gap:8px;min-height:0}
+:is(#workflow-modal.vbj.vbc-mesa) #vbc-legenda{flex:0 1 auto;max-height:50%}
+:is(#workflow-modal.vbj.vbc-mesa) #vbc-briefing{flex:1 1 0}
+:is(#workflow-modal.vbj.vbc-mesa) .vbc-bloco-cab{flex:none;display:flex;align-items:center;gap:8px;min-height:28px}
+:is(#workflow-modal.vbj.vbc-mesa) .vbc-bloco-cab>b{color:var(--d3-fume-texto);font:600 13px/1.3 var(--vv-texto,Inter,sans-serif)}
+:is(#workflow-modal.vbj.vbc-mesa) .vbc-bloco-info{flex:1;min-width:0;color:var(--d3-fume-apagado);font:400 12px/1.3 var(--vv-texto,Inter,sans-serif);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+:is(#workflow-modal.vbj.vbc-mesa) .vbc-copiar{flex:none;height:28px;min-height:28px;padding:0 12px;font-size:12.5px}
+:is(#workflow-modal.vbj.vbc-mesa) .vbc-copiar[hidden]{display:none}
+:is(#workflow-modal.vbj.vbc-mesa) .vbc-bloco-corpo{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;color:var(--d3-fume-texto);font:400 13px/1.5 var(--vv-texto,Inter,sans-serif);overflow-wrap:anywhere}
+:is(#workflow-modal.vbj.vbc-mesa) .vbc-bloco-corpo:focus-visible{outline:2px solid var(--d3-fume-texto);outline-offset:2px;border-radius:6px}
+:is(#workflow-modal.vbj.vbc-mesa) .vbc-bloco-vazio{margin:0;color:var(--d3-fume-apagado);font:400 13px/1.45 var(--vv-texto,Inter,sans-serif)}
+:is(#workflow-modal.vbj.vbc-mesa) .vbc-legenda-txt{margin:0;color:var(--d3-fume-texto);white-space:pre-wrap}
+
+/* 3. O briefing: o essencial em pares (rótulo pequeno em cima) e o resto em partes, tudo no mesmo tom. */
+:is(#workflow-modal.vbj.vbc-mesa) .vbc-essencial{display:flex;flex-direction:column;gap:8px;margin:0}
+:is(#workflow-modal.vbj.vbc-mesa) .vbc-essencial>div{display:flex;flex-direction:column;gap:2px}
+:is(#workflow-modal.vbj.vbc-mesa) .vbc-essencial dt{color:var(--d3-fume-apagado);font:500 12px/1.3 var(--vv-texto,Inter,sans-serif)}
+:is(#workflow-modal.vbj.vbc-mesa) .vbc-essencial dd{margin:0;color:var(--d3-fume-texto)}
+:is(#workflow-modal.vbj.vbc-mesa) .vbc-brief-resto{display:flex;flex-direction:column;gap:10px;margin-top:12px;padding-top:12px;border-top:1px solid var(--d3-fume-borda)}
+:is(#workflow-modal.vbj.vbc-mesa) .vbc-brief-resto:first-child{margin-top:0;padding-top:0;border-top:0}
+:is(#workflow-modal.vbj.vbc-mesa) .vbc-brief-parte{display:flex;flex-direction:column;gap:4px}
+:is(#workflow-modal.vbj.vbc-mesa) .vbc-bloco-corpo h4{margin:0;color:var(--d3-fume-texto);font:600 12.5px/1.35 var(--vv-texto,Inter,sans-serif);text-transform:none;letter-spacing:0}
+:is(#workflow-modal.vbj.vbc-mesa) .vbc-bloco-corpo h4.vbc-brief-tudo{color:var(--d3-fume-apagado);font-weight:500}
+:is(#workflow-modal.vbj.vbc-mesa) :is(.vbc-bl-par,.vbc-bl-txt,.vbc-bl-sub){margin:0;color:var(--d3-fume-texto)}
+:is(#workflow-modal.vbj.vbc-mesa) .vbc-bl-par>span{color:var(--d3-fume-apagado)}
+:is(#workflow-modal.vbj.vbc-mesa) .vbc-bl-sub{font-weight:600}
+:is(#workflow-modal.vbj.vbc-mesa) .vbc-bl-item{padding-left:12px;text-indent:-12px}
+:is(#workflow-modal.vbj.vbc-mesa) .vbc-bl-item::before{content:"· "}
+:is(#workflow-modal.vbj.vbc-mesa) .vbc-bl-arte{margin:0;padding:8px 10px;border-radius:8px;background:var(--d3-fume-veu-forte);color:var(--d3-fume-texto);font:400 12.5px/1.45 var(--vv-texto,Inter,sans-serif);white-space:pre-wrap}
+
+/* 4. A peça: o palco ocupa a coluna, a mídia na proporção dela (contain, sem corte); vídeo com os controles embaixo e o
+   nome em cima; vídeo sem endereço tocável mostra a capa com o ▶. */
+:is(#workflow-modal.vbj.vbc-mesa) .vbc-dir.vbc-bloco{min-height:0}
+:is(#workflow-modal.vbj.vbc-mesa) .vbc-palco>:is(img,video){position:absolute;inset:0;display:block;width:100%;height:100%;max-width:none;max-height:none;object-fit:contain}
+:is(#workflow-modal.vbj.vbc-mesa) .vbc-palco video{background:var(--d3-fume-escuro)}
+:is(#workflow-modal.vbj.vbc-mesa) .vbc-palco video~.vbc-legenda{top:10px;bottom:auto}
+:is(#workflow-modal.vbj.vbc-mesa) .vbc-palco img{cursor:default}
+:is(#workflow-modal.vbj.vbc-mesa) .vbc-palco img[onclick]{cursor:zoom-in}
+:is(#workflow-modal.vbj.vbc-mesa) .vbc-play{position:absolute;top:50%;left:50%;display:grid;place-items:center;width:56px;height:56px;margin:-28px 0 0 -28px;border-radius:50%;background:var(--d3-fume-forte);color:var(--d3-fume-texto);font:400 20px/1 var(--vv-texto,Inter,sans-serif);pointer-events:none}
+
+/* 5. Cada caixa diz o que confere: a etiqueta (peça, legenda, briefing) sai do data-alvo-rotulo, fora do texto que o
+   histórico registra. */
+:is(#workflow-modal.vbj.vbc-mesa) .vbc-check[data-alvo-rotulo]::after{content:attr(data-alvo-rotulo);flex:none;margin-left:auto;padding:2px 8px;border-radius:var(--d3-r-botao);background:var(--d3-fume-veu-forte);color:var(--d3-fume-texto);font:500 11.5px/1.4 var(--vv-texto,Inter,sans-serif)}
+
+/* 6. Telas médias e celular: uma coluna, a peça primeiro, depois legenda e briefing, e o checklist por último (junto do
+   Continuar); a grade rola por dentro da janela, o topo e o pé da janela ficam. */
+@media (max-width:1099px){
+  :is(#workflow-modal.vbj.vbc-mesa) .vbc-grade.vbc-mesa{grid-template-columns:minmax(0,1fr);grid-auto-rows:max-content;align-content:start;overflow-y:auto;overscroll-behavior:contain}
+  :is(#workflow-modal.vbj.vbc-mesa) .vbc-dir{order:-2}
+  :is(#workflow-modal.vbj.vbc-mesa) .vbc-textos{order:-1}
+  :is(#workflow-modal.vbj.vbc-mesa) .vbc-esq{overflow:visible}
+  :is(#workflow-modal.vbj.vbc-mesa) .vbc-dir .vbc-palco{flex:none;height:min(56dvh,440px)}
+  :is(#workflow-modal.vbj.vbc-mesa) :is(#vbc-legenda,#vbc-briefing){flex:none}
+  :is(#workflow-modal.vbj.vbc-mesa) .vbc-texto .vbc-bloco-corpo{flex:none;max-height:240px}
+}
+@media (max-width:600px){
+  /* entre o topo (8 + 56) e o dock (56 + 8), com 8 de folga em cada um */
+  body.mundo #workflow-modal.vbj.vbc.vbc-mesa{top:72px;left:8px;transform:none;height:calc(100dvh - 144px);max-height:none;box-sizing:border-box}
+  :is(#workflow-modal.vbj.vbc-mesa) .vbc-dir .vbc-palco{height:min(44dvh,360px)}
+  :is(#workflow-modal.vbj.vbc-mesa) .vbc-texto .vbc-bloco-corpo{max-height:200px}
+  /* o nome da peça numa linha inteira, o de → para embaixo (antes a peça virava "Re…") */
+  #workflow-modal.vbj.vbc-mesa .vbc-peca .vbc-peca-txt{flex:1 1 calc(100% - 52px)}
+  #workflow-modal.vbj.vbc-mesa .vbc-peca .vbc-de-para{flex:1 1 100%;flex-wrap:wrap;gap:6px 10px}
+}
