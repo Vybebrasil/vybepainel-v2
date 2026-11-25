@@ -1105,6 +1105,8 @@
     el.querySelector('.vs-corpo').innerHTML = corpo;
     if (atual === 'setor:producao') vstCaber(el);
     const vaga = el.querySelector('.g2-vaga'); if (vaga) vaga.innerHTML = principal;
+    // No celular, os blocos de consulta viram linhas que abrem (frente s-w, vybe-mundo.js).
+    window.VybeCelDobras?.setor?.(el);
     if (periodoSemEfeito && per.tipo === 'mensal' && per.mes === mesAtual()) { const barra = el.querySelector('.vs-topo .vs-periodo'); if (typeof barra?.remove === 'function') barra.remove(); }
   }
 

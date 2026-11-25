@@ -1428,6 +1428,9 @@ function abrirRankingEscritorio(aba, periodo) {
     // V2 (prancha V2-M-Ranking): no mundo a janela é de vidro fumê (d3m-f-rkj), sem a moldura clara de ofc-menu-jogo,
     // que pinta o fundo e as letras com !important; fora do mundo (?legado=1) fica como era.
     document.getElementById("workflow-modal")?.classList.add("ofc-ranking-janela", "rk2-janela", document.body.classList.contains("mundo") ? "d3m-f-rkj" : "ofc-menu-jogo");
+    // Frente s-w: a classe no body diz ao CSS que o Ranking está aberto (no lugar de um :has no body); sai ao fechar ou
+    // trocar a janela (closeWorkflowModal / openWorkflowModal, vybe-portoes.js).
+    if (document.body.classList.contains("mundo")) document.body.classList.add("com-ranking-janela");
   }
   pintarRankingEscritorio();
   carregarRankingEscritorio();

@@ -1434,6 +1434,33 @@ function pv2dResumoNumeros(todas) {
     { n: todas.filter((d) => !tipoDaDemanda(d)).length, rot: ['sem tipo', 'sem tipo'], aceso: currentDemandaTipoFilter === '__sem__', acao: currentDemandaTipoFilter === '__sem__' ? 'limparTipoDeDemanda()' : "filtrarDemandaPorTipo('__sem__')", extra: true },
   ].filter((k) => !k.extra || k.n || k.aceso);
 }
+// Celular (frente s-w, 25/11/2026): os filtros ocupavam quatro linhas antes da lista. Lá eles ficam atrás de um botão
+// "Filtros (N)", que abre uma folha acima da barra de baixo com a mesma fila de filtros de sempre; os filtros ativos
+// seguem em chips removíveis numa linha, com "Limpar tudo". No computador o botão e a folha não aparecem (s-w.css).
+function pv2dFolhaDeFiltros(raiz) {
+  const ativos = raiz.querySelector('#pv2d-ativos'), filtros = raiz.querySelector('#pv2d-filtros');
+  if (!ativos || !filtros || raiz.querySelector('#pv2d-filtros-bt')) return;
+  const bt = document.createElement('button');
+  bt.type = 'button'; bt.id = 'pv2d-filtros-bt'; bt.className = 'sw-filtros-bt';
+  bt.setAttribute('aria-controls', 'pv2d-filtros'); bt.setAttribute('aria-expanded', 'false');
+  ativos.prepend(bt);
+  const cab = document.createElement('div');
+  cab.className = 'sw-filtros-cab';
+  cab.innerHTML = '<b>Filtros</b><button type="button" class="sw-filtros-ok">Pronto</button>';
+  filtros.prepend(cab);
+  const folha = raiz.querySelector('#pv2d-folha');
+  const abrir = (sim) => { folha?.classList.toggle('sw-filtros-aberta', sim); bt.setAttribute('aria-expanded', String(sim)); };
+  bt.addEventListener('click', () => abrir(!folha?.classList.contains('sw-filtros-aberta')));
+  cab.querySelector('.sw-filtros-ok').addEventListener('click', () => { abrir(false); bt.focus(); });
+  filtros.addEventListener('keydown', (ev) => { if (ev.key === 'Escape' && folha?.classList.contains('sw-filtros-aberta')) { abrir(false); bt.focus(); } });
+  const contar = () => {
+    const n = ativos.querySelectorAll('.s-dm-chip').length;
+    const txt = n ? `Filtros (${n})` : 'Filtros';
+    if (bt.textContent !== txt) bt.textContent = txt;
+  };
+  contar();
+  new MutationObserver(contar).observe(ativos, { childList: true, subtree: true });
+}
 function pv2dMontar() {
   if (typeof pv2Ligado !== 'function' || !pv2Ligado()) return null;
   let raiz = document.getElementById('pv2-demandas');
@@ -1480,6 +1507,7 @@ function pv2dMontar() {
   [document.getElementById('date-mode-bar-demandas'), document.getElementById('day-select-demandas')].forEach((el) => { if (el) pop.append(el); });
   controles.append(data);
   raiz.querySelector('#pv2d-filtros').append(controles);
+  pv2dFolhaDeFiltros(raiz);
   // Na folha os filtros trocam as classes da fila antiga (vybe-mundo.css pinta .dem-controles, .dem-filtro-popover e
   // .date-mode-bar de branco com !important, o que apagaria o tema): mesma fila, mesmos botões, outra pele.
   controles.classList.replace('dem-controles', 's-dm-controles');
