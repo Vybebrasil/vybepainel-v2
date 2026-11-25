@@ -1,0 +1,248 @@
+/* Frente s-w (25/11/2026): os 6 pontos de responsividade que pediam redesenho (varredura s-v, PR #777). Paulo: "Sim,
+   ataca". Regra dele: nada cobre nada, nada exige rolar para ver o que importa. */
+
+/* 1 · Ranking e Performance: os botões do topo (Buscar, Agenda, WhatsApp, Avisos, Conversa, Mais e Conta) ficam à vista
+   e clicáveis. A janela do Ranking (#workflow-modal.d3m-f-rkj) passava por cima da barra; a Gestão (Visão geral e
+   Performance) escondia a barra. Agora a barra fica por cima, no canto da janela, e o cabeçalho da tela reserva o lugar
+   dela: título à esquerda, as ações da tela (período, "Por que essa ordem?", fechar) logo antes dos botões do topo. Sem
+   largura para os dois na mesma linha, as ações descem para uma linha própria abaixo do título. */
+@media (min-width:901px){
+  body.mundo:has(#workflow-modal.d3m-f-rkj) #mundo-hud{z-index:842}
+  /* a largura vem dos lados (era min(940px, 94vw) e, de 901 a 1100, a janela passava da tela pela direita) */
+  body.mundo #workflow-modal.rk2-janela.ofc-ranking-janela.d3m-f-rkj{--wm-largura:auto}
+  /* o trilho continua como era com o ranking aberto: o toque nele cai no fundo da janela */
+  body.mundo:has(#workflow-modal.d3m-f-rkj) #mundo-hud > .vv-trilho{pointer-events:none}
+  :is(body.mundo.mundo-gestao,body.mundo:has(#workflow-modal.d3m-f-rkj)) #mundo-hud > .vv-topo{visibility:visible;pointer-events:none}
+  :is(body.mundo.mundo-gestao,body.mundo:has(#workflow-modal.d3m-f-rkj)) #mundo-hud > .vv-topo .vv-ilha.vv-barra-topo{padding:23px 16px 0 0;background:none;box-shadow:none;pointer-events:none;align-items:flex-start}
+  :is(body.mundo.mundo-gestao,body.mundo:has(#workflow-modal.d3m-f-rkj)) #mundo-hud > .vv-topo .vv-ferramentas{justify-content:flex-end;gap:6px;pointer-events:none}
+  :is(body.mundo.mundo-gestao,body.mundo:has(#workflow-modal.d3m-f-rkj)) #mundo-hud > .vv-topo .vv-ferramentas > *{pointer-events:auto;margin-left:0}
+  :is(body.mundo.mundo-gestao,body.mundo:has(#workflow-modal.d3m-f-rkj)) #mundo-hud > .vv-topo .vv-ferramentas > .vv-botao,
+  :is(body.mundo.mundo-gestao,body.mundo:has(#workflow-modal.d3m-f-rkj)) #mundo-hud > .vv-topo .vv-mais-menu > summary.vv-botao{width:34px;max-width:34px;height:34px;min-width:0;padding:0;justify-content:center;border-radius:var(--d3-r-botao)}
+  :is(body.mundo.mundo-gestao,body.mundo:has(#workflow-modal.d3m-f-rkj)) #mundo-hud > .vv-topo .vv-ferramentas > .vv-botao.vv-busca-larga{flex:none;width:34px;margin-left:auto;margin-right:0;padding:0 0 0 9px;gap:0;color:var(--d3-fume-texto)}
+  :is(body.mundo.mundo-gestao,body.mundo:has(#workflow-modal.d3m-f-rkj)) #mundo-hud > .vv-topo .vv-busca-larga > :is(kbd,.vv-busca-texto){display:none}
+  :is(body.mundo.mundo-gestao,body.mundo:has(#workflow-modal.d3m-f-rkj)) #mundo-hud > .vv-topo .vv-topo-sala:not([hidden]){flex:none;min-width:34px;height:34px;margin:0;padding:0 4px;gap:0;justify-content:center;border-radius:var(--d3-r-botao);background:var(--d3-fume-veu);box-shadow:none;color:var(--d3-fume-texto)}
+  :is(body.mundo.mundo-gestao,body.mundo:has(#workflow-modal.d3m-f-rkj)) #mundo-hud > .vv-topo .vv-topo-sala :is(.vv-topo-sala-nome,.vv-topo-sala-entrar){display:none}
+  :is(body.mundo.mundo-gestao,body.mundo:has(#workflow-modal.d3m-f-rkj)) #mundo-hud > .vv-topo .vv-topo-sala-rostos > i:nth-child(n+2){display:none}
+  /* o cabeçalho da tela reserva o lugar dos botões do topo (7 de 34 px com 6 de vão, mais o respiro) */
+  #ofc-ranking > .d3m-f-rk > .d3m-e-topo.d3m-e-topo,
+  section.vv-gestao > .vv-g-corpo > .d3m-e-tela > .d3m-e-topo,
+  section.vv-gestao > .vv-g-corpo > .d3m-d-topo{flex-wrap:wrap;row-gap:12px;padding-right:300px}
+  #ofc-ranking > .d3m-f-rk > .d3m-e-topo.d3m-e-topo > .d3m-e-tit,
+  section.vv-gestao > .vv-g-corpo > .d3m-e-tela > .d3m-e-topo > .d3m-e-tit,
+  section.vv-gestao > .vv-g-corpo > .d3m-d-topo > .d3m-d-tit{flex:1 1 280px;min-width:0}
+}
+/* janela mais estreita que o título + as ações + os botões do topo: as ações vão para a linha de baixo, à direita */
+@media (min-width:901px) and (max-width:1365px){
+  #ofc-ranking > .d3m-f-rk > .d3m-e-topo.d3m-e-topo > .d3m-e-acoes{flex:1 0 calc(100% + 300px);justify-content:flex-end;margin-right:-300px}
+}
+@media (max-width:900px){
+  body.mundo.mundo-gestao #mundo-hud > .vv-topo{display:none}
+}
+
+/* 2 · Celular: Hoje e Visão geral do setor por ordem de prioridade (a casca vem de vybe-mundo.js, só no celular). Os
+   números numa faixa compacta; Pede ação com as 3 primeiras e "ver todas"; o laranja e o que decidir à vista; os blocos de
+   consulta numa pilha de linhas (título, número e seta) que abrem no lugar. Meta: a primeira tela mostra o essencial e o
+   total cai para menos da metade (Hoje 2.361 → menos de 1.180; Visão geral 1.908 → menos de 954). */
+@media (max-width:600px){
+  /* a linha que abre */
+  body.mundo .sw-dobra{display:grid;grid-template-rows:auto 0fr;min-width:0;border-radius:var(--d3-r-cartao);background:var(--d3-cartao);color:var(--d3-tinta);overflow:hidden}
+  body.mundo .sw-dobra + .sw-dobra{margin-top:-6px}
+  body.mundo .sw-dobra > .sw-dobra-cab{appearance:none;display:flex;align-items:center;gap:8px;width:100%;height:44px;min-height:44px;margin:0;padding:0 14px 0 16px;box-sizing:border-box;border:0;background:none;color:var(--d3-tinta);font:400 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);text-align:left;cursor:pointer}
+  body.mundo .sw-dobra > .sw-dobra-cab > b{flex:1 1 auto;min-width:0;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  body.mundo .sw-dobra > .sw-dobra-cab > span{flex:none;color:var(--d3-rotulo);font-size:var(--d3-fs-apoio);font-variant-numeric:tabular-nums}
+  body.mundo .sw-dobra > .sw-dobra-cab > svg{flex:none;width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;transition:transform .2s}
+  body.mundo .sw-dobra.aberta > .sw-dobra-cab > svg{transform:rotate(90deg)}
+  body.mundo .sw-dobra > .sw-dobra-cab:focus-visible{outline:2px solid var(--d3-acao);outline-offset:-2px}
+  /* fechada: a linha do bloco tem altura zero (a casca corta), sem depender do display de cada bloco */
+  body.mundo .sw-dobra > :not(.sw-dobra-cab){min-height:0;overflow:hidden}
+  body.mundo .sw-dobra:not(.aberta) > :not(.sw-dobra-cab){visibility:hidden}
+  body.mundo .sw-dobra.aberta{grid-template-rows:auto 1fr}
+  body.mundo .sw-dobra.aberta > :not(.sw-dobra-cab){margin:0;border-radius:0;box-shadow:none}
+  /* "ver todas (N)" */
+  body.mundo #mundo-hud #vv-hoje .d3h-pede.sw-mostra:not(.aberta) > .d3h-corpo > .d3h-lin:nth-child(n+4),
+  body.mundo section.vv-setor-visao.vv-setor-visao .vst-pede.sw-mostra:not(.aberta) > .vst-rolo > .vst-lin:nth-child(n+4){display:none}
+  body.mundo .sw-mostra .sw-mais{appearance:none;flex:none;height:34px;margin:-6px -6px -6px auto;padding:0 12px;border:0;border-radius:8px;background:var(--d3-veu);color:var(--d3-tinta);font:500 12px var(--vv-texto,Inter,sans-serif);cursor:pointer}
+  body.mundo .sw-mostra .sw-mais:focus-visible{outline:2px solid var(--d3-acao);outline-offset:2px}
+  body.mundo .sw-mostra.aberta .sw-mais > .sw-mais-a,body.mundo .sw-mostra:not(.aberta) .sw-mais > .sw-mais-b{display:none}
+  body.mundo #mundo-hud #vv-hoje .d3q .sw-mostra > .d3h-cab > .sw-fora,body.mundo section.vv-setor-visao.vv-setor-visao .sw-mostra > .vst-topo > .sw-fora{display:none}
+  body.mundo .vst-pede.sw-mostra:not(.aberta) > .vst-rolo{max-height:none;overflow:visible}
+  /* Hoje: números numa faixa de quatro, sem o gráfico e a nota (o toque abre o mesmo de sempre) */
+  body.mundo #mundo-hud #vv-hoje .d3q .d3h-nums{grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+  body.mundo #mundo-hud #vv-hoje .d3q .d3h-nums > .d3h-num{display:flex;flex-direction:column-reverse;justify-content:flex-end;gap:2px;min-height:0;padding:8px 8px 10px;border-radius:12px}
+  body.mundo #mundo-hud #vv-hoje .d3q .d3h-nums > .d3h-num > :is(.d3h-num-selo){display:none}
+  body.mundo #mundo-hud #vv-hoje .d3q .d3h-nums > .d3h-num :is(.d3h-num-sub,.d3v-barras,.d3v-anel,svg){display:none}
+  body.mundo #mundo-hud #vv-hoje .d3q .d3h-nums > .d3h-num .d3-num-v{font-size:22px;line-height:1.1}
+  body.mundo #mundo-hud #vv-hoje .d3q .d3h-nums > .d3h-num .d3-num-v > small{font-size:12px}
+  body.mundo #mundo-hud #vv-hoje .d3q .d3h-nums > .d3h-num > .d3-num-rot{display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden;font-size:12px;line-height:1.25;white-space:normal;word-break:break-all}
+  /* De olho numa linha que corre para o lado */
+  body.mundo #mundo-hud #vv-hoje .d3q .d3h-pede > .d3h-olho{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
+  body.mundo #mundo-hud #vv-hoje .d3q .d3h-pede > .d3h-olho > *{flex:none}
+  /* o laranja mais curto: rótulo, número, título e os botões (a frase de apoio fica no title do cartão) */
+  body.mundo #mundo-hud #vv-hoje .d3q .d3q-acao > .d3v-laranja{gap:8px;padding:14px 16px}
+  body.mundo #mundo-hud #vv-hoje .d3q .d3q-acao > .d3v-laranja .d3v-lar-txt > small{display:none}
+  body.mundo #mundo-hud #vv-hoje .d3q .d3q-acao > .d3v-laranja .d3v-lar-num{font-size:34px;line-height:1}
+  /* a pilha de linhas da coluna de consulta vira um cartão só, com divisória fina */
+  body.mundo #mundo-hud #vv-hoje .d3q > .d3q-lado{gap:0}
+  body.mundo #mundo-hud #vv-hoje .d3q > .d3q-lado > :is(.sw-dobra,.d3h-zapc){margin:0;border-radius:0;border-top:1px solid var(--d3-divisa)}
+  body.mundo #mundo-hud #vv-hoje .d3q > .d3q-lado > :first-child{border-top:0;border-radius:var(--d3-r-cartao) var(--d3-r-cartao) 0 0}
+  body.mundo #mundo-hud #vv-hoje .d3q > .d3q-lado > :last-child{border-radius:0 0 var(--d3-r-cartao) var(--d3-r-cartao)}
+  /* a ordem do celular: os números, o laranja (o mais grave agora), Pede ação e o que decidir */
+  body.mundo #mundo-hud #vv-hoje .d3q > .d3q-main > .d3h-topo{order:0}
+  body.mundo #mundo-hud #vv-hoje .d3q > .d3q-main > :is(.d3h-nums,.d3h-cel-resumo){order:1}
+  body.mundo #mundo-hud #vv-hoje .d3q > .d3q-main > .d3q-meio > .d3q-acao{order:2}
+  body.mundo #mundo-hud #vv-hoje .d3q > .d3q-main > .d3q-meio > .d3h-pede{order:3}
+  body.mundo #mundo-hud #vv-hoje .d3q > .d3q-main > .d3q-pe{order:4}
+  /* Para você decidir mais baixo: a arte em 88 px e o título em uma linha a menos */
+  body.mundo #mundo-hud #vv-hoje .d3q .d3q-pe .d3v-leque.d3v-leque{grid-template-columns:88px minmax(0,1fr);column-gap:12px}
+  body.mundo #mundo-hud #vv-hoje .d3q .d3q-pe .d3v-leque.d3v-leque .d3h-arte{height:118px}
+  /* Pede ação numa linha por peça: a logo, o nome (cortado com reticências), o ponto do status e a data; quem faz fica
+     na peça, que abre no toque como antes */
+  body.mundo #mundo-hud #vv-hoje .d3q .d3h-pede > .d3h-corpo > .d3h-lin{flex-wrap:nowrap;gap:10px;min-height:48px;height:auto;padding-top:8px;padding-bottom:8px}
+  body.mundo #mundo-hud #vv-hoje .d3q .d3h-pede > .d3h-corpo > .d3h-lin > .d3h-nome{flex:1 1 auto;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  body.mundo #mundo-hud #vv-hoje .d3q .d3h-pede > .d3h-corpo > .d3h-lin > :is(.d3h-st,.d3h-qd){flex:none}
+  body.mundo #mundo-hud #vv-hoje .d3q .d3h-pede > .d3h-corpo > .d3h-lin > .d3h-st .d3v-st{gap:0;font-size:0}
+  body.mundo #mundo-hud #vv-hoje .d3q .d3h-pede > .d3h-corpo > .d3h-lin > .d3h-av{display:none}
+  /* respiro de 10 entre os blocos e o laranja e o decidir mais justos */
+  body.mundo #mundo-hud #vv-hoje .d3q > .d3q-main{gap:10px}
+  body.mundo #mundo-hud #vv-hoje .d3q{row-gap:10px}
+  body.mundo #mundo-hud #vv-hoje .d3q .d3q-acao > .d3v-laranja{padding:12px 14px}
+  body.mundo #mundo-hud #vv-hoje .d3q .d3q-acao > .d3v-laranja .d3-acao-btn{height:36px}
+  body.mundo #mundo-hud #vv-hoje .d3q .d3q-pe .d3v-leque.d3v-leque .d3h-arte{height:104px}
+  body.mundo #mundo-hud #vv-hoje .d3q .d3q-pe .d3v-leque.d3v-leque .d3h-carta-txt > small{display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden}
+  /* Minhas tarefas (o Hoje de quem não é dono): o "Para aprovar agora" com a arte ao lado do texto e os botões numa linha;
+     os filtros das tarefas numa linha que corre para o lado */
+  body.mundo #mundo-hud #vv-hoje .d3q .d3h-decidir.d3v-laranja > .d3h-baralho{flex:none;flex-direction:row;align-items:flex-end;gap:12px}
+  body.mundo #mundo-hud #vv-hoje .d3q .d3h-decidir.d3v-laranja .d3h-arte.d3h-arte{flex:none;width:78px;height:104px;min-height:0}
+  body.mundo #mundo-hud #vv-hoje .d3q .d3h-decidir.d3v-laranja .d3h-carta-txt{flex:1 1 auto;min-width:0;padding-top:0}
+  body.mundo #mundo-hud #vv-hoje .d3q .d3h-decidir.d3v-laranja .d3h-carta-txt > :is(b,small){display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  body.mundo #mundo-hud #vv-hoje .d3q .d3h-decidir.d3v-laranja > .d3h-decidir-acoes{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.4fr) 36px 36px;gap:6px}
+  body.mundo #mundo-hud #vv-hoje .d3q .d3h-decidir.d3v-laranja > .d3h-decidir-acoes > .d3v-vao{display:none}
+  body.mundo #mundo-hud #vv-hoje .d3q .d3h-decidir.d3v-laranja > .d3h-decidir-acoes > .d3h-btn{height:36px;min-width:0;padding:0 8px}
+  body.mundo #mundo-hud #vv-hoje .d3q .d3h-tarefas > .d3h-filtros{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
+  body.mundo #mundo-hud #vv-hoje .d3q .d3h-tarefas > .d3h-filtros > *{flex:none}
+  /* Visão geral do setor: uma coluna só na ordem do que importa (os números, o laranja, Pede ação e as linhas que abrem) */
+  body.mundo section.vv-setor-visao.vv-setor-visao .g2.vst{display:flex;flex-direction:column;gap:10px}
+  body.mundo section.vv-setor-visao.vv-setor-visao .vst > :is(.vst-esq,.vst-dir),
+  body.mundo section.vv-setor-visao.vv-setor-visao .vst > .vst-esq > .vst-cols,
+  body.mundo section.vv-setor-visao.vv-setor-visao .vst > .vst-esq > .vst-cols > .vst-pc{display:contents}
+  body.mundo section.vv-setor-visao.vv-setor-visao .vst .vst-nums{order:0;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+  body.mundo section.vv-setor-visao.vv-setor-visao .vst .vst-laranja{order:1;gap:6px;padding:12px 14px}
+  body.mundo section.vv-setor-visao.vv-setor-visao .vst .vst-pede{order:2;min-height:0}
+  body.mundo section.vv-setor-visao.vv-setor-visao .vst .vst-pc > *{order:3}
+  body.mundo section.vv-setor-visao.vv-setor-visao .vst > .vst-dir > :not(.vst-laranja){order:4}
+  body.mundo section.vv-setor-visao.vv-setor-visao .vst > .vst-esq > :not(.vst-nums):not(.vst-cols){order:5}
+  /* os números numa faixa de quatro: rótulo de uma linha e o número; o detalhe e o anel ficam no toque, como antes */
+  body.mundo section.vv-setor-visao.vv-setor-visao .vst .vst-num{height:auto;flex-direction:column-reverse;justify-content:flex-end;gap:2px;padding:8px 8px 10px;border-radius:12px}
+  body.mundo section.vv-setor-visao.vv-setor-visao .vst .vst-num :is(.vst-selo,.vst-anel,.vst-num-txt > small){display:none}
+  body.mundo section.vv-setor-visao.vv-setor-visao .vst .vst-num-v{font-size:22px;line-height:1.1}
+  body.mundo section.vv-setor-visao.vv-setor-visao .vst .vst-num-v small{font-size:12px}
+  body.mundo section.vv-setor-visao.vv-setor-visao .vst .vst-num-topo{display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden;font-size:12px;font-weight:400;line-height:1.25;color:var(--d3-rotulo);word-break:break-all}
+  /* o laranja mais curto: a frase de apoio sai, o número menor */
+  body.mundo section.vv-setor-visao.vv-setor-visao .vst .vst-lar-num{font-size:34px}
+  body.mundo section.vv-setor-visao.vv-setor-visao .vst .vst-lar-tit{font-size:16px}
+  body.mundo section.vv-setor-visao.vv-setor-visao .vst .vst-lar-txt{gap:2px}
+  body.mundo section.vv-setor-visao.vv-setor-visao .vst .vst-lar-txt > small{display:none}
+  body.mundo section.vv-setor-visao.vv-setor-visao .vst .vst-laranja::after{display:none}
+  body.mundo section.vv-setor-visao.vv-setor-visao .vst .vst-lar-btn:not(.k){background:transparent}
+  /* Pede ação: uma linha por item, sem a frase de apoio */
+  body.mundo section.vv-setor-visao.vv-setor-visao .vst .vst-pede .vst-lin-txt > small{display:none}
+  /* as linhas que abrem viram uma pilha só */
+  body.mundo section.vv-setor-visao.vv-setor-visao .vst .sw-dobra{margin:0;border-radius:0;border-top:1px solid var(--d3-divisa)}
+  body.mundo section.vv-setor-visao.vv-setor-visao .vst .vst-pc > .vst-mods-pe{order:3;border:0;border-radius:var(--d3-r-caixa);background:var(--d3-folha);color:var(--d3-tinta);overflow-x:auto;scrollbar-width:none}
+  /* WhatsApp já abre no lugar (v2-abre): o cabeçalho dele fica igual às outras linhas da pilha */
+  body.mundo #mundo-hud #vv-hoje .d3q > .d3q-lado > .d3h-zapc{padding:0;background:var(--d3-cartao)}
+  body.mundo #mundo-hud #vv-hoje .d3q > .d3q-lado > .d3h-zapc > .d3h-cab{height:44px;margin:0;padding:0 14px 0 16px;box-sizing:border-box;align-items:center;border-radius:0;background:none}
+  body.mundo #mundo-hud #vv-hoje .d3q > .d3q-lado > .d3h-zapc > .d3h-cab > h3{font-size:var(--d3-fs-texto);font-weight:600}
+  body.mundo #mundo-hud #vv-hoje .d3q > .d3q-lado > .d3h-zapc .d3h-zap-n{font-size:var(--d3-fs-texto)}
+  /* Clientes de olho entra na mesma pilha visual (logo acima dela) */
+  body.mundo #mundo-hud #vv-hoje .d3q > .d3q-main > .d3q-pe{gap:8px}
+  body.mundo #mundo-hud #vv-hoje .d3q > .d3q-main > .d3h-topo{gap:6px 14px;min-height:0}
+  body.mundo #mundo-hud #vv-hoje .d3q .d3q-pe .d3v-leque.d3v-leque .d3h-arte.d3h-arte{height:88px}
+  body.mundo #mundo-hud #vv-hoje .d3q .d3q-pe .d3v-leque.d3v-leque > .d3h-baralho{min-height:0}
+  body.mundo #mundo-hud #vv-hoje .d3q .d3q-pe .d3v-leque.d3v-leque > .d3h-decidir-acoes{margin-top:8px}
+  body.mundo #mundo-hud #vv-hoje .d3q .d3q-acao > .d3v-laranja.d3v-laranja{gap:6px}
+  body.mundo #mundo-hud #vv-hoje .d3q .d3q-acao > .d3v-laranja .d3-acao-btn.d3-acao-btn{height:34px}
+}
+
+/* 3 · A coluna de consulta não rola por dentro entre 1280 e 1536 (Hoje e Mídia; em Planejamentos a coluna já cabia: o
+   que rolava ali era o Hoje escondido atrás do módulo). Cada bloco mostra o resumo e o "abrir" do cabeçalho leva à lista
+   inteira: a Agenda e os Agentes mostram os primeiros e o total fica no cabeçalho ("3 hoje · abrir"). */
+@media (min-width:1181px) and (max-height:900px){
+  body.mundo #mundo-hud #vv-hoje .d3q > .d3h-lado .d3h-agentes > .d3h-corpo > .d3h-agl:nth-child(n+2){display:none}
+  body.mundo #mundo-hud #vv-hoje .d3q > .d3h-lado .d3h-mes-dias > button{height:20px}
+}
+@media (min-width:1181px) and (max-height:800px){
+  body.mundo #mundo-hud #vv-hoje .d3q > .d3h-lado .d3h-agenda > .d3h-corpo > .d3h-ag:nth-child(n+3){display:none}
+}
+@media (min-width:1181px) and (max-height:740px){
+  body.mundo #mundo-hud #vv-hoje .d3q > .d3h-lado .d3h-agenda > .d3h-corpo > .d3h-ag:nth-child(n+2){display:none}
+}
+/* Mídia: a explicação da rotina já saía da consulta em tela baixa (s-q.css), mas a regra do cartão vencia; os 7 dias
+   ficam mais justos */
+@media (min-width:1101px) and (max-height:820px){
+  body.mundo #md-lado > .d3m-cons.mdq-como{display:none}
+  body.mundo #md-lado .mdq-hists{gap:0;padding:4px 0}
+  body.mundo #md-lado .mdq-hist{min-height:22px}
+}
+
+/* 4 · Celular: o cartão da captação (e de todo evento da agenda) vira uma folha de tela cheia que para acima da barra
+   de baixo; a barra continua à vista e no toque, e o que não couber rola só dentro da folha. */
+@media (max-width:699px){
+  body.mundo #ag-cartao.ag-cartao.folha{bottom:var(--vv-pe-janela,76px);width:auto;height:calc(100dvh - var(--vv-pe-janela,76px) - var(--vv-m,8px));max-height:none;margin:0 var(--vv-m,8px);box-sizing:border-box;overflow-y:auto;overscroll-behavior:contain}
+}
+
+/* 6 · Demandas no celular: os filtros atrás de "Filtros (N)" (vybe-demandas.js, pv2dFolhaDeFiltros). O botão abre uma
+   folha acima da barra de baixo com a fila de filtros de sempre; os ativos seguem em chips numa linha que corre para o
+   lado, com "Limpar tudo"; a lista começa logo abaixo. No computador nada muda. */
+#pv2-demandas .sw-filtros-bt,#pv2-demandas .sw-filtros-cab{display:none}
+@media (max-width:600px){
+  #pv2-demandas.pv2.d3m-a-dm.s-dm .s-dm-ativos{display:flex;align-items:center;gap:8px;padding-left:12px}
+  #pv2-demandas.pv2.d3m-a-dm.s-dm .s-dm-ativos > .sw-filtros-bt{appearance:none;flex:none;display:inline-flex;align-items:center;height:34px;margin:0;padding:0 12px;border:0;border-radius:var(--d3-r-botao);background:var(--d3-veu-forte);color:var(--d3-tinta);font:500 12px var(--vv-texto,Inter,sans-serif);white-space:nowrap;cursor:pointer}
+  #pv2-demandas.pv2.d3m-a-dm.s-dm .s-dm-ativos > .sw-filtros-bt[aria-expanded="true"]{background:var(--d3-tinta);color:var(--d3-cartao)}
+  #pv2-demandas.pv2.d3m-a-dm.s-dm .s-dm-ativos > .sw-filtros-bt:focus-visible{outline:2px solid var(--d3-tinta);outline-offset:2px}
+  #pv2-demandas.pv2.d3m-a-dm.s-dm .s-dm-ativos > .demanda-resumo{flex:1 1 auto;min-width:0;padding:0 12px 0 0;overflow-x:auto;scrollbar-width:none}
+  #pv2-demandas.pv2.d3m-a-dm.s-dm .s-dm-ativos > .demanda-resumo > *{flex:none}
+  #pv2-demandas.pv2.d3m-a-dm.s-dm .s-dm-ativos .s-dm-nota{display:none}
+  /* a folha dos filtros */
+  #pv2-demandas.pv2.d3m-a-dm.s-dm .s-dm-folha:not(.sw-filtros-aberta) > .s-dm-filtros{display:none}
+  #pv2-demandas.pv2.d3m-a-dm.s-dm .s-dm-folha.sw-filtros-aberta > .s-dm-filtros{position:fixed;z-index:880;left:var(--vv-m,8px);right:var(--vv-m,8px);bottom:var(--vv-pe-janela,76px);max-height:calc(100dvh - var(--vv-pe-janela,76px) - 2 * var(--vv-m,8px));display:flex;flex-direction:column;border:0;border-radius:var(--d3-r-cartao);background:var(--d3-cartao);box-shadow:0 24px 48px -20px rgba(0,0,0,.55);color:var(--d3-tinta);overflow-y:auto;overscroll-behavior:contain}
+  #pv2-demandas.pv2.d3m-a-dm.s-dm .s-dm-filtros > .sw-filtros-cab{position:sticky;top:0;z-index:2;display:flex;align-items:center;justify-content:space-between;min-height:52px;padding:0 10px 0 16px;background:var(--d3-cartao);border-bottom:1px solid var(--d3-divisa)}
+  #pv2-demandas.pv2.d3m-a-dm.s-dm .s-dm-filtros > .sw-filtros-cab > b{font:600 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif)}
+  #pv2-demandas.pv2.d3m-a-dm.s-dm .s-dm-filtros > .sw-filtros-cab > .sw-filtros-ok{appearance:none;height:34px;padding:0 14px;border:0;border-radius:var(--d3-r-botao);background:var(--d3-tinta);color:var(--d3-cartao);font:500 12px var(--vv-texto,Inter,sans-serif);cursor:pointer}
+  #pv2-demandas.pv2.d3m-a-dm.s-dm .s-dm-filtros > .sw-filtros-cab > .sw-filtros-ok:focus-visible{outline:2px solid var(--d3-tinta);outline-offset:2px}
+  /* um filtro por linha, e a lista de opções abre no lugar (dentro da folha, sem flutuar) */
+  #pv2-demandas.pv2.d3m-a-dm.s-dm .s-dm-folha.sw-filtros-aberta > .s-dm-filtros > .s-dm-controles{flex-direction:column;align-items:stretch;flex-wrap:nowrap}
+  #pv2-demandas.pv2.d3m-a-dm.s-dm .s-dm-folha.sw-filtros-aberta > .s-dm-filtros .dem-filtro > summary{display:flex;width:100%;height:40px}
+  #pv2-demandas.pv2.d3m-a-dm.s-dm .s-dm-folha.sw-filtros-aberta > .s-dm-filtros .s-dm-pop{position:static;width:auto;max-width:none;max-height:none;margin-top:6px;box-shadow:inset 0 0 0 1px var(--d3-borda)}
+}
+
+/* 5 · Prédio em tela cheia: a placa do elevador (#vv-placa com .vv-elevador-lista, a mesma do mapa sem o painel) vira
+   uma lista compacta, uma linha por andar com o nome, o número e o que acontece; o toque abre o andar como antes. Em
+   tela larga, duas colunas. Cabe em 1366×768 sem rolar; no celular só a lista rola. */
+body.mundo #mundo-hud > #vv-placa > .vv-elevador-lista > .vv-elevador{min-height:36px;margin:0 0 2px;padding:4px 10px 4px 6px;gap:8px}
+body.mundo #mundo-hud > #vv-placa > .vv-elevador-lista > .vv-elevador > .num{width:24px;height:24px;font-size:12px}
+body.mundo #mundo-hud > #vv-placa > .vv-elevador-lista > .vv-elevador > .meio{display:flex;align-items:baseline;gap:8px;min-width:0}
+body.mundo #mundo-hud > #vv-placa > .vv-elevador-lista > .vv-elevador > .meio > b{flex:1 1 auto;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+body.mundo #mundo-hud > #vv-placa > .vv-elevador-lista > .vv-elevador > .meio > em{flex:none;max-width:52%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+body.mundo #mundo-hud > #vv-placa > .vv-elevador-lista > h3{margin-bottom:6px}
+body.mundo #mundo-hud > #vv-placa > .vv-elevador-lista > .vv-elevador-aviso{margin:6px 4px 0;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+@media (min-width:901px){
+  body.mundo #mundo-hud > #vv-placa:has(> .vv-elevador-lista){width:300px}
+}
+@media (min-width:1600px){
+  body.mundo #mundo-hud > #vv-placa:has(> .vv-elevador-lista){width:540px}
+  body.mundo #mundo-hud > #vv-placa > .vv-elevador-lista{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:6px}
+  body.mundo #mundo-hud > #vv-placa > .vv-elevador-lista > :not(.vv-elevador){grid-column:1 / -1}
+}
+/* com a placa aberta no Prédio, a fala do VYBES para antes dela (cobria o título e o fechar da placa) */
+@media (min-width:901px){
+  body.mundo.mundo-centro.mundo-predio.com-placa:not(.mundo-modulo):not(.v2m-dia) #mundo-hud > .v2m-fala.d3h-acao{right:340px}
+}
+@media (min-width:1600px){
+  body.mundo.mundo-centro.mundo-predio.com-placa:not(.mundo-modulo):not(.v2m-dia) #mundo-hud > .v2m-fala.d3h-acao{right:580px}
+}
+/* celular, mapa em tela cheia: a placa do elevador descia por baixo do título e da fala; vira uma folha acima da barra
+   de baixo, e só ela rola */
+@media (max-width:900px){
+  body.mundo.mundo-centro:not(.d3c-painel) #mundo-hud > #vv-placa:has(> .vv-elevador-lista){top:auto;bottom:var(--vv-pe-janela,76px);left:var(--vv-m,8px);right:var(--vv-m,8px);width:auto;max-height:min(46dvh,420px);overflow-y:auto;overscroll-behavior:contain;z-index:6}
+}

@@ -3562,7 +3562,7 @@ body.mundo .vc-camada > .vc-janela,body.mundo .vp-camada > .vp-janela,body.mundo
 body.mundo #vv-comercial.vc,body.mundo #vv-conteudo.vc,body.mundo .vv-plj,body.mundo .vv-wa{inset:var(--vv-m) var(--vv-m) var(--vv-m) var(--vv-palco-esq)!important;width:auto!important;max-width:none!important;height:auto!important;max-height:none!important;transform:none!important;border-radius:var(--vv-r-placa)!important}
 /* Módulo ou Gestão abertos: o trilho fica por cima (a lista de submódulos aparece) e o resto do HUD some */
 body.palco-modulo #mundo-hud,body.mundo-gestao #mundo-hud{z-index:700}
-body.palco-modulo #mundo-hud > :not(.vv-trilho):not(.vv-setor),body.mundo-gestao #mundo-hud > :not(.vv-trilho):not(.vv-setor),body.mundo-setor-visao #mundo-hud > :not(.vv-trilho):not(.vv-setor){display:none!important}
+body.palco-modulo #mundo-hud > :not(.vv-trilho):not(.vv-setor),body.mundo-gestao #mundo-hud > :not(.vv-trilho):not(.vv-setor):not(.vv-topo),body.mundo-setor-visao #mundo-hud > :not(.vv-trilho):not(.vv-setor){display:none!important}
 body.mundo.mundo-modulo #mundo-hud > .vv-setor{display:grid!important}
 body.mundo.mundo-modulo #mundo-hud{z-index:700}
 @media (max-width:900px){

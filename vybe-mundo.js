@@ -2972,6 +2972,80 @@
   const cartao = () => hud.querySelector('#vv-cartao');
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
+  // ---------- Celular: o essencial primeiro, o resto em linhas que abrem (frente s-w, 25/11/2026) ----------
+  // No celular o Hoje passava de 1.950 a 2.360 px e a Visão geral do setor de 1.900 px: a tela inteira empilhada. Na ordem
+  // do que importa, os números, o que pede ação (as 3 primeiras e "ver todas"), o cartão laranja e o que decidir ficam à
+  // vista; os blocos de consulta (Clientes de olho, o mês, a Semana, Aprovações, Agenda ou Compromissos, WhatsApp,
+  // Agentes; na Visão geral, Pessoas, Prontas por dia e Por status) viram uma linha com o título, o número e a seta, que
+  // abre o bloco inteiro no lugar. O que a pessoa abriu fica lembrado (localStorage). No computador nada muda: a casca
+  // só existe no celular e sai sozinha quando a tela alarga.
+  const celSw = window.matchMedia ? window.matchMedia('(max-width:600px)') : null;
+  const SW_DOBRAS = 'vybe.cel.dobras';
+  const swAbertas = (() => { try { return new Set(JSON.parse(localStorage.getItem(SW_DOBRAS) || '[]')); } catch { return new Set(); } })();
+  const swGuardar = () => { try { localStorage.setItem(SW_DOBRAS, JSON.stringify([...swAbertas])); } catch { /* sem guardar: abre fechado da próxima vez */ } };
+  const SW_SETA = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>';
+  const swChave = (pre, t) => pre + ':' + String(t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+  function swDobrar(raiz, alvos, pre) {
+    for (const sec of raiz.querySelectorAll(alvos)) {
+      if (sec.parentElement?.classList.contains('sw-dobra')) continue;
+      const mes = sec.classList.contains('d3h-lado-topo');
+      const tit = mes ? (sec.querySelector('.d3h-mes > b')?.textContent || 'O mês') : (sec.querySelector('h3, .d3s-topo b, .d3s-topo h4, .vst-topo h3')?.textContent || sec.getAttribute('aria-label') || '').trim();
+      if (!tit) continue;
+      const aux = mes ? '' : (sec.querySelector('.d3h-zap-n, .d3h-aux, .d3s-topo small, .d3s-topo span, .vst-topo small')?.textContent || '');
+      const n = mes ? String(sec.querySelectorAll('.d3h-mes button.tem').length || '') : ((aux.match(/\d[\d.]*(\s*de\s*\d[\d.]*)?/) || [''])[0]);
+      const k = swChave(pre, tit), aberta = swAbertas.has(k);
+      const w = document.createElement('div');
+      w.className = 'sw-dobra' + (aberta ? ' aberta' : ''); w.dataset.dobra = k;
+      w.innerHTML = `<button type="button" class="sw-dobra-cab" data-sw-dobra="${esc(k)}" aria-expanded="${aberta}"><b>${esc(tit)}</b>${n ? `<span>${esc(n)}${mes ? ' com compromisso' : ''}</span>` : ''}${SW_SETA}</button>`;
+      sec.before(w); w.append(sec);
+    }
+  }
+  // Lista longa (Pede ação): as 3 primeiras à vista e "ver todas (N)", no cabeçalho, abre o resto no lugar.
+  function swTres(sec, linhas, pre) {
+    if (!sec || sec.querySelector('.sw-mais')) return;
+    const n = sec.querySelectorAll(linhas).length; if (n <= 3) return;
+    const k = pre + ':todas', aberta = swAbertas.has(k);
+    sec.classList.add('sw-mostra'); sec.classList.toggle('aberta', aberta);
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'sw-mais'; b.dataset.swDobra = k; b.setAttribute('aria-expanded', String(aberta));
+    b.innerHTML = `<span class="sw-mais-a">ver todas (${n})</span><span class="sw-mais-b">ver menos</span>`;
+    // no lugar da nota do cabeçalho ("na ordem de urgência"), que já é o que a lista diz
+    const cab = sec.querySelector(':scope > .d3h-cab, :scope > .vst-topo'); if (cab) { cab.querySelector(':scope > .d3h-aux, :scope > small')?.classList.add('sw-fora'); cab.append(b); } else sec.querySelector(linhas).parentElement.after(b);
+  }
+  function swDesfazer(raiz) {
+    for (const w of raiz.querySelectorAll('.sw-dobra')) { const sec = w.lastElementChild; if (sec && !sec.classList.contains('sw-dobra-cab')) w.before(sec); w.remove(); }
+    for (const b of raiz.querySelectorAll('.sw-mais')) b.remove();
+    for (const s of raiz.querySelectorAll('.sw-mostra')) s.classList.remove('sw-mostra', 'aberta');
+    for (const x of raiz.querySelectorAll('.sw-fora')) x.classList.remove('sw-fora');
+  }
+  function swHoje() {
+    const el = hud.querySelector('#vv-hoje'); if (!el) return;
+    if (!celSw?.matches) { if (el.querySelector('.sw-dobra, .sw-mais')) swDesfazer(el); return; }
+    const q = el.querySelector(':scope > .d3q'); if (!q) return;
+    swDobrar(q, ':scope > .d3q-lado > section.d3h-cartao:not(.v2-abre):not(.so-cab), :scope > .d3q-lado > .d3h-lado-topo, .d3q-olho', 'hoje');
+    swTres(q.querySelector('.d3h-pede'), ':scope > .d3h-corpo > .d3h-lin', 'hoje:pede');
+  }
+  function swSetor(el) {
+    if (!el) return;
+    if (!celSw?.matches) { if (el.querySelector('.sw-dobra, .sw-mais')) swDesfazer(el); return; }
+    swDobrar(el, '.vst-pc > .d3s-pessoas, .vst-pc > .vst-dias, .vst-dir > .d3s-status', 'setor');
+    swTres(el.querySelector('.vst-pede'), '.vst-rolo > .vst-lin', 'setor:pede');
+  }
+  let swSetorEl = null;
+  window.VybeCelDobras = { setor: (el) => { swSetorEl = el; swSetor(el); } };
+  document.addEventListener('click', (e) => {
+    const b = e.target.closest?.('[data-sw-dobra]'); if (!b) return;
+    const w = b.closest('.sw-dobra, .sw-mostra'); if (!w) return;
+    const k = b.dataset.swDobra, abre = !w.classList.contains('aberta');
+    w.classList.toggle('aberta', abre); b.setAttribute('aria-expanded', String(abre));
+    if (abre) swAbertas.add(k); else swAbertas.delete(k); swGuardar();
+  });
+  {
+    const el = hud.querySelector('#vv-hoje');
+    let pend = false;
+    if (el && typeof MutationObserver === 'function') new MutationObserver(() => { if (pend) return; pend = true; queueMicrotask(() => { pend = false; swHoje(); }); }).observe(el, { childList: true, subtree: true });
+    celSw?.addEventListener?.('change', () => { swHoje(); swSetor(swSetorEl); });
+  }
+
   function ajustarAreaLivre() {
     if (typeof innerWidth !== 'number') return; // fora do navegador (testes): nada a medir
     const celular = innerWidth <= 900;
