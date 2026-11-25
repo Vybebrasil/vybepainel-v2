@@ -143,7 +143,7 @@ test('servidor: a peça do planejamento aprovado vem no detalhe (legenda e pedid
   assert.equal(await pecaDoPlanejamento(sql, 'vybe:1'), null, 'id inválido nem consulta');
   const semTabela = (partes) => Promise.resolve(/to_regclass/.test(partes.join('?')) ? [{ existe: false }] : planos);
   assert.equal(await pecaDoPlanejamento(semTabela, 42), null);
-  assert.match(ler('api/painel.js'), /const planejamento = await pecaDoPlanejamento\(db, c\.id\)\.catch\(\(\) => null\);[^]*?planejamento,/);
+  assert.match(ler('api/painel.js'), /const planejamento = await Promise\.resolve\(\)\.then\(\(\) => pecaDoPlanejamento\(db, c\.id\)\)\.catch\(\(\) => null\);[^]*?planejamento,/);
 });
 
 test('CSS da mesa: fragmento próprio, só tokens, sem !important, sem :has e sem html body.mundo', () => {

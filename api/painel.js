@@ -537,9 +537,9 @@ async function areaPeca(req, res, quem) {
 
   const bruto = resolverMaterialBruto(c);
   const briefing = resolverBriefing(c);
-  // A peça do planejamento aprovado (legenda e pedido), para a conferência do checklist. Só leitura; sem ela a ficha
-  // abre igual.
-  const planejamento = await pecaDoPlanejamento(db, c.id).catch(() => null);
+  // A peça do planejamento aprovado (legenda e pedido), para a conferência do checklist. Só leitura; qualquer falha
+  // (tabela ausente, banco lento, leitura isolada da ficha) vira null e a ficha abre igual.
+  const planejamento = await Promise.resolve().then(() => pecaDoPlanejamento(db, c.id)).catch(() => null);
   return res.status(200).json({
     ok: true,
     id: item,
