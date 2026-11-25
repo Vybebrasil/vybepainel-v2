@@ -222,27 +222,161 @@ function janelaDeConferenciaHtml({ item, option, titulo, sub, cab, idForm = '', 
   const formato = String(item.formato || item.tipo || '').trim();
   const veic = /^\d{4}-\d{2}-\d{2}/.test(String(item.veiculacao_iso || '')) ? ` · veiculação ${item.veiculacao_iso.slice(8, 10)}/${item.veiculacao_iso.slice(5, 7)}` : '';
   const destino = option?.label || '';
+  // Cada caixa diz o que confere (peça, legenda ou briefing) e acende o bloco dela ao marcar. A etiqueta sai do
+  // data-alvo-rotulo pelo CSS, fora do texto da caixa: o que o histórico registra (o texto da caixa) não muda.
   const caixas = checks.length
     ? `<div class="vbc-lista-cab"><b>${safeText(cab)}</b><span class="vbc-conta" style="--p:0%"><b>0 de ${checks.length}</b><span class="vbc-barra" aria-hidden="true"><i></i></span></span></div>
-      <form id="${idForm}" class="vbc-checks" onchange="${mudar}">${checks.map((check, i) => `<label class="vbc-check"><input type="checkbox" ${marca} name="${idForm}-${i}"><span class="vbc-caixa" aria-hidden="true">${vbjIcone('certo', 12)}</span><span class="vbc-check-txt">${safeText(check)}</span></label>`).join('')}</form>`
+      <form id="${idForm}" class="vbc-checks" onchange="${mudar}">${checks.map((check, i) => { const alvo = alvoDoCheckDaConferencia(check); return `<label class="vbc-check"${alvo ? ` data-alvo="${alvo}" data-alvo-rotulo="${ROTULO_DO_ALVO_DA_CONFERENCIA[alvo]}"` : ''}><input type="checkbox" ${marca} name="${idForm}-${i}"><span class="vbc-caixa" aria-hidden="true">${vbjIcone('certo', 12)}</span><span class="vbc-check-txt">${safeText(check)}</span></label>`; }).join('')}</form>`
     : `<div class="vbc-lista-cab"><b>${safeText(cab)}</b></div>`;
+  // A mesa de conferência (Paulo, 25/11/2026: "tem vários checklists mas não dá pra ver nada... deixa a publicação com a
+  // legenda e o briefing"): a peça no alto; embaixo o checklist, a peça de verdade (imagem, carrossel ou vídeo tocável)
+  // e a legenda com o briefing, cada bloco rolando só por dentro. No celular, empilhado com a peça primeiro.
   return `${vbjTopoHtml({ titulo, sub })}
-    <div class="vbc-grade">
+    <div class="vbc-peca">${vbjAvatarHtml(item.cliente)}<span class="vbc-peca-txt"><b>${safeText(item.nome || 'Sem título')}</b><span>${safeText([item.cliente || 'Cliente não informado', formato].filter(Boolean).join(' · '))}${safeText(veic)}</span></span>
+      <span class="vbc-de-para">${vbjStatusHtml(item.status, item.status_color)}${item.status && destino ? vbjIcone('dir', 14) : ''}${vbjStatusHtml(destino !== item.status ? destino : '', option?.color)}</span></div>
+    <div class="vbc-grade vbc-mesa">
       <div class="vbc-esq">
-        <div class="vbc-peca">${vbjAvatarHtml(item.cliente)}<span class="vbc-peca-txt"><b>${safeText(item.nome || 'Sem título')}</b><span>${safeText([item.cliente || 'Cliente não informado', formato].filter(Boolean).join(' · '))}${safeText(veic)}</span></span>
-          <span class="vbc-de-para">${vbjStatusHtml(item.status, item.status_color)}${item.status && destino ? vbjIcone('dir', 14) : ''}${vbjStatusHtml(destino !== item.status ? destino : '', option?.color)}</span></div>
         ${caixas}
         <p class="vbc-nota">${safeText(nota)}</p>
       </div>
-      <div class="vbc-dir">
-        <div class="vbc-prev-cab"><b>Prévia para conferir</b><span id="vbc-prev-info">arquivo vinculado</span></div>
-        <div id="material-review-preview" class="vbc-palco"><div class="vbc-vazio">Carregando a prévia…</div></div>
+      <div class="vbc-dir vbc-bloco" id="vbc-bloco-peca">
+        <div class="vbc-prev-cab"><b>A peça</b><span id="vbc-prev-info">procurando</span></div>
+        <div id="material-review-preview" class="vbc-palco"><div class="vbc-vazio">Carregando a peça…</div></div>
         <div id="vbc-prev-acoes" class="vbc-prev-acoes"></div>
+      </div>
+      <div class="vbc-textos">
+        <section id="vbc-legenda" class="vbc-bloco vbc-texto" aria-labelledby="vbc-legenda-tit">
+          <div class="vbc-bloco-cab"><b id="vbc-legenda-tit">Legenda</b><span id="vbc-legenda-info" class="vbc-bloco-info"></span><button type="button" id="vbc-legenda-copiar" class="vbj-btn vbc-copiar" hidden onclick="copiarLegendaDaConferencia()">Copiar</button></div>
+          <div id="vbc-legenda-corpo" class="vbc-bloco-corpo" tabindex="0" aria-label="Texto da legenda"><p class="vbc-bloco-vazio">Carregando…</p></div>
+        </section>
+        <section id="vbc-briefing" class="vbc-bloco vbc-texto" aria-labelledby="vbc-briefing-tit">
+          <div class="vbc-bloco-cab"><b id="vbc-briefing-tit">Briefing</b><span id="vbc-briefing-info" class="vbc-bloco-info"></span></div>
+          <div id="vbc-briefing-corpo" class="vbc-bloco-corpo" tabindex="0" aria-label="Briefing da peça"><p class="vbc-bloco-vazio">Carregando…</p></div>
+        </section>
       </div>
     </div>
     <div class="vbj-pe"><span class="vbj-passos"><span class="vbj-tracos" aria-hidden="true"><i class="on"></i><i></i></span>1 de 2 · conferir, depois mudar para ${safeText(destino || 'o status novo')}</span>
       <button type="button" class="vbj-btn" onclick="closeWorkflowModal()">Cancelar</button>
       <button id="${idBotao}" type="button" class="vbj-btn k"${desligado ? ' disabled' : ''} onclick="${onclick}">${safeText(acao)}</button></div>`;
+}
+// O que cada caixa confere. A legenda leva copy, CTA e canal; a peça, o arquivo e o que se vê nele (capa, áudio,
+// proporção, dimensões, páginas, o link). O resto (cliente e responsável) não aponta para bloco nenhum.
+const ROTULO_DO_ALVO_DA_CONFERENCIA = { peca: 'peça', legenda: 'legenda', briefing: 'briefing' };
+function alvoDoCheckDaConferencia(texto) {
+  const t = String(texto || '').toLowerCase();
+  if (/legenda|copy/.test(t)) return 'legenda';
+  if (/briefing/.test(t)) return 'briefing';
+  // "Capa e última página com CTA" é da peça (a lâmina), não da legenda.
+  if (/capa|[áa]udio|propor|dimens|identidade|sequ[êe]ncia|p[áa]gina|arquivo|link|pr[ée]via|material/.test(t)) return 'peca';
+  if (/\bcta\b|canal/.test(t)) return 'legenda';
+  return '';
+}
+
+// A MÍDIA DA PEÇA NA CONFERÊNCIA. Primeiro os anexos da peça (vídeos e todas as imagens, que viram carrossel com setas);
+// sem anexo, o link de entrega pela prévia da entrega (area=previa_entrega: a miniatura do Drive e o vídeo em
+// area=video_entrega, por partes e com id assinado), a mesma que o baralho das aprovações usa. "nada" só quando não
+// há arquivo nem link. Vídeo anexado toca pelo download autenticado (area=baixar) até 60 MB, como a prévia do Conteúdo;
+// acima disso, a capa com "Abrir". Itens: { tipo: imagem | video, src, capa, nome, abrir, imagem (índice na Prévia grande) }.
+const VIDEO_ANEXO_TETO = 60 * 1024 * 1024;
+function midiaDaConferencia(detail, entrega = null) {
+  const ehVideo = typeof eVideoDoMaterial === 'function' ? eVideoDoMaterial
+    : (a) => /^\.?(mp4|mov|webm|m4v|avi|mkv)$/i.test(String(a?.file_extension || '')) || /\.(mp4|mov|webm|m4v)(?:$|[?#])/i.test(String(a?.name || ''));
+  const todos = [...(detail?.assets || []), ...(detail?.updates || []).flatMap((u) => u?.assets || [])];
+  const imagens = (typeof statusContextPreviewAssets === 'function' ? statusContextPreviewAssets(detail) : []).filter((a) => !ehVideo(a));
+  const videos = todos.filter(ehVideo).map((a) => {
+    const bytes = Number(a.file_size || 0), local = a.local_id && bytes > 0 && bytes <= VIDEO_ANEXO_TETO;
+    return { tipo: 'video', src: local ? `/api/painel?area=baixar&arquivo=${encodeURIComponent(a.local_id)}` : '', capa: a.url_thumbnail || '',
+      nome: String(a.name || 'Vídeo anexado'), abrir: a.link_drive || a.public_url || a.url || '' };
+  });
+  const itens = [...videos, ...imagens.map((a, i) => ({ tipo: 'imagem', src: a.public_url || a.url || a.url_thumbnail || '', capa: a.url_thumbnail || '',
+    nome: String(a.name || 'Imagem anexada'), abrir: a.link_drive || a.public_url || a.url || '', imagem: i }))].filter((x) => x.src || x.capa);
+  if (itens.length) return { fonte: 'anexo', itens, n: itens.length, abrir: itens[0].abrir };
+  const e = entrega && typeof entrega === 'object' ? entrega : null;
+  if (e) {
+    const abrir = e.abrir || e.link || '';
+    // quadroDe: a miniatura que o Conteúdo mediu e achou preta (vybe-mundo-conteudo.js); ela não serve de capa.
+    const capa = e.quadroDe ? '' : (e.thumb || '');
+    const video = e.tipo === 'video' ? (e.quadro || e.video || '') : '';
+    if (e.tipo === 'video' && (video || capa)) return { fonte: 'entrega', itens: [{ tipo: 'video', src: video, capa, nome: e.nome || 'Vídeo · link de entrega', abrir }], n: 1, abrir };
+    if (capa) return { fonte: 'entrega', itens: [{ tipo: 'imagem', src: capa, capa, nome: e.nome || 'Link de entrega', abrir }], n: Number(e.n) || 1, abrir };
+    if (abrir) return { fonte: 'entrega', itens: [], n: 0, abrir };
+  }
+  return { fonte: 'nada', itens: [], n: 0, abrir: '' };
+}
+
+// A LEGENDA E O BRIEFING DA PEÇA, só leitura. Legenda: a do planejamento aprovado pelo cliente (detail.planejamento, a
+// mesma do VybeHub e da página de aprovação); sem ela, a seção ou linha "Legenda" do briefing (legendaDaPrevia, a da
+// Prévia grande). Briefing: o da peça (cadastro ou o update do modelo, briefingDaPeca) dividido em partes
+// (briefingEmSecoes); o essencial (objetivo, mensagem, CTA, referências, observações) vem primeiro e o resto depois,
+// sem a parte da legenda. Sem briefing, o pedido do planejamento (objetivo, tema, telas, referência, observação).
+const ESSENCIAL_DO_BRIEFING = [['Objetivo', /^objetivo/i, 'objetivo'], ['Mensagem', /^(mensagem|copy|tema|hook|gancho|ideia)/i, 'tema'],
+  ['CTA', /^(cta|chamada)/i, ''], ['Referências', /^refer/i, 'referencia'], ['Observações', /^(observa|obs\b)/i, 'observacao']];
+function textosDaConferencia(detail) {
+  const plan = detail?.planejamento && typeof detail.planejamento === 'object' ? detail.planejamento : null;
+  let legenda = { texto: '', origem: '' };
+  if (String(plan?.legenda || '').trim()) legenda = { texto: String(plan.legenda).trim(), origem: 'do planejamento aprovado' };
+  else {
+    const t = typeof legendaDaPrevia === 'function' ? String(legendaDaPrevia(detail) || '').replace(/^legenda( do post)?:\s*/i, '').trim() : '';
+    if (t) legenda = { texto: t, origem: 'do briefing' };
+  }
+  const b = typeof briefingDaPeca === 'function' ? briefingDaPeca(detail) : null;
+  const secoes = b && typeof briefingEmSecoes === 'function' ? briefingEmSecoes(b.texto) : [];
+  const linhas = secoes.flatMap((s) => s.linhas);
+  const essencial = [], usadas = new Set();
+  for (const [rotulo, re, campo] of ESSENCIAL_DO_BRIEFING) {
+    const achou = linhas.find((l) => l.valor && re.test(String(l.rotulo || '').trim()));
+    if (achou) usadas.add(achou);
+    const valor = achou ? String(achou.valor) : campo && plan ? String(plan[campo] || '').trim() : '';
+    if (valor) essencial.push({ rotulo, valor });
+  }
+  if (String(plan?.ajuste_cliente || '').trim()) essencial.push({ rotulo: 'Ajuste do cliente', valor: String(plan.ajuste_cliente).trim() });
+  // O resto sem a parte da legenda (ela tem o bloco dela) e sem as linhas que já estão no essencial.
+  const resto = secoes.filter((s) => !/^legenda/i.test(String(s.titulo || '')))
+    .map((s) => ({ ...s, linhas: s.linhas.filter((l) => !usadas.has(l)) })).filter((s) => s.linhas.length);
+  if (!b && plan && Array.isArray(plan.telas) && plan.telas.length) resto.push({ titulo: 'Telas', linhas: plan.telas.map((t) => ({ tipo: 'item', valor: String(t) })) });
+  const origem = b ? (b.origem === 'histórico' ? 'do histórico da peça' : 'do cadastro da peça') : essencial.length || resto.length ? 'do planejamento' : '';
+  return { legenda, briefing: { essencial, secoes: resto, origem, tem: Boolean(essencial.length || resto.length) } };
+}
+function legendaDaConferenciaHtml(legenda) {
+  return legenda?.texto ? `<p class="vbc-legenda-txt">${safeText(legenda.texto)}</p>` : '<p class="vbc-bloco-vazio">Sem legenda cadastrada</p>';
+}
+function briefingDaConferenciaHtml(briefing) {
+  if (!briefing?.tem) return '<p class="vbc-bloco-vazio">Sem briefing</p>';
+  // Classes próprias (vbc-bl-*): as brief-* da tela do briefing têm cor fixa com !important no CSS antigo e sumiriam no
+  // vidro escuro.
+  const linha = (l) => l.tipo === 'arte' ? `<pre class="vbc-bl-arte">${safeText(l.valor)}</pre>`
+    : l.tipo === 'subtitulo' ? `<p class="vbc-bl-sub">${safeText(l.rotulo)}</p>`
+    : l.rotulo ? `<p class="vbc-bl-par"><span>${safeText(l.rotulo)}</span> ${safeText(l.valor || '')}</p>`
+    : `<p class="vbc-bl-txt${l.tipo === 'item' ? ' vbc-bl-item' : ''}">${safeText(l.valor || '')}</p>`;
+  const essencial = briefing.essencial.length ? `<dl class="vbc-essencial">${briefing.essencial.map((x) => `<div><dt>${safeText(x.rotulo)}</dt><dd>${safeText(x.valor)}</dd></div>`).join('')}</dl>` : '';
+  const resto = briefing.secoes.map((s) => `<div class="vbc-brief-parte">${s.titulo ? `<h4>${safeText(s.titulo)}</h4>` : ''}${s.linhas.map(linha).join('')}</div>`).join('');
+  return `${essencial}${resto ? `<div class="vbc-brief-resto">${essencial ? '<h4 class="vbc-brief-tudo">Briefing completo</h4>' : ''}${resto}</div>` : ''}`;
+}
+// O palco: a mídia na proporção dela (contain, sem corte), com setas e "i de N" quando há mais de uma. Vídeo com controles,
+// mudo no início e parado em 1 s (o Reels que abre do preto mostra imagem); sem endereço que o navegador toque, a capa
+// com ▶ e o Abrir embaixo.
+function palcoDaConferenciaHtml(midia, indice = 0) {
+  const it = midia?.itens?.[indice];
+  if (!it) {
+    return midia?.abrir
+      ? '<div class="vbc-vazio"><b>Sem prévia visual</b>O link de entrega não pôde ser lido aqui. Abra-o para conferir antes de confirmar.</div>'
+      : '<div class="vbc-vazio"><b>Sem prévia</b>Nenhum arquivo ou link de entrega foi localizado nesta peça.</div>';
+  }
+  const total = midia.itens.length;
+  const setas = total > 1
+    ? `<button type="button" class="vbj-ic vbc-seta antes" aria-label="Anterior" title="Anterior" onclick="passarPreviaDaConferencia(-1)">${vbjIcone('esq', 16)}</button><button type="button" class="vbj-ic vbc-seta depois" aria-label="Próxima" title="Próxima" onclick="passarPreviaDaConferencia(1)">${vbjIcone('dir', 16)}</button>`
+    : '';
+  const pasta = midia.fonte === 'entrega' && midia.n > 1 ? ` · 1 de ${midia.n} na pasta` : '';
+  const conta = total > 1 ? `${indice + 1} de ${total} · ` : '';
+  const legenda = `<small id="material-review-caption" class="vbc-legenda">${safeText(conta + (it.nome || 'Peça') + pasta)}</small>`;
+  if (it.tipo === 'video' && it.src) {
+    const src = String(it.src).split('#')[0];
+    return `<video id="material-review-video" class="vbc-video" src="${safeText(src)}#t=1" controls muted playsinline preload="metadata" aria-label="Vídeo: ${safeText(it.nome || 'peça')}" data-capa="${safeText(it.capa || '')}" onloadeddata="videoDaConferenciaAbriu(this)" onerror="videoDaConferenciaFalhou(this)"></video>${setas}${legenda}`;
+  }
+  const play = it.tipo === 'video' ? '<span class="vbc-play" aria-hidden="true">▶</span>' : '';
+  const grande = it.tipo === 'imagem' && Number.isInteger(it.imagem) ? ` title="Clique para ver em tamanho grande" onclick="abrirPreviaGrande(${it.imagem})"` : '';
+  const reserva = it.capa && it.src && it.capa !== it.src ? ` data-fallback-src="${safeText(it.capa)}"` : '';
+  return `<img id="material-review-img" src="${safeText(it.src || it.capa)}"${reserva} alt="${it.tipo === 'video' ? 'Capa do vídeo' : 'Prévia'}: ${safeText(it.nome || 'material')}" loading="eager"${grande} onerror="materialReviewPreviewFailed(this)">${play}${setas}${it.tipo === 'video' ? `<small id="material-review-caption" class="vbc-legenda">${safeText(conta)}Vídeo · use Abrir para assistir</small>` : legenda}`;
 }
 function openQualityGate(item, option) {
   if (precisaDeConferenciaFinal(item, option)) return openMaterialReviewGate(item, option);
@@ -250,7 +384,7 @@ function openQualityGate(item, option) {
   abrirJanelaV2(janelaDeConferenciaHtml({ item, option, titulo: 'Checklist de qualidade', sub: 'confira a prévia e os pontos essenciais antes da publicação',
     cab: `Antes de mandar para ${option.label}`, idForm: 'quality-checklist-form', mudar: 'updateQualityGateState()', checks: qualityChecklistFor(item),
     nota: 'O registro fica no histórico da peça. Alterações diretas no Monday não passam por esta conferência.',
-    idBotao: 'quality-submit', onclick: 'submitQualityChecklist()', acao: 'Continuar' }), 'vbc');
+    idBotao: 'quality-submit', onclick: 'submitQualityChecklist()', acao: 'Continuar' }), 'vbc vbc-mesa');
   loadMaterialReviewPreview(item.id);
   updateQualityGateState();
 }
@@ -266,45 +400,120 @@ function acoesDaPreviaDaConferencia({ temArte = false, abrir = '' } = {}) {
   if (!acoes) return;
   acoes.innerHTML = `${temArte ? `<button type="button" class="vbj-btn" onclick="abrirPreviaGrande(PREVIA_GRANDE_INDICE)">${vbjIcone('olho', 14)}Ver grande</button>` : ''}${abrir ? `<a class="vbj-btn" href="${safeText(abrir)}" target="_blank" rel="noopener">${vbjIcone('link', 14)}Abrir</a>` : ''}<button type="button" class="vbj-btn vbj-txt" onclick="const f=pendingWorkflowChange;closeWorkflowModal();if(f?.item)openItemWorkspace(f.item.id)">${temArte || abrir ? 'Trocar' : 'Anexar material'}</button>`;
 }
+// A mesa: busca a peça uma vez (area=peca) e pinta os três blocos. A mídia vem de midiaDaConferencia; sem anexo, a
+// prévia da entrega (esperarPreviaDaEntrega). A legenda e o briefing vêm do mesmo detalhe (textosDaConferencia).
+let MIDIA_DA_CONFERENCIA = { fonte: 'nada', itens: [], n: 0, abrir: '' };
+let MIDIA_DA_CONFERENCIA_INDICE = 0;
+let LEGENDA_DA_CONFERENCIA = '';
 async function loadMaterialReviewPreview(itemId){
   const holder=document.getElementById('material-review-preview');
   if(!holder) return;
   const info=document.getElementById('vbc-prev-info');
-  try {
-    const detail=await fetchWorkspaceItem(itemId);
-    const assets=statusContextPreviewAssets(detail);
-    const delivery=workspaceDeliveryInfo(detail);
-    PREVIA_MATERIAL=assets; PREVIA_DA_PECA='';
-    PREVIA_GRANDE_INDICE=0;
+  ligarAlvosDaConferencia();
+  let detail;
+  try { detail=await fetchWorkspaceItem(itemId); }
+  catch(error){
     if(!document.body.contains(holder)) return;
-    if(!assets.length){
-      holder.innerHTML=`<div class="vbc-vazio"><b>Sem prévia visual</b>${delivery?.url?'Há um material vinculado. Abra-o antes de confirmar a conferência.':'Nenhum arquivo ou link final foi localizado nesta peça.'}</div>`;
-      if(info) info.textContent=delivery?.url?'link de entrega':'sem arquivo';
-      acoesDaPreviaDaConferencia({ abrir: delivery?.url || '' });
-      return;
-    }
-    const primeira=assets[0];
-    const fonte=primeira.url_thumbnail||primeira.public_url||primeira.url||'';
-    if(!fonte){
-      holder.innerHTML=`<div class="vbc-vazio"><b>Arquivo sem prévia</b>${delivery?.url?'Abra o material vinculado para conferir o arquivo final.':'O item não disponibiliza imagem de visualização.'}</div>`;
-      acoesDaPreviaDaConferencia({ abrir: delivery?.url || primeira.public_url || primeira.url || '' });
-      return;
-    }
-    const setas=assets.length>1
-      ? `<button type="button" class="vbj-ic vbc-seta antes" aria-label="Arquivo anterior" title="Arquivo anterior" onclick="passarPreviaDaConferencia(-1)">${vbjIcone('esq',16)}</button><button type="button" class="vbj-ic vbc-seta depois" aria-label="Próximo arquivo" title="Próximo arquivo" onclick="passarPreviaDaConferencia(1)">${vbjIcone('dir',16)}</button>`
-      : '';
-    holder.innerHTML=`<img id="material-review-img" src="${safeText(fonte)}" alt="Prévia de ${safeText(primeira.name||'material')}" loading="eager" title="Clique para ver em tamanho grande" onclick="abrirPreviaGrande(PREVIA_GRANDE_INDICE)" onerror="materialReviewPreviewFailed(this)">${setas}<small id="material-review-caption" class="vbc-legenda">${safeText(primeira.name||'Prévia vinculada ao item')}</small>`;
-    if(info) info.textContent=`arquivo vinculado · 1 de ${assets.length}`;
-    acoesDaPreviaDaConferencia({ temArte: true, abrir: delivery?.url || primeira.public_url || primeira.url || '' });
-  } catch(error){
     holder.innerHTML='<div class="vbc-vazio"><b>Prévia indisponível</b>Não foi possível carregar os arquivos da demanda agora. Feche e tente novamente antes de confirmar.</div>';
+    if(info) info.textContent='indisponível';
     acoesDaPreviaDaConferencia({});
+    pintarTextosDaConferencia(null);
+    return;
   }
+  if(!document.body.contains(holder)) return;
+  pintarTextosDaConferencia(detail);
+  const imagens=statusContextPreviewAssets(detail).filter((a)=>!(typeof eVideoDoMaterial==='function'&&eVideoDoMaterial(a)));
+  PREVIA_MATERIAL=imagens; PREVIA_DA_PECA='';
+  PREVIA_GRANDE_INDICE=0;
+  let midia=midiaDaConferencia(detail);
+  if(midia.fonte==='nada'){
+    const delivery=workspaceDeliveryInfo(detail);
+    if(delivery?.url){
+      if(info) info.textContent='link de entrega';
+      holder.innerHTML='<div class="vbc-vazio">Abrindo o link de entrega…</div>';
+      const previa=await esperarPreviaDaEntrega(itemId);
+      if(!document.body.contains(holder)) return;
+      midia=midiaDaConferencia(detail, previa || { abrir: delivery.url });
+    }
+  }
+  MIDIA_DA_CONFERENCIA=midia; MIDIA_DA_CONFERENCIA_INDICE=0;
+  pintarPalcoDaConferencia();
+  if(info) info.textContent=midia.fonte==='anexo'?(midia.itens.length>1?`anexo · ${midia.itens.length} arquivos`:'anexo da peça'):midia.fonte==='entrega'?'link de entrega':'sem arquivo';
+  acoesDaPreviaDaConferencia({ temArte: imagens.length>0, abrir: midia.abrir||'' });
+}
+function pintarPalcoDaConferencia(){
+  const holder=document.getElementById('material-review-preview');
+  if(!holder) return;
+  holder.innerHTML=palcoDaConferenciaHtml(MIDIA_DA_CONFERENCIA, MIDIA_DA_CONFERENCIA_INDICE);
+  const v=holder.querySelector('video'); if(v) v.muted=true;
+  const it=MIDIA_DA_CONFERENCIA.itens[MIDIA_DA_CONFERENCIA_INDICE];
+  if(Number.isInteger(it?.imagem)) PREVIA_GRANDE_INDICE=it.imagem;
+}
+// A prévia da entrega pela mesma leitura do Conteúdo (VybeConteudo.previaDe: area=arquivos, area=peca e
+// area=previa_entrega, guardada por sessão e com a miniatura preta já medida). Sem o módulo (fora do mundo), o
+// endpoint direto. Responde null em 15 s no pior caso: a janela nunca fica presa em "Abrindo".
+function esperarPreviaDaEntrega(itemId, prazo = 15000){
+  const ref=String(itemId||'');
+  const vc=globalThis.VybeConteudo;
+  if(!vc?.previaDe){
+    return fetch(`/api/painel?area=previa_entrega&item=${encodeURIComponent(ref)}`, { credentials:'same-origin' })
+      .then((r)=>r.ok?r.json():null).then((d)=>d?.previa||null).catch(()=>null);
+  }
+  const ja=vc.previaDe(ref);
+  if(ja!==undefined) return Promise.resolve(ja);
+  return new Promise((ok)=>{
+    let feito=false;
+    const fim=(v)=>{ if(!feito){ feito=true; ok(v??null); } };
+    if(typeof vc.ouvirPrevia==='function') vc.ouvirPrevia((r)=>{ if(!feito&&String(r)===ref){ const v=vc.previaDe(ref); if(v!==undefined) fim(v); } });
+    setTimeout(()=>fim(vc.previaDe(ref)), prazo);
+  });
+}
+// O vídeo abriu, mas sem imagem (HEVC .mov no Chrome abre o som e não o quadro), ou não abriu: fica a capa com ▶ e o Abrir.
+function videoDaConferenciaAbriu(video){ if(video && !(video.videoWidth>0)) videoDaConferenciaFalhou(video); }
+function videoDaConferenciaFalhou(video){
+  const it=MIDIA_DA_CONFERENCIA.itens[MIDIA_DA_CONFERENCIA_INDICE];
+  if(!it || it.tipo!=='video' || !it.src) return;
+  MIDIA_DA_CONFERENCIA.itens[MIDIA_DA_CONFERENCIA_INDICE]={ ...it, src:'' };
+  if(it.capa) return pintarPalcoDaConferencia();
+  const holder=video?.closest?.('.vbc-palco');
+  if(holder) holder.innerHTML='<div class="vbc-vazio"><b>O vídeo não abre aqui</b>Use Abrir para assistir antes de confirmar.</div>';
 }
 function passarPreviaDaConferencia(passo) {
-  const total = PREVIA_MATERIAL.length;
+  const total = MIDIA_DA_CONFERENCIA.itens.length;
   if (total < 2) return;
-  trocarPreviaMaterial((PREVIA_GRANDE_INDICE + passo + total) % total);
+  MIDIA_DA_CONFERENCIA_INDICE = (MIDIA_DA_CONFERENCIA_INDICE + passo + total) % total;
+  pintarPalcoDaConferencia();
+}
+function pintarTextosDaConferencia(detail){
+  const t=detail?textosDaConferencia(detail):{ legenda:{ texto:'', origem:'' }, briefing:{ tem:false, essencial:[], secoes:[], origem:'' } };
+  LEGENDA_DA_CONFERENCIA=t.legenda.texto;
+  const pintar=(id, html, info)=>{ const c=document.getElementById(`${id}-corpo`); if(c) c.innerHTML=html; const i=document.getElementById(`${id}-info`); if(i) i.textContent=info; };
+  pintar('vbc-legenda', detail?legendaDaConferenciaHtml(t.legenda):'<p class="vbc-bloco-vazio">Não foi possível ler a legenda agora.</p>', t.legenda.origem);
+  pintar('vbc-briefing', detail?briefingDaConferenciaHtml(t.briefing):'<p class="vbc-bloco-vazio">Não foi possível ler o briefing agora.</p>', t.briefing.origem);
+  const copiar=document.getElementById('vbc-legenda-copiar'); if(copiar) copiar.hidden=!t.legenda.texto;
+}
+function copiarLegendaDaConferencia(){
+  if(!LEGENDA_DA_CONFERENCIA) return;
+  if(typeof copiarBriefingTexto==='function') return copiarBriefingTexto(LEGENDA_DA_CONFERENCIA, 'Legenda');
+  navigator.clipboard?.writeText(LEGENDA_DA_CONFERENCIA).catch(()=>{});
+}
+// Marcar (ou apontar) uma caixa acende o bloco que ela confere. Só a classe: nada muda no que a caixa registra.
+function ligarAlvosDaConferencia(){
+  const form=document.querySelector('#workflow-modal .vbc-checks');
+  if(!form || form.dataset.alvos) return;
+  form.dataset.alvos='1';
+  const bloco=(label)=>document.getElementById({ peca:'vbc-bloco-peca', legenda:'vbc-legenda', briefing:'vbc-briefing' }[label?.dataset?.alvo]||'');
+  const apontar=(e, on)=>{ const b=bloco(e.target?.closest?.('[data-alvo]')); if(b) b.classList.toggle('vbc-apontado', on); };
+  form.addEventListener('mouseover', (e)=>apontar(e, true));
+  form.addEventListener('mouseout', (e)=>apontar(e, false));
+  form.addEventListener('focusin', (e)=>apontar(e, true));
+  form.addEventListener('focusout', (e)=>apontar(e, false));
+  form.addEventListener('change', (e)=>{
+    const b=bloco(e.target?.closest?.('[data-alvo]'));
+    if(!b || !e.target.checked) return;
+    b.classList.remove('vbc-realce'); void b.offsetWidth; b.classList.add('vbc-realce');
+    setTimeout(()=>b.classList.remove('vbc-realce'), 1400);
+  });
 }
 function openMaterialReviewGate(item, option) {
   const scheduled = normalizedWorkflowStatus(option?.label) === 'agendado';
@@ -316,7 +525,7 @@ function openMaterialReviewGate(item, option) {
     idForm: 'material-review-form', mudar: 'updateMaterialReviewState()', checks: materialReviewChecklistFor(item, option), marca: 'data-material-review-check',
     nota: scheduled ? 'A conferência fica no histórico da peça junto com a troca de status. Não é preciso justificar.'
       : 'A conferência fica no histórico da peça junto com a troca de status. Nenhuma justificativa é exigida para finalizar.',
-    idBotao: 'material-review-submit', onclick: 'submitMaterialReview()', acao: scheduled ? 'Confirmar e agendar' : 'Confirmar e finalizar' }), 'vbc');
+    idBotao: 'material-review-submit', onclick: 'submitMaterialReview()', acao: scheduled ? 'Confirmar e agendar' : 'Confirmar e finalizar' }), 'vbc vbc-mesa');
   loadMaterialReviewPreview(item.id);
   updateMaterialReviewState();
 }
@@ -331,7 +540,7 @@ function abrirConferenciaVisual(item, option) {
   pendingWorkflowChange = { item, option, manual: false };
   abrirJanelaV2(janelaDeConferenciaHtml({ item, option, titulo: 'Confira antes de mandar', sub: `a arte vai para ${option.label}`,
     cab: 'A arte que vai para aprovação', nota: 'Sem campo obrigatório: olhe a arte e confirme. A troca fica no histórico da peça.',
-    idBotao: 'conferencia-confirmar', onclick: 'confirmarConferenciaVisual()', acao: 'Confirmar', desligado: false }), 'vbc conferencia-visual');
+    idBotao: 'conferencia-confirmar', onclick: 'confirmarConferenciaVisual()', acao: 'Confirmar', desligado: false }), 'vbc vbc-mesa conferencia-visual');
   loadMaterialReviewPreview(item.id);
 }
 
