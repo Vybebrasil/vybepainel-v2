@@ -1238,6 +1238,8 @@
   // O "Para você decidir" do Hoje (vybe-mundo.js) usa as mesmas peças: a peça da fila, a decisão e a prévia.
   const ouvirPrevia = (f) => { if (typeof f === 'function') avisosPrevia.add(f); };
   window.VybeConteudo = Object.freeze({ abrir, fechar, aberto: () => st.aberto, atualizar: carregarObjetivos, bolinhaHtml, campoObjetivoHtml, definirObjetivo, objetivoDe,
-    itemDaFila: itemDoPainel, decisaoDaFila, previaDe, arteHtml, ouvirPrevia,
+    // filaParaAprovar: a fila de "Para aprovar agora" (a mesma conta do filaDecidir do Hoje), para o Checklist de qualidade
+    // passar de uma peça para a próxima (frente s-z).
+    itemDaFila: itemDoPainel, decisaoDaFila, filaParaAprovar, previaDe, arteHtml, ouvirPrevia,
     estado: () => ({ aberto: st.aberto, aba: st.aba, mes: st.mes, cliente: st.cliente, pronto: st.pronto, objetivos: { ...st.objetivos } }) });
 })();
