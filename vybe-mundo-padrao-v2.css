@@ -12261,6 +12261,73 @@ body.mundo #fc-overlay#fc-overlay .nd.nd-em-passos .nd-pe > #fc-nota{text-align:
 #vv-hoje .d3q > .d3h-lado .d3h-ag-itens{display:flex;flex-direction:column;gap:6px;padding:0 0 8px}
 #vv-hoje .d3q > .d3h-lado .d3h-ag-linha .d3h-pe{padding:0 0 8px}
 
+/* ===== padrao-v2/s-v.css ===== */
+/* Frente s-v (24/11/2026), varredura de responsividade. Paulo: "faz um teste de responsividade em tudo. todos os
+   tamanhos de tela. menus. huds. telas. submenus." Regra dele: nada cobre nada, nada exige rolar para ver o que importa,
+   nenhum texto estoura ou fica cortado. Cada bloco abaixo corrige uma quebra medida pela varredura (9 tamanhos, 3 temas). */
+
+/* Visão geral do setor com o ajuste aberto: a faixa do título gruda no alto e o conteúdo passa por baixo dela; com o fundo
+   translúcido, os números que passavam por baixo apareciam por cima do título (1280 a 1920). Fundo cheio do painel. */
+.vv-gestao.vv-setor-visao.vst-casa.vst-casa.vst-ajuste-aberto > .g2-topo{background:var(--d3-fume-painel)}
+
+/* Demandas numa coluna (até 1180 px, tablet e celular): a lista vem antes da consulta (Resumo, Ordenar, Colunas; o lado é display:contents, então a ordem vai nos filhos dele); antes a
+   consulta inteira vinha primeiro e a lista ficava uma tela e meia abaixo, no celular. */
+@media (max-width:1180px){
+  #pv2-demandas.pv2.d3m-a-dm.s-dm > .s-dm-folha{order:1}
+  #pv2-demandas.pv2.d3m-a-dm.s-dm > .s-dm-lado,#pv2-demandas.pv2.d3m-a-dm.s-dm > .s-dm-lado > div{order:2}
+}
+
+/* Nova demanda (#fc-overlay .nd). No computador, o espaço é a tela menos a faixa das salas (o fundo já desconta o dock):
+   em 1280×720 e 1366×768 o cadastro com Solicitação passava da altura e o título e o X saíam pelo alto; o corpo rola
+   por dentro. No celular, Cancelar e Continuar ficavam atrás da barra de baixo: o pé sobe acima dela. */
+@media (min-width:601px){
+  body.mundo.com-dock-salas #fc-overlay#fc-overlay .nd.nd{max-height:calc(100dvh - 36px - var(--vv-dock-alto,0px))}
+}
+@media (max-width:600px){
+  body.mundo #fc-overlay#fc-overlay .nd.nd{padding-bottom:calc(var(--vv-barra-cel,64px) + 14px)}
+}
+
+/* Hoje com o menu largo (ou janela estreita, 1280 a 1440): os cartões ficam com 360 a 440 px. No Pede ação o nome do
+   cliente encolhia a 2 ou 3 letras; com pouco espaço, o status fica só no ponto colorido (o nome inteiro continua no
+   title da linha) e o nome ganha a largura. Os botões do Para você decidir e do laranja quebram linha em vez de passar
+   da borda do cartão (Pedir alteração e a seta da próxima peça ficavam cortados). */
+#vv-hoje .d3h-cartao > .d3h-corpo{container-type:inline-size}
+@container (max-width:440px){
+  #vv-hoje .d3h-lin > .d3h-st .d3v-st{gap:0;font-size:0}
+}
+#vv-hoje .d3h-decidir-acoes{flex-wrap:wrap;row-gap:8px}
+/* Celular: alvo de toque com pelo menos 28 px de altura (a varredura achou chips de 26 px no Nova demanda, links de 15 px
+   e o seletor do mês da agenda com 22 px). Só cresce a área de toque; texto, cor e função ficam iguais. */
+@media (max-width:600px){
+  body.mundo #fc-overlay#fc-overlay .nd.nd .nd-chip,body.mundo #fc-overlay#fc-overlay .nd.nd .fc-auto-col > .nd-chip{height:28px}
+  body.mundo #fc-overlay#fc-overlay .nd.nd .nd-sazonal{display:inline-flex;align-items:center;min-height:28px}
+  .d3m-d-troca.d3m-d-troca > summary{min-height:28px}
+  .d3m-d-elo.d3m-d-elo{height:28px}
+  #vv-conteudo.vc.vc.vc.d3m-a-v2 .d3m-a-ap-link.d3m-a-ap-link,.d3m-e-elo.d3m-e-elo,.d3m-e-fx-n.d3m-e-fx-n,.d3m-e-fx-at.d3m-e-fx-at,.fe-elo.fe-elo,#office-catalogo .v2l-link.v2l-link,.mdn-nome.mdn-nome{min-height:28px}
+  #vv-pessoas .d3m-e-pes-seta.d3m-e-pes-seta{width:28px;height:28px}
+  body.mundo #pv2-agenda .pv2a-mes-cartao .capt-cal.vista-mes .capt-mes-num.capt-mes-num{min-width:28px;height:28px}
+  #v2-fila .vfa-filtro.vfa-filtro,.mdq-th.mdq-th{height:28px}
+  #painel-clientes .cv2-troca.cv2-troca{min-height:28px}
+}
+
+/* Minhas tarefas (1280 a 1440): a linha "terça, 24 nov · 7 para hoje, 2 atrasadas" passava por baixo do seletor "Dia de". Quebra
+   em duas linhas no lugar de invadir o vizinho (o celular já fazia isso). */
+#vv-hoje .d3q .d3h-ola > small{max-width:100%;white-space:normal}
+
+/* Direção de arte, "Esperam o seu parecer" (1024 a 1440): a imagem fixa de 150 px deixava 70 px para o texto, e o nome
+   da peça, o cliente e "sem arquivo anexado" quebravam letra a letra ou saíam da caixa. Com o cartão estreito, a imagem
+   diminui na mesma proporção e o texto ganha espaço. */
+#vv-hoje .d3m-a-da .d3m-a-da-arte{container-type:inline-size}
+@container (max-width:320px){
+  #vv-hoje .d3m-a-da-arte .d3m-a-da-img{width:96px;height:128px}
+}
+
+/* Saúde da carteira ("O que tirou ponto"): com o menu largo ou em 1024 a 1366, o terceiro motivo ficava pela metade embaixo do
+   "Abrir as N". Agora o motivo que não cabe inteiro vai para uma segunda linha escondida (some inteiro, não pela metade) e o
+   primeiro, se sozinho não couber, termina em reticências. */
+.d3m-r-sc-perdas.d3m-r-sc-perdas{flex-wrap:wrap;row-gap:12px;height:1.4em;line-height:1.4em}
+.d3m-r-sc-perdas.d3m-r-sc-perdas > span:first-child{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis}
+
 /* ===== padrao-v2/status.css ===== */
 /* PADRÃO V2 · TROCA DE STATUS (quadro Status do moodboard): menu curto com próximo, seguinte e volta; "Todos os N status".
    DIREÇÃO 3 (quadro D3-StatusMenu, 13/11/2026): menu branco de 260, cada status em pílula clara com a bolinha do catálogo

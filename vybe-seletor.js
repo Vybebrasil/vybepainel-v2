@@ -118,7 +118,14 @@ function seletorPosicionar() {
   const margem = 8;
   m.style.minWidth = Math.max(Math.round(r.width), 180) + 'px';
   m.style.maxWidth = Math.max(200, Math.min(380, innerWidth - 2 * margem)) + 'px';
-  const embaixo = innerHeight - r.bottom - 12, emcima = r.top - 12;
+  // O chão é o que estiver fixo embaixo (a faixa das salas; no celular, a barra de baixo), não a borda da tela: a lista
+  // passava por cima do dock (varredura de responsividade, 24/11/2026).
+  let chao = innerHeight;
+  for (const el of document.querySelectorAll('.vv-dock-salas-faixa:not([hidden]), body.mundo .vv-trilho')) {
+    const q = el.getBoundingClientRect?.(); if (!q || !q.height || q.height > 120 || q.top <= r.bottom || q.top >= innerHeight) continue;
+    if (q.right > r.left && q.left < r.left + Math.max(r.width, 180)) chao = Math.min(chao, q.top);
+  }
+  const embaixo = chao - r.bottom - 12, emcima = r.top - 12;
   const acima = embaixo < 220 && emcima > embaixo;
   const alto = Math.max(120, Math.min(340, acima ? emcima : embaixo));
   m.style.maxHeight = alto + 'px';
