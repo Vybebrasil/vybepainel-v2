@@ -69,7 +69,8 @@ export async function pecaDoPlanejamento(sql, conteudoId) {
 // peça que pecaDoPlanejamento escolhe (mesma consulta e mesma ordem), só o campo legenda, a mesma permissão de editar o
 // planejamento (head do cliente e quem administra, podeEditarCliente), sobe a versão (uma edição aberta em outra tela
 // não apaga esta) e fica nos eventos do planejamento. O estado não muda.
-export const LEGENDA_MAX = 5000;
+// 2.200 caracteres: o limite do Instagram e o corte do VybeHub (legendasDasPecas). Acima disso, recusa (nada é cortado calado).
+export const LEGENDA_MAX = 2200;
 async function planoDaPeca(tx, id, { travar = false } = {}) {
  const planos = travar
   ? await tx`SELECT id, cliente_id, mes, versao, conteudo FROM vybe_planejamentos
@@ -101,8 +102,8 @@ export async function editarLegendaDaPeca(sql, pessoa, { item, conteudo_id: cont
  const id = conteudoId != null && conteudoId !== '' ? String(conteudoId) : await conteudoDoItem(sql, item);
  if (!/^\d{1,18}$/.test(id)) throw erro('Peça inválida.');
  if (typeof legenda !== 'string') throw erro('Falta o texto da legenda. Nada foi alterado.');
- const nova = texto(legenda, LEGENDA_MAX + 1);
- if (nova.length > LEGENDA_MAX) throw erro(`Legenda muito longa (máximo ${LEGENDA_MAX} caracteres).`);
+ const nova = texto(legenda, 100000);
+ if (nova.length > LEGENDA_MAX) throw erro(`A legenda tem ${nova.length} caracteres; o máximo é ${LEGENDA_MAX} (o limite do Instagram). Encurte e salve de novo. Nada foi alterado.`);
  return sql.comTransacao(async (tx) => {
   const p = await planoDaPeca(tx, id, { travar: true });
   if (!p) throw erro('Esta peça não está num planejamento aprovado.', 404);

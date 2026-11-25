@@ -717,6 +717,7 @@ function pintarTextosDaConferencia(detail){
   const copiar=document.getElementById('vbc-legenda-copiar'); if(copiar) copiar.hidden=!t.legenda.texto;
   // Editar ali mesmo (frente s-z): o botão só aparece para quem pode gravar no lugar de onde o texto vem.
   EDICAO_DA_CONFERENCIA=null;
+  ['vbc-legenda', 'vbc-briefing'].forEach((id)=>document.getElementById(id)?.classList?.remove('vbc-editando'));
   const botao=(id, pode, vazio, rotuloVazio)=>{ const b=document.getElementById(id); if(!b) return; b.hidden=!pode; b.disabled=false; b.textContent=vazio?rotuloVazio:'Editar'; };
   botao('vbc-legenda-editar', Boolean(detail && destinoDaLegendaDaConferencia(detail)), !t.legenda.texto, 'Escrever legenda');
   botao('vbc-briefing-editar', podeEditarBriefingDaConferencia(detail), !briefingDaPecaNaConferencia(detail), 'Escrever briefing');
@@ -729,6 +730,17 @@ function pintarTextosDaConferencia(detail){
 // briefing, pela rota de sempre do briefing (gravarBriefing). O briefing inteiro vai pela mesma rota do briefing, que a
 // gaveta já usa para qualquer pessoa da equipe com sessão. Nada disso marca a caixa "Copy, legenda e CTA revisados".
 let EDICAO_DA_CONFERENCIA=null;
+// A legenda tem o teto do Instagram, o mesmo do VybeHub e do servidor (LEGENDA_MAX em server/planejamentos.js).
+const LEGENDA_MAX_CONFERENCIA=2200;
+function contarLegendaDaConferencia(){
+  const area=document.getElementById('vbc-campo'), conta=document.getElementById('vbc-campo-conta'), salvar=document.getElementById('vbc-campo-salvar');
+  if(!area || !conta) return;
+  const n=String(area.value||'').replace(/\r\n?/g,'\n').trim().length, max=LEGENDA_MAX_CONFERENCIA;
+  conta.textContent=`${n}/${max}`;
+  conta.classList.toggle('perto', n>=max*0.9);
+  conta.classList.toggle('passou', n>max);
+  if(salvar && salvar.textContent!=='Salvando…') salvar.disabled=n>max;
+}
 const briefingDaPecaNaConferencia=(detail)=>(typeof briefingDaPeca==='function' ? briefingDaPeca(detail)?.texto || '' : String(detail?.briefing || '').trim());
 // 'planejamento', 'briefing' ou '' (sem botão). Planejamento com legenda: só quem edita o planejamento (senão a janela
 // continuaria mostrando a do planejamento e a gravada no briefing ficaria escondida). Planejamento sem legenda: grava
@@ -782,9 +794,12 @@ function editarTextoDaConferencia(campo){
   if(!corpo) return;
   const atual=campo==='legenda' ? LEGENDA_DA_CONFERENCIA : briefingDaPecaNaConferencia(detail);
   EDICAO_DA_CONFERENCIA={ campo, destino, html:corpo.innerHTML };
+  // Editando, o bloco cresce o quanto o campo pede (a legenda tem teto de metade da coluna só para ler).
+  document.getElementById(`vbc-${campo}`)?.classList?.add('vbc-editando');
   const b=document.getElementById(`vbc-${campo}-editar`); if(b) b.hidden=true;
   const onde=campo==='briefing' ? 'no briefing da peça' : destino==='planejamento' ? 'no planejamento aprovado (o cliente vê no VybeHub)' : 'na seção Legenda do briefing';
   corpo.innerHTML=`<div class="vbc-editor"><textarea id="vbc-campo" class="vbc-campo" rows="${campo==='briefing' ? 10 : 6}" aria-label="${campo==='briefing' ? 'Briefing da peça' : 'Legenda do post'}"></textarea>
+    ${campo==='legenda' ? '<span id="vbc-campo-conta" class="vbc-campo-conta" aria-live="polite"></span>' : ''}
     <div class="vbc-editor-acoes"><span class="vbc-editor-dica">Grava ${safeText(onde)} · Ctrl+Enter salva</span><button type="button" class="vbj-btn" onclick="cancelarTextoDaConferencia()">Cancelar</button><button type="button" id="vbc-campo-salvar" class="vbj-btn k" onclick="salvarTextoDaConferencia()">Salvar</button></div></div>`;
   const area=document.getElementById('vbc-campo');
   area.value=atual;
@@ -792,6 +807,7 @@ function editarTextoDaConferencia(campo){
     if(e.key==='Enter' && (e.ctrlKey || e.metaKey)){ e.preventDefault(); salvarTextoDaConferencia(); }
     else if(e.key==='Escape'){ e.preventDefault(); e.stopPropagation(); cancelarTextoDaConferencia(); }
   });
+  if(campo==='legenda'){ area.addEventListener('input', contarLegendaDaConferencia); contarLegendaDaConferencia(); }
   area.focus();
   area.setSelectionRange(area.value.length, area.value.length);
 }
@@ -799,6 +815,7 @@ function cancelarTextoDaConferencia(){
   const ed=EDICAO_DA_CONFERENCIA;
   if(!ed) return;
   EDICAO_DA_CONFERENCIA=null;
+  document.getElementById(`vbc-${ed.campo}`)?.classList?.remove('vbc-editando');
   const corpo=document.getElementById(`vbc-${ed.campo}-corpo`); if(corpo) corpo.innerHTML=ed.html;
   const b=document.getElementById(`vbc-${ed.campo}-editar`); if(b) b.hidden=false;
 }
@@ -812,8 +829,10 @@ async function gravarLegendaNoPlanejamento(itemId, legenda){
 async function salvarTextoDaConferencia(){
   const ed=EDICAO_DA_CONFERENCIA, detail=DETALHE_DA_CONFERENCIA;
   const area=document.getElementById('vbc-campo'), salvar=document.getElementById('vbc-campo-salvar');
-  if(!ed || !detail || !area || salvar?.disabled) return;
+  if(!ed || !detail || !area || salvar?.textContent==='Salvando…') return;
   const texto=area.value.replace(/\r\n?/g,'\n').trim();
+  // Acima do teto nada sai (nem pelo Ctrl+Enter): o aviso diz quanto passou.
+  if(ed.campo==='legenda' && texto.length>LEGENDA_MAX_CONFERENCIA){ if(typeof showToast==='function') showToast(`A legenda tem ${texto.length} caracteres; o máximo é ${LEGENDA_MAX_CONFERENCIA} (o limite do Instagram).`, 'err', 7000); return; }
   const itemId=String(detail.id ?? pendingWorkflowChange?.item?.id ?? '');
   if(salvar){ salvar.disabled=true; salvar.textContent='Salvando…'; }
   try {

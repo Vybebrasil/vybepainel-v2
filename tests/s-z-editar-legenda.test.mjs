@@ -17,7 +17,8 @@ const esc = (t) => String(t ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '
 // O pedaço da mesa que lê e grava os textos, com um DOM mínimo (elementos por id) e as gravações de mentira.
 function mesa() {
   const els = new Map();
-  const el = (id) => { if (!els.has(id)) els.set(id, { id, hidden: true, disabled: false, textContent: '', innerHTML: '', value: '', addEventListener() {}, focus() {}, setSelectionRange() {} }); return els.get(id); };
+  const el = (id) => { if (!els.has(id)) els.set(id, { id, hidden: true, disabled: false, textContent: '', innerHTML: '', value: '', classes: new Set(), addEventListener() {}, focus() {}, setSelectionRange() {} }); const x = els.get(id); x.classList ??= { toggle: (k, on) => (on ? x.classes.add(k) : x.classes.delete(k)), contains: (k) => x.classes.has(k) }; return x; };
+  const _ignorar = () => { return els.get(id); };
   const chamadas = { fetch: [], briefing: [], historico: [], toast: [] };
   const c = vm.createContext({
     safeText: esc, console,
@@ -98,6 +99,25 @@ test('salvar: a legenda do planejamento vai por legenda_da_peca e a do briefing 
   assert.equal(el('vbc-legenda-info').textContent, 'do planejamento aprovado');
   assert.equal(el('vbc-legenda-editar').textContent, 'Editar');
 
+  // 1b. o teto de 2.200 (Instagram e VybeHub): o contador embaixo do campo, vermelho perto do fim; acima, não salva
+  ({ c, el, chamadas } = mesa());
+  detalhe = { id: '9900', planejamento: plan({ legenda: '', pode_editar: true }) };
+  c.porDetalhe(detalhe); c.pintarTextosDaConferencia(detalhe);
+  c.editarTextoDaConferencia('legenda');
+  assert.match(el('vbc-legenda-corpo').innerHTML, /<\/textarea>\s*<span id="vbc-campo-conta" class="vbc-campo-conta" aria-live="polite"><\/span>/);
+  assert.equal(el('vbc-campo-conta').textContent, '0/2200');
+  const contar = (n) => { el('vbc-campo').value = 'x'.repeat(n); c.contarLegendaDaConferencia(); const k = el('vbc-campo-conta'); return [k.textContent, k.classList.contains('perto'), k.classList.contains('passou'), el('vbc-campo-salvar').disabled]; };
+  assert.deepEqual(contar(1979), ['1979/2200', false, false, false]);
+  assert.deepEqual(contar(1980), ['1980/2200', true, false, false], 'vermelho a partir de 90%');
+  assert.deepEqual(contar(2200), ['2200/2200', true, false, false], '2.200 ainda salva');
+  assert.deepEqual(contar(2201), ['2201/2200', true, true, true], 'acima: Salvar desligado');
+  await c.salvarTextoDaConferencia();
+  assert.equal(chamadas.fetch.length, 0, 'nem pelo Ctrl+Enter');
+  assert.match(chamadas.toast.at(-1)[0], /2201 caracteres; o máximo é 2200 \(o limite do Instagram\)/);
+  contar(2200); await c.salvarTextoDaConferencia();
+  assert.equal(chamadas.fetch.length, 1);
+  assert.equal(chamadas.fetch[0].corpo.legenda.length, 2200);
+
   // 2. sem planejamento: a seção Legenda do briefing, pela rota do briefing
   ({ c, el, chamadas } = mesa());
   detalhe = { id: 'vybe:77', briefing: BRIEF, planejamento: null };
@@ -117,7 +137,7 @@ test('salvar: a legenda do planejamento vai por legenda_da_peca e a do briefing 
 
   // 3. o briefing inteiro, pela mesma rota; sem nota de legenda
   c.editarTextoDaConferencia('briefing');
-  el('vbc-campo-salvar').disabled = false; // no DOM de verdade o Salvar é novo a cada edição (innerHTML)
+  Object.assign(el('vbc-campo-salvar'), { disabled: false, textContent: 'Salvar' }); // no DOM de verdade o Salvar é novo a cada edição (innerHTML)
   assert.equal(el('vbc-campo').value, detalhe.briefing);
   el('vbc-campo').value = 'Objetivo: Vender mais vinho\nCTA: Reserve já';
   await c.salvarTextoDaConferencia();
@@ -194,7 +214,7 @@ test('servidor: só a legenda daquela peça muda, a versão sobe, o estado fica,
   await assert.rejects(editarLegendaDaPeca(sql, outra, { item: '9900', legenda: 'Não pode' }), (e) => e.status === 403);
   await assert.rejects(editarLegendaDaPeca(sql, head, { item: '9900' }), /Falta o texto/);
   await assert.rejects(editarLegendaDaPeca(sql, head, { item: 'nada', legenda: 'x' }), /Peça inválida/);
-  await assert.rejects(editarLegendaDaPeca(sql, head, { item: '9900', legenda: 'x'.repeat(5001) }), /muito longa/);
+  await assert.rejects(editarLegendaDaPeca(sql, head, { item: '9900', legenda: 'x'.repeat(2201) }), (e) => e.status === 400 && /A legenda tem 2201 caracteres; o máximo é 2200 \(o limite do Instagram\)\. Encurte e salve de novo\. Nada foi alterado\./.test(e.message));
   const r = await editarLegendaDaPeca(sql, head, { item: '9900', legenda: ' Dezembro começa à mesa\r\nlink na bio ' });
   assert.deepEqual(r, { planejamento_id: '1', legenda: 'Dezembro começa à mesa\nlink na bio', mudou: true, versao: 4 });
   const [p] = await sql`SELECT estado, versao, conteudo FROM vybe_planejamentos WHERE id = 1`;
@@ -226,6 +246,7 @@ test('servidor: só a legenda daquela peça muda, a versão sobe, o estado fica,
   res = resposta();
   await areaPlanejamentos({ method: 'POST', query: {}, body: { acao: 'legenda_da_peca', item: 'vybe:43', legenda: 'x' } }, res, null, sql);
   assert.equal(res.codigo, 403, 'sem sessão');
+  assert.equal((await editarLegendaDaPeca(sql, head, { item: 'vybe:43', legenda: 'y'.repeat(2200) })).legenda.length, 2200, '2.200 entra (o teto do Instagram)');
   assert.match(ler('api/painel.js'), /planejamento\.pode_editar = await Promise\.resolve\(\)\.then\(\(\) => podeEditarLegendaDaPeca\(db, quem\?\.pessoa, c\.id\)\)\.catch\(\(\) => false\);/);
 });
 
