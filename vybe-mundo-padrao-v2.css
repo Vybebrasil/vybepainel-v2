@@ -14047,24 +14047,27 @@ body.mundo #mundo-hud > #vv-hoje.vv-hoje.d3h-tela:has(> .d3q){padding:16px;borde
 
 /* 5 · A busca sobe para dentro da janela. Com o Hoje V2 na tela (e largura para as duas colunas), a barra do topo deixa
    de ser barra: os mesmos botões (busca, agenda, conversas, avisos, menu e conta) viram ícones de 34 px na primeira
-   linha da coluna de consulta, e a janela ganha os 62 px de cima. A barra em si não muda de lugar nem de função. */
+   linha da coluna de consulta, e a janela ganha os 62 px de cima. A barra em si não muda de lugar nem de função.
+   "Hoje V2 na tela" é a marca com-d3q no #vv-hoje (vybe-mundo.js, marcarHojeD3q), no lugar do :has(> #vv-hoje > .d3q):
+   o :has fazia cada troca de conteúdo do Hoje recalcular o HUD inteiro (sistema leve 2, 26/11/2026). O :not(#sem-d3q)
+   só mantém a especificidade da regra antiga. */
 @media (min-width:1181px){
-  body.mundo:not(.mundo-modulo):not(.mundo-quarto):not(.mundo-centro):not(.mundo-gestao) #mundo-hud:has(> #vv-hoje > .d3q) > #vv-hoje.vv-hoje{margin-top:-62px}
-  body.mundo:not(.mundo-modulo):not(.mundo-quarto):not(.mundo-centro):not(.mundo-gestao) #mundo-hud:has(> #vv-hoje > .d3q) > .vv-topo{pointer-events:none}
-  body.mundo:not(.mundo-modulo):not(.mundo-quarto):not(.mundo-centro):not(.mundo-gestao) #mundo-hud:has(> #vv-hoje > .d3q) > .vv-topo .vv-ilha.vv-barra-topo{padding:23px 16px 0 0;background:none;box-shadow:none;pointer-events:none;align-items:flex-start}
-  body.mundo:not(.mundo-modulo):not(.mundo-quarto):not(.mundo-centro):not(.mundo-gestao) #mundo-hud:has(> #vv-hoje > .d3q) > .vv-topo .vv-ferramentas{justify-content:flex-end;gap:6px;pointer-events:none}
-  body.mundo:not(.mundo-modulo):not(.mundo-quarto):not(.mundo-centro):not(.mundo-gestao) #mundo-hud:has(> #vv-hoje > .d3q) > .vv-topo .vv-ferramentas > *{pointer-events:auto;margin-left:0}
-  body.mundo:not(.mundo-modulo):not(.mundo-quarto):not(.mundo-centro):not(.mundo-gestao) #mundo-hud:has(> #vv-hoje > .d3q) > .vv-topo .vv-ferramentas > .vv-botao,
-  body.mundo:not(.mundo-modulo):not(.mundo-quarto):not(.mundo-centro):not(.mundo-gestao) #mundo-hud:has(> #vv-hoje > .d3q) > .vv-topo .vv-mais-menu > summary.vv-botao{width:34px;max-width:34px;height:34px;min-width:0;padding:0;justify-content:center;border-radius:var(--d3-r-botao)}
-  body.mundo:not(.mundo-modulo):not(.mundo-quarto):not(.mundo-centro):not(.mundo-gestao) #mundo-hud:has(> #vv-hoje > .d3q) > .vv-topo .vv-ferramentas > .vv-botao.vv-busca-larga{flex:none;width:34px;margin-left:auto;margin-right:0;padding:0 0 0 9px;gap:0;color:var(--d3-fume-texto)}
-  body.mundo:not(.mundo-modulo):not(.mundo-quarto):not(.mundo-centro):not(.mundo-gestao) #mundo-hud:has(> #vv-hoje > .d3q) > .vv-topo .vv-busca-larga > :is(kbd,.vv-busca-texto){display:none}
-  body.mundo:not(.mundo-modulo):not(.mundo-quarto):not(.mundo-centro):not(.mundo-gestao) #mundo-hud:has(> #vv-hoje > .d3q) > .vv-topo .vv-topo-sala{flex:0 1 auto;min-width:0}
-  body.mundo:not(.mundo-modulo):not(.mundo-quarto):not(.mundo-centro):not(.mundo-gestao) #mundo-hud:has(> #vv-hoje > .d3q) > .vv-topo .vv-topo-sala:not([hidden]){flex:none;min-width:34px;height:34px;margin:0;padding:0 4px;gap:0;justify-content:center;border-radius:var(--d3-r-botao);background:var(--d3-fume-veu);box-shadow:none;color:var(--d3-fume-texto)}
-  body.mundo:not(.mundo-modulo):not(.mundo-quarto):not(.mundo-centro):not(.mundo-gestao) #mundo-hud:has(> #vv-hoje > .d3q) > .vv-topo .vv-topo-sala :is(.vv-topo-sala-nome,.vv-topo-sala-entrar){display:none}
-  body.mundo:not(.mundo-modulo):not(.mundo-quarto):not(.mundo-centro):not(.mundo-gestao) #mundo-hud:has(> #vv-hoje > .d3q) > .vv-topo .vv-topo-sala-rostos > i{box-shadow:none}
-  body.mundo:not(.mundo-modulo):not(.mundo-quarto):not(.mundo-centro):not(.mundo-gestao) #mundo-hud:has(> #vv-hoje > .d3q) > .vv-topo .vv-topo-sala-rostos > i:nth-child(n+2){display:none}
-  body.mundo:not(.mundo-modulo):not(.mundo-quarto):not(.mundo-centro):not(.mundo-gestao) #mundo-hud:has(> #vv-hoje > .d3q) > .vv-topo .vv-topo-sala-dentro{display:inline-flex;align-items:center;font-size:0}
-  body.mundo:not(.mundo-modulo):not(.mundo-quarto):not(.mundo-centro):not(.mundo-gestao) #mundo-hud:has(> #vv-hoje > .d3q) > .vv-topo .vv-topo-sala:has(> .vv-topo-sala-dentro[aria-busy="true"]) > .vv-topo-sala-rostos{display:none}
+  body.mundo:not(.mundo-modulo):not(.mundo-quarto):not(.mundo-centro):not(.mundo-gestao) #mundo-hud > #vv-hoje.vv-hoje.com-d3q:not(#sem-d3q){margin-top:-62px}
+  body.mundo:not(.mundo-modulo):not(.mundo-quarto):not(.mundo-centro):not(.mundo-gestao) #mundo-hud > #vv-hoje.com-d3q ~ .vv-topo{pointer-events:none}
+  body.mundo:not(.mundo-modulo):not(.mundo-quarto):not(.mundo-centro):not(.mundo-gestao) #mundo-hud > #vv-hoje.com-d3q ~ .vv-topo .vv-ilha.vv-barra-topo{padding:23px 16px 0 0;background:none;box-shadow:none;pointer-events:none;align-items:flex-start}
+  body.mundo:not(.mundo-modulo):not(.mundo-quarto):not(.mundo-centro):not(.mundo-gestao) #mundo-hud > #vv-hoje.com-d3q ~ .vv-topo .vv-ferramentas{justify-content:flex-end;gap:6px;pointer-events:none}
+  body.mundo:not(.mundo-modulo):not(.mundo-quarto):not(.mundo-centro):not(.mundo-gestao) #mundo-hud > #vv-hoje.com-d3q ~ .vv-topo .vv-ferramentas > *{pointer-events:auto;margin-left:0}
+  body.mundo:not(.mundo-modulo):not(.mundo-quarto):not(.mundo-centro):not(.mundo-gestao) #mundo-hud > #vv-hoje.com-d3q ~ .vv-topo .vv-ferramentas > .vv-botao,
+  body.mundo:not(.mundo-modulo):not(.mundo-quarto):not(.mundo-centro):not(.mundo-gestao) #mundo-hud > #vv-hoje.com-d3q ~ .vv-topo .vv-mais-menu > summary.vv-botao{width:34px;max-width:34px;height:34px;min-width:0;padding:0;justify-content:center;border-radius:var(--d3-r-botao)}
+  body.mundo:not(.mundo-modulo):not(.mundo-quarto):not(.mundo-centro):not(.mundo-gestao) #mundo-hud > #vv-hoje.com-d3q ~ .vv-topo .vv-ferramentas > .vv-botao.vv-busca-larga{flex:none;width:34px;margin-left:auto;margin-right:0;padding:0 0 0 9px;gap:0;color:var(--d3-fume-texto)}
+  body.mundo:not(.mundo-modulo):not(.mundo-quarto):not(.mundo-centro):not(.mundo-gestao) #mundo-hud > #vv-hoje.com-d3q ~ .vv-topo .vv-busca-larga > :is(kbd,.vv-busca-texto){display:none}
+  body.mundo:not(.mundo-modulo):not(.mundo-quarto):not(.mundo-centro):not(.mundo-gestao) #mundo-hud > #vv-hoje.com-d3q ~ .vv-topo .vv-topo-sala{flex:0 1 auto;min-width:0}
+  body.mundo:not(.mundo-modulo):not(.mundo-quarto):not(.mundo-centro):not(.mundo-gestao) #mundo-hud > #vv-hoje.com-d3q ~ .vv-topo .vv-topo-sala:not([hidden]){flex:none;min-width:34px;height:34px;margin:0;padding:0 4px;gap:0;justify-content:center;border-radius:var(--d3-r-botao);background:var(--d3-fume-veu);box-shadow:none;color:var(--d3-fume-texto)}
+  body.mundo:not(.mundo-modulo):not(.mundo-quarto):not(.mundo-centro):not(.mundo-gestao) #mundo-hud > #vv-hoje.com-d3q ~ .vv-topo .vv-topo-sala :is(.vv-topo-sala-nome,.vv-topo-sala-entrar){display:none}
+  body.mundo:not(.mundo-modulo):not(.mundo-quarto):not(.mundo-centro):not(.mundo-gestao) #mundo-hud > #vv-hoje.com-d3q ~ .vv-topo .vv-topo-sala-rostos > i{box-shadow:none}
+  body.mundo:not(.mundo-modulo):not(.mundo-quarto):not(.mundo-centro):not(.mundo-gestao) #mundo-hud > #vv-hoje.com-d3q ~ .vv-topo .vv-topo-sala-rostos > i:nth-child(n+2){display:none}
+  body.mundo:not(.mundo-modulo):not(.mundo-quarto):not(.mundo-centro):not(.mundo-gestao) #mundo-hud > #vv-hoje.com-d3q ~ .vv-topo .vv-topo-sala-dentro{display:inline-flex;align-items:center;font-size:0}
+  body.mundo:not(.mundo-modulo):not(.mundo-quarto):not(.mundo-centro):not(.mundo-gestao) #mundo-hud > #vv-hoje.com-d3q ~ .vv-topo .vv-topo-sala:has(> .vv-topo-sala-dentro[aria-busy="true"]) > .vv-topo-sala-rostos{display:none}
 }
 
 /* Minhas tarefas: a lista é o trabalho, então a linha do meio fica com quase o dobro da altura do pé. */

@@ -1424,18 +1424,21 @@ function vbMarcarVoo(raiz) {
   }
 }
 function vbLimparVoo() { for (const el of document.querySelectorAll('[data-vt]')) if (el.style.viewTransitionName) el.style.viewTransitionName = ''; }
+// Um voo por vez. A trava fica numa variável, não numa classe no <html>: a classe trocada no <html> fazia o navegador
+// recalcular o estilo da página inteira duas vezes a cada troca de aba (sistema leve 2, 26/11/2026).
+let vbVoando = false;
 function vbTransicao(atualizar, { raiz = document.body, tipo = 'voa' } = {}) {
   const reduzido = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
-  if (typeof document === 'undefined' || typeof document.startViewTransition !== 'function' || reduzido || document.hidden || document.documentElement.classList.contains('vb-voando')) {
+  if (typeof document === 'undefined' || typeof document.startViewTransition !== 'function' || reduzido || document.hidden || vbVoando) {
     atualizar(); return Promise.resolve();
   }
   vbMarcarVoo(raiz);
-  document.documentElement.classList.add('vb-voando'); document.documentElement.dataset.vbVoo = tipo;
+  vbVoando = true; document.documentElement.dataset.vbVoo = tipo;
   let t;
   try {
     t = document.startViewTransition(() => { vbLimparVoo(); atualizar(); vbMarcarVoo(raiz); });
-  } catch { vbLimparVoo(); document.documentElement.classList.remove('vb-voando'); atualizar(); return Promise.resolve(); }
-  const fim = () => { vbLimparVoo(); document.documentElement.classList.remove('vb-voando'); delete document.documentElement.dataset.vbVoo; };
+  } catch { vbLimparVoo(); vbVoando = false; atualizar(); return Promise.resolve(); }
+  const fim = () => { vbLimparVoo(); vbVoando = false; delete document.documentElement.dataset.vbVoo; };
   t.finished.then(fim, fim);
   return t.updateCallbackDone.catch(() => {});
 }
@@ -1650,4 +1653,23 @@ function d3SerieValores(serie, { minimo = 2 } = {}) {
   return v.length >= minimo ? v : null;
 }
 
-if (typeof globalThis !== 'undefined') Object.assign(globalThis, { d3AcaoHtml, d3LinhaSvg, d3NumHtml, d3Series, d3SerieValores, D3_SERIES });
+// ── MARCAS NO LUGAR DO :has NO BODY (sistema leve 2, 26/11/2026) ────────────────────────────────────────────────────────
+// "Gaveta da peça aberta" e "jogo aberto" eram body:has(> #workspace-drawer) e body:has(> #workflow-modal.ofc-xdz) com o
+// alvo sem nome à direita (#mundo-hud > :not(.vv-trilho), body > :not(...)): cada vez que o :has mudava, o navegador
+// recalculava a página inteira. Agora um observador só dos filhos do body (sem a subárvore) põe a marca no elemento que
+// muda: com-gaveta no #mundo-hud e no canto do módulo, com-xadrez no body (lá o alvo são os próprios filhos do body). A
+// classe só muda quando o estado muda (toggle com o mesmo valor não mexe no atributo).
+function vbMarcasDoCorpo() {
+  try {
+    const b = document.body; if (!b || !b.classList) return;
+    const gaveta = Boolean(b.querySelector(':scope > #workspace-drawer'));
+    document.getElementById('mundo-hud')?.classList.toggle('com-gaveta', gaveta);
+    for (const c of document.querySelectorAll('.vv-canto-modulo')) c.classList.toggle('com-gaveta', gaveta);
+    b.classList.toggle('com-xadrez', Boolean(b.querySelector(':scope > #workflow-modal.ofc-xdz')));
+  } catch { /* sem DOM de verdade (testes): nada a marcar */ }
+}
+if (typeof document !== 'undefined' && document.body && typeof MutationObserver === 'function') {
+  try { new MutationObserver(vbMarcasDoCorpo).observe(document.body, { childList: true }); vbMarcasDoCorpo(); } catch { /* sem DOM de verdade */ }
+}
+
+if (typeof globalThis !== 'undefined') Object.assign(globalThis, { d3AcaoHtml, d3LinhaSvg, d3NumHtml, d3Series, d3SerieValores, D3_SERIES, vbMarcasDoCorpo });
