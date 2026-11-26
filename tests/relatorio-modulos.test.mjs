@@ -10,7 +10,7 @@ const REGISTROS = readdirSync(new URL('../', import.meta.url)).filter((f) => /^v
 function carregar(extras = REGISTROS) {
   const ctx = vm.createContext({ console, Intl, Date, URLSearchParams, setTimeout, clearTimeout });
   ctx.window = ctx;
-  for (const f of ['vybe-dono-metricas.js', 'vybe-carteira-saude.js', 'vybe-relatorio-graficos.js', 'vybe-relatorio.js', ...extras]) vm.runInContext(ler(f), ctx, { filename: f });
+  for (const f of ['vybe-dono-metricas.js', 'vybe-carteira-saude.js', 'vybe-mundo-performance.js', 'vybe-relatorio-graficos.js', 'vybe-relatorio.js', ...extras]) vm.runInContext(ler(f), ctx, { filename: f });
   return ctx;
 }
 const C = carregar();
@@ -294,4 +294,69 @@ test('Mídia: só dono; investimento, sinais do Ícaro, contas sem ligação e r
   assert.equal(r.numeros.find((n) => n.rotulo === 'Rotina de hoje').valor, '1 de 2');
   assert.match(r.recomendacoes.map((x) => x.o_que).join(' '), /Revisar a conta de Gonzalez/);
   assert.match(r.recomendacoes.map((x) => x.o_que).join(' '), /Trocar o criativo .*VOA/);
+});
+
+const FUNIL = { pode: { ver_dinheiro: true }, oportunidades: [
+  { id: '1', nome: 'Padaria', etapa: 'ganho', criado_dia: '2026-11-03', ganho_dia: '2026-11-20', valor_mensal: 2500, origem_tipo: 'sdr' },
+  { id: '2', nome: 'Clínica', etapa: 'proposta_comercial', criado_dia: '2026-11-05', proxima_acao: 'Ligar', proxima_acao_data: '2026-11-10', responsavel_nome: 'Vinícius', origem_tipo: 'formulario' },
+  { id: '3', nome: 'Loja', etapa: 'perdido', criado_dia: '2026-10-02', motivo_perda: 'preco', origem_tipo: 'manual' },
+  { id: '4', nome: 'Hotel', etapa: 'ganho', criado_dia: '2026-10-01', ganho_dia: '2026-10-15', valor_mensal: 1800, origem_tipo: 'sdr' } ],
+  resumo: { taxa_ganho: 66.7, fases: [{ id: 'novo', nome: 'Novo', atual: 0, alcancaram: 4, conversao: 75 }, { id: 'proposta', nome: 'Proposta', atual: 1, alcancaram: 3, conversao: 33 }, { id: 'ganho', nome: 'Ganho', atual: 2, alcancaram: 2, conversao: null }],
+    motivos_perda: [{ id: 'preco', nome: 'Preço', quantidade: 1, percentual: 100 }] },
+  mes: { propostas: [{ oportunidade_id: '2', dia: '2026-11-08' }], progresso: [{ id: 'negocios', nome: 'Negócios', tipo: 'quantidade', meta: 4, realizado: 1, percentual: 25 }, { id: 'mrr', nome: 'MRR', tipo: 'dinheiro', meta: 10000, realizado: 2500, percentual: 25 }], ranking: { linhas: [{ nome: 'Vinícius', quantidade: 1, mrr: 2500 }] } } };
+test('Comercial: só donos e coordenação; funil, perda, paradas, churn e o dinheiro só para dono', async () => {
+  const cart = { clientes: [{ id: '9', nome: 'Velha', entrada: '2025-01-10', saida: '2026-11-12', valor: 3000 }, { id: '8', nome: 'Fica', entrada: '2025-03-01' }], churn: { registros: [{ cliente_id: '9', motivo: 'preco', receita_mensal: 3000 }] },
+    contratos: { lista: [{ cliente_id: '8', renovacao: '2026-12-10', status: 'ativo', valor_mensal: 4000 }] } };
+  const api = async (area, p) => (area === 'comercial' && p.aba === 'funil' ? FUNIL : area === 'carteira' ? cart : null);
+  await assert.rejects(() => C.VybeRelatorio.relatorioDe('comercial', { hoje: HOJE, acesso: EQUIPE, dados: DADOS, api }), /Sem acesso/);
+  const r = await gerar('comercial', { api });
+  assert.equal(r.numeros.find((n) => n.rotulo === 'Leads').valor, '2');
+  assert.equal(r.numeros.find((n) => n.rotulo === 'Negócios fechados').valor, '1');
+  assert.match(r.numeros.find((n) => n.rotulo === 'MRR fechado').valor, /2\.500/);
+  assert.equal(r.numeros.find((n) => n.rotulo === 'Negociações paradas').valor, '1');
+  assert.match(r.resumo.join(' '), /de proposta para a fase seguinte: só 33%/);
+  assert.ok(r.secoes.some((s) => s.titulo === 'Churn: quem saiu e por quê'));
+  assert.match(r.recomendacoes[0].o_que, /Dar próxima ação às 1 negociações paradas, começando por Clínica/);
+  // Coordenação (dono do painel sem dinheiro): sem MRR, sem coluna de receita, sem meta de MRR.
+  const c = json((await C.VybeRelatorio.relatorioDe('comercial', { hoje: HOJE, acesso: { dono: true, dinheiro: false, nome: 'Beatriz' }, dados: DADOS, api })).rel);
+  assert.ok(!c.numeros.some((n) => /MRR|Receita|Avulso/.test(n.rotulo)));
+  assert.ok(!JSON.stringify(c).includes('2.500') && !JSON.stringify(c).includes('4.000') && !JSON.stringify(c).includes('3.000'), 'nenhum valor em reais');
+});
+
+test('Gestão: setores lado a lado, quem segura o atraso, carga acima do limite e agentes', async () => {
+  const setor = { atrasadas: { pontos: [1, 2, 3, 4, 5, 6, 7, 8].map((k) => ({ dia: `2026-11-1${k}`.slice(0, 10), valor: 2 + k })) }, limite: 10,
+    carga: { '3': { nome: 'Deivid', pontos: [{ dia: '2026-11-25', valor: 14 }] }, '0': { nome: 'Beatriz', pontos: [{ dia: '2026-11-25', valor: 6 }] } } };
+  const ag = { meta: 80, acerto: { heitor: { nome: 'Heitor', pontos: [{ dia: '2026-11-25', valor: 70 }] } } };
+  const api = async (area, p) => (area === 'series' && p.para === 'setor' ? setor : area === 'series' ? ag : area === 'comercial' ? FUNIL : null);
+  const r = await gerar('gestao', { api });
+  assert.equal(r.agente.nome, 'Alex');
+  assert.equal(r.secoes[0].tabela.linhas.length, 4);
+  assert.match(r.recomendacoes[0].o_que, /Redistribuir parte das \d+ atrasadas de Deivid/);
+  assert.ok(r.recomendacoes.some((x) => /Aliviar a carga de Deivid/.test(x.o_que)));
+  assert.ok(r.recomendacoes.some((x) => /Revisar as regras de Heitor/.test(x.o_que)));
+  assert.ok(!JSON.stringify(r).includes('2.500'), 'Gestão não leva reais');
+});
+
+test('Performance: a mesma conta da tela, gargalo por etapa e processos', async () => {
+  const r = await gerar('performance');
+  assert.equal(r.titulo, 'Gestão · Performance');
+  assert.ok(Number(r.numeros[0].valor) > 0, 'entregues no período');
+  const etapa = r.secoes.find((s) => s.titulo === 'Onde a fila trava (por etapa)');
+  assert.ok(etapa.tabela.linhas.length >= 3);
+  assert.ok(r.secoes.find((s) => s.titulo === 'Processos').tabela.linhas.length === 7);
+  assert.ok(r.historico.grafico, 'série semanal');
+});
+
+test('Ranking: líder, meta da agência, superação e score semanal', async () => {
+  const pess = [{ id: '1', nome: 'Jady', posicao: 1, antes: 3, xp: 900, entregas: 30, meta: 20, pct: 150, xpPor: { design_card: 600, motion: 300 } },
+    { id: '2', nome: 'Beatriz', posicao: 2, antes: 1, xp: 700, entregas: 25, meta: 25, pct: 100 }, { id: '3', nome: 'Reriston', posicao: null, xp: 0, entregas: 0, meta: 10, pct: 0 }];
+  const rk = { pessoas: pess, agencia: { pecas: 60, meta: 100, pct: 60 }, inicio: '2026-11-01', fim: '2026-11-30', hoje: HOJE, anterior: { inicio: '2026-11-16', fim: '2026-11-22', podio: [{ nome: 'Jady', posicao: 1 }] } };
+  const score = { score: { '1': { nome: 'Jady', pontos: [{ dia: '2026-11-02', valor: 70 }, { dia: '2026-11-09', valor: 80 }, { dia: '2026-11-16', valor: 90 }] } } };
+  const r = await gerar('ranking', { api: async (area, p) => (area === 'escritorio' ? rk : area === 'series' ? score : null) });
+  assert.equal(r.numeros[0].valor, 'Jady');
+  assert.match(r.resumo[0], /Jady lidera com 900 XP, seguido de Beatriz/);
+  assert.match(r.resumo.join(' '), /Maior superação da própria meta: Jady \(150%\)/);
+  assert.equal(r.numeros.find((n) => n.rotulo === 'Sem entrega no mês').valor, '1');
+  assert.ok(r.recomendacoes.some((x) => /Puxar a meta da agência/.test(x.o_que)), '60 de 100 no dia 26 não chega');
+  assert.equal(r.historico.tabela.linhas.length, 3);
 });
