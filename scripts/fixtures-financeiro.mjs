@@ -8,6 +8,10 @@
 //   DEMO_FIN_UM_CONTRATO=1      o caso da produção (26/11/2026): 15 clientes ativos, só um com contrato (R$ 1.200), os
 //                               outros pagando pelo extrato (dois sem dizer de quem), ~R$ 30 mil de entrada e ~R$ 21 mil
 //                               de saída por mês. Com DEMO_FIN_MESES=3 é o relatório que deu o alarme falso.
+//   DEMO_FIN_PRODUCAO=1         o caso da produção depois do #784 (fin3, 26/11/2026): 2 lançamentos à mão no fim de julho,
+//                               o extrato do banco de 17/08 a hoje, setembro e outubro cheios (R$ 45,7 mil e R$ 28,7 mil de
+//                               entrada, ~R$ 30 mil de saída), 6 combinados (R$ 15.500) pagos por Pix sem pessoa ligada
+//                               (2 com outro nome no Pix), pró-labore sem pessoa e 1 contrato de R$ 1.200. Tudo fictício.
 // Finanças completo (26/11/2026): contratos com dia de vencimento, fim e reajuste; um cliente que saiu e um novo; peças
 // da produção (rateio), clientes em risco (pessimista), funil do Comercial (otimista), cartão com itens, orçamento,
 // um mês fechado, metas e um cenário guardado.
@@ -88,6 +92,62 @@ export function csvFicticio(hoje = hojeBahia(), nMeses = 14) {
     ...linhas.reverse().map(([d, h, v, s]) => `"${br(d)}";"${h}";"";"${brl(v)}";"${brl(s)}"`)].join('\r\n');
 }
 
+// ---------- DEMO_FIN_PRODUCAO=1: o caso igual à produção (fin3) ----------
+// [id, nome no Vybe OS, combinado, como o nome aparece no Pix]: os 4 primeiros com o nome inteiro, os 2 últimos por outra conta.
+const TIME_PROD = [[11, 'Ana Exemplo Lima', 3000, 'Ana Exemplo Lima'], [12, 'Bruno Teste Costa', 2800, 'Bruno Teste Costa'], [13, 'Carla Modelo Dias', 2700, 'Carla Modelo Dias'],
+  [14, 'Diego Amostra Reis', 2500, 'Diego Amostra Reis'], [15, 'Elisa Ficticia Rocha', 2500, 'Conta Conjunta Exemplo'], [16, 'Fabio Simulado Nunes', 2000, 'Mae Do Fabio Exemplo']];
+const NOMES_CLI = ['Um', 'Dois', 'Tres', 'Quatro', 'Cinco', 'Seis', 'Sete', 'Oito', 'Nove', 'Dez'];
+const prodLigada = () => process.env.DEMO_FIN_PRODUCAO === '1';
+export function csvProducao(hoje = hojeBahia()) {
+  const ls = [];
+  const add = (d, h, v) => { if (d <= hoje) ls.push([d, h, v]); };
+  // Agosto: o extrato do banco começa em 17/08.
+  add('2026-08-17', 'Pix Recebido Cliente Dois Exemplo', 3800); add('2026-08-20', 'Pix Recebido Empresa Exemplo Pagadora', 9000);
+  for (const [, , v, pix] of TIME_PROD) add('2026-08-25', 'Pix Enviado ' + pix, -v);
+  add('2026-08-28', 'Pagamento Das Simples Nacional', -2500);
+  for (const [M, entradas, pro] of [['2026-09', 45700, 4500], ['2026-10', 28700, 4000], ['2026-11', 30000, 4200]]) {
+    const fixas = [['01', 'Rendimento Liquido De Contamax', 12], ['10', 'Pix Recebido Cliente Um Exemplo', 1200], ['05', 'Pix Recebido Cliente Dois Exemplo', 3800], ['08', 'Pix Recebido Cliente Tres Exemplo', 3000],
+      ['12', 'Pix Recebido Cliente Quatro Exemplo', 2500], ['15', 'Pix Recebido Cliente Cinco Exemplo', 2000]];
+    for (const [d, h, v] of fixas) add(M + '-' + d, h, v);
+    const resto = Math.round((entradas - fixas.reduce((a, x) => a + x[2], 0)) * 100) / 100, parte = Math.floor(resto / 6 * 100) / 100;
+    for (let k = 0; k < 6; k++) add(M + '-' + String(3 + k * 4).padStart(2, '0'), 'Pix Recebido Empresa Exemplo Pagadora', k < 5 ? parte : Math.round((resto - parte * 5) * 100) / 100);
+    for (const [, , v, pix] of TIME_PROD) add(M + '-05', 'Pix Enviado ' + pix, -v);
+    add(M + '-06', 'Pix Enviado Socio Exemplo Prolabore', -pro);
+    add(M + '-05', 'Pagamento Aluguel Sala Exemplo', -1500);
+    add(M + '-28', 'Pagamento Fat.cartao Santander', -4000); add(M + '-20', 'Pagamento Das Simples Nacional', -2500);
+    add(M + '-12', 'Pix Automatico Enviado Programa Ficticio', -1200); add(M + '-22', 'Pix Enviado Posto Exemplo', -800);
+  }
+  ls.sort((x, y) => x[0].localeCompare(y[0]));
+  let saldo = 12000;
+  const linhas = ls.map(([d, h, v]) => { saldo = Math.round((saldo + v) * 100) / 100; return [d, h, v, saldo]; });
+  return ['AGENCIA;"0001";CONTA;"99999"', '', 'Data;Histórico;Documento;Valor (R$);Saldo (R$)',
+    ...linhas.reverse().map(([d, h, v, s]) => `"${br(d)}";"${h}";"";"${brl(v)}";"${brl(s)}"`)].join('\r\n');
+}
+async function montarProducao(db, sql, ir, hoje) {
+  for (const [id, nome] of TIME_PROD) await db.query('INSERT INTO vybe_pessoas VALUES ($1,$2)', [id, nome]);
+  for (let i = 1; i <= 10; i++) await db.query('INSERT INTO vybe_clientes (id,nome) VALUES ($1,$2)', [i, 'Cliente ' + NOMES_CLI[i - 1] + ' Exemplo']);
+  await db.query("INSERT INTO vybe_cliente_contratos (cliente_id, valor_mensal, inicio) VALUES (1, 1200, '2026-11-01')");
+  await ir({ acao: 'importar', csv: csvProducao(hoje) });
+  await ir({ acao: 'contrato_salvar', cliente_id: '1', valor_mensal: 1200, dia_vencimento: 10, inicio: '2026-11-01', fim: '', sem_fim: true, status: 'ativo' });
+  // Julho: 2 lançamentos à mão no fim do mês (sem saldo do banco), como na produção.
+  await ir({ acao: 'lancar_mao', lancamento: { tipo: 'entrada', valor: 3800, data: '2026-07-29', categoria: 'receita_cliente', cliente_id: '2', cliente_nome: 'Cliente Dois Exemplo', texto: 'Mensalidade de julho' } });
+  await ir({ acao: 'lancar_mao', lancamento: { tipo: 'saida', valor: 350, data: '2026-07-30', categoria: 'ferramentas', texto: 'Assinatura' } });
+  for (const [id, , v] of TIME_PROD) await ir({ acao: 'salario_salvar', pessoa_id: String(id), valor: v, desde: '2026-07' });
+  await ir({ acao: 'fixo_salvar', fixo: { nome: 'Aluguel da sala', valor: 1500, dia: 5, categoria: 'estrutura', forma: 'boleto', contem: 'aluguel' } });
+  // O lado real como na produção: os clientes 1 a 5 ligados; o time como outra saída e o pró-labore sem pessoa.
+  const { lerTudo } = await import('../server/financeiro.js');
+  for (const t of (await lerTudo(sql)).extrato.transacoes) {
+    const h = t.banco.historico.toLowerCase(), conferido = t.banco.data.slice(0, 7) < hoje.slice(0, 7);
+    let mudanca = null;
+    const i = NOMES_CLI.slice(0, 5).findIndex((n) => h.includes('cliente ' + n.toLowerCase() + ' exemplo'));
+    if (t.banco.valor > 0 && i >= 0) mudanca = { categoria: 'receita_cliente', cliente_id: String(i + 1), cliente_nome: 'Cliente ' + NOMES_CLI[i] + ' Exemplo', conferido };
+    else if (t.banco.valor < 0 && TIME_PROD.some((x) => h.includes(x[3].toLowerCase()))) mudanca = { categoria: 'outra_saida', conferido };
+    else if (h.includes('prolabore')) mudanca = { categoria: 'pro_labore', conferido };
+    else if (h.includes('fat.cartao')) mudanca = { categoria: 'cartao_agencia', conferido };
+    if (mudanca) await ir({ acao: 'editar', id: t.id, mudanca });
+  }
+}
+
 let pronto = null;
 const TOKEN_DEMO = 'demo-local-so-para-a-demonstracao-do-financeiro-0000'; // fictício, só neste processo
 async function banco() {
@@ -107,6 +167,7 @@ async function banco() {
       CREATE TABLE vybe_crm_oportunidades (id serial PRIMARY KEY, empresa text, etapa text, valor_mensal numeric, valor_avulso numeric);`);
     const quem = { tipo: 'sessao', pessoa: { id: 1, nome: 'Operador de teste', dono: true } };
     const ir = (b) => escreverFinanceiro(sql, quem, b);
+    if (prodLigada()) { await montarProducao(db, sql, ir, hoje); return { sql, quem }; }
     // No caso da produção só a Hebravet (R$ 1.200) tem contrato: os outros 14 clientes ativos não têm mensalidade cadastrada.
     const comContrato = (nome) => !umContrato() || nome === 'Hebravet';
     for (const [i, [nome, valor]] of CLIENTES.entries()) {

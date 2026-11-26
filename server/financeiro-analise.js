@@ -72,23 +72,47 @@ export async function dadosExtras(sql) {
 }
 
 const ultimoDia = (mes) => new Date(Date.UTC(Number(mes.slice(0, 4)), Number(mes.slice(5, 7)), 0)).getUTCDate();
-// Os meses "fechados" do extrato: os que vão do dia 1 (ou do primeiro dia do extrato) ao último dia, antes do mês de hoje.
-// Um mês que o extrato pega pela metade (o de 17/08 em diante) entra na base, mas conta como parcial.
+// Os meses "fechados" do extrato: os que o extrato cobre inteiros, antes do mês de hoje.
+// fin3 (26/11/2026): em produção o extrato tinha 2 lançamentos no fim de julho e depois só de 17/08 em diante; a regra
+// antiga olhava só o primeiro lançamento com saldo (17/08), marcava agosto como parcial e deixava julho, quase vazio,
+// entrar na base (a média de cada cliente saía com um mês zerado). Agora um mês só é fechado se:
+//   o começo está coberto: o primeiro lançamento do mês é até o dia 7, ou o extrato vinha do mês anterior sem buraco
+//     (no máximo 10 dias entre o último lançamento de lá e o primeiro daqui); e
+//   o fim está coberto: o último lançamento do mês é nos 7 últimos dias, ou o extrato segue no mês seguinte sem buraco.
+// O mês de início do extrato, se pego pela metade, e o mês corrente ficam fora; o que vem antes do primeiro mês coberto
+// também (não há como saber o que saiu). O mês do primeiro lançamento com saldo que começa depois do dia 5, sem o extrato
+// vir colado do mês anterior, também é parcial (a regra de antes, que já pegava agosto).
+// meses = a base (os fechados; sem nenhum fechado, os parciais, e a confiança diz quantos meses); fechados; parciais = os
+// que têm lançamento, antes de hoje, e não fecham; completos = os que têm o fim coberto (o MRR "com o extrato" e os
+// meses sem fechar usam estes, como antes).
+const BURACO = 10, PERTO = 7;
 export function mesesDaBase(lista, hoje) {
+  const datas = lista.map((t) => t.banco.data).filter((d) => /^\d{4}-\d{2}-\d{2}$/.test(d || '')).sort();
   const doBanco = lista.filter((t) => t.banco.saldo != null).map((t) => t.banco.data).sort();
   const meses = X.mesesDa(lista).filter((m) => m < hoje.slice(0, 7));
-  const ult = doBanco[doBanco.length - 1] || '';
-  const completos = meses.filter((m) => !ult || ult >= `${m}-${String(ultimoDia(m)).padStart(2, '0')}`);
-  const primeiro = doBanco[0] || '';
-  const parciais = completos.filter((m) => primeiro && primeiro.slice(0, 7) === m && primeiro.slice(8, 10) > '05');
-  // A base das médias: os completos; se o primeiro é parcial e há outros, ele sai da média.
-  const base = completos.filter((m) => !(parciais.includes(m) && completos.length > 1));
-  return { meses: base, completos, parciais };
+  const porMes = new Map();
+  for (const d of datas) { const m = d.slice(0, 7), x = porMes.get(m); if (x) x.ult = d; else porMes.set(m, { pri: d, ult: d }); }
+  const dias = (a, b) => Math.round((Date.parse(b + 'T12:00:00Z') - Date.parse(a + 'T12:00:00Z')) / 864e5);
+  const primeiroSaldo = doBanco[0] || '';
+  const cobre = (m) => {
+    const x = porMes.get(m);
+    if (!x) return { comeco: false, fim: false };
+    const ant = porMes.get(X.somarMeses(m, -1)), prox = porMes.get(X.somarMeses(m, 1));
+    let comeco = Number(x.pri.slice(8, 10)) <= PERTO || Boolean(ant && dias(ant.ult, x.pri) <= BURACO);
+    if (primeiroSaldo && primeiroSaldo.slice(0, 7) === m && primeiroSaldo.slice(8, 10) > '05' && !(ant && dias(ant.ult, primeiroSaldo) <= BURACO)) comeco = false;
+    const fim = Number(x.ult.slice(8, 10)) > ultimoDia(m) - PERTO || Boolean(prox && dias(x.ult, prox.pri) <= BURACO);
+    return { comeco, fim };
+  };
+  const c = new Map(meses.map((m) => [m, cobre(m)]));
+  const fechados = meses.filter((m) => c.get(m).comeco && c.get(m).fim);
+  const parciais = meses.filter((m) => !fechados.includes(m));
+  const completos = meses.filter((m) => c.get(m).fim);
+  return { meses: fechados.length ? fechados : parciais, fechados, completos, parciais };
 }
 
 // Tudo o que as abas Análise, Projeção e Fechamento mostram, a partir do que montar() já tem.
 // clientes_ativos: [{ cliente_id, cliente_nome }] (vybe_clientes ativos): a receita da base e a cobertura de contratos (fin2).
-export function montarAnalise(base, extras, { hoje, saldo_hoje = 0, fixos_analise = null, cartao = null, por_cliente = null, serie = [], clientes_ativos = null }) {
+export function montarAnalise(base, extras, { hoje, saldo_hoje = 0, fixos_analise = null, cartao = null, por_cliente = null, serie = [], clientes_ativos = null, pessoas = null }) {
   const lista = base.extrato.transacoes;
   const todosMeses = X.mesesDa(lista);
   const { meses: mesesBase, completos, parciais } = mesesDaBase(lista, hoje);
@@ -98,7 +122,7 @@ export function montarAnalise(base, extras, { hoje, saldo_hoje = 0, fixos_analis
   // A projeção primeiro (fin2): a receita da base dela (contrato, senão a média do extrato) alimenta o MRR estimado, a
   // cobertura, a confiança e o equilíbrio. Sem contrato cadastrado nada vira "perdido" nem zero.
   const atraso = A.atrasoMedioPago(lista, ativos);
-  const projecao = A.projecao3({ hoje, saldo_hoje, lista, meses_base: mesesBase, contratos: ativos, clientes_ativos, fixos: base.fixos, salarios: base.salarios, itensCartao: base.cartao, risco: extras.risco || [],
+  const projecao = A.projecao3({ hoje, saldo_hoje, lista, meses_base: mesesBase, contratos: ativos, clientes_ativos, fixos: base.fixos, salarios: base.salarios, pessoas: pessoas || [], itensCartao: base.cartao, risco: extras.risco || [],
     pipeline: extras.pipeline || [], atraso_medio: atraso ?? 10, horizonte: 12 });
   const conf = projecao.confianca;
   const mesesAnalise = todosMeses.length ? A.mesesEntre(todosMeses[0], hoje.slice(0, 7) > todosMeses[todosMeses.length - 1] ? todosMeses[todosMeses.length - 1] : hoje.slice(0, 7)) : [];

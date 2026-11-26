@@ -7206,6 +7206,8 @@ body.vfd-aberto .fc-overlay{z-index:743}
 .fe .vg-cor.k4{background:var(--fe-c4)}.fe .vg-cor.k5{background:var(--fe-c5)}.fe .vg-cor.k6{background:var(--fe-c6)}
 .fe .vg-cor.kf{height:10px;background:color-mix(in srgb,var(--fe-c1) 22%,transparent)}
 .fe .vg .vg-ln{fill:none;stroke-width:2.25;stroke-linejoin:round;stroke-linecap:round;stroke:var(--d3-meta)}
+/* fin3: a linha longa (o saldo de 12 meses subindo) passava dos 420 do traço animado de 0-d3-base.css e sumia no meio. */
+.fe .vg .vg-ln{--d3-comp:2400}
 .fe .vg .vg-ln.trac{stroke-dasharray:5 5}
 .fe .vg .vg-ln.k1{stroke:var(--fe-c1)}.fe .vg .vg-ln.k2{stroke:var(--fe-c2)}.fe .vg .vg-ln.k3{stroke:var(--fe-c3)}
 .fe .vg .vg-ln.k4{stroke:var(--fe-c4)}.fe .vg .vg-ln.k5{stroke:var(--fe-c5)}.fe .vg .vg-ln.k6{stroke:var(--fe-c6)}

@@ -204,7 +204,8 @@ export function montar(base, clientes, { mes, hoje, pessoas = [], extras = null 
   const comSaldo = lista.filter((t) => t.banco.saldo != null);
   const saldoHoje = comSaldo.length ? comSaldo[comSaldo.length - 1].banco.saldo : 0;
   out.analise = montarAnalise(base, ext, { hoje, saldo_hoje: saldoHoje, cartao: out.cartao, por_cliente: out.por_cliente, serie: out.serie, fixos_analise: out.fixos_analise,
-    clientes_ativos: clientes.filter((c) => c.ativo !== false).map((c) => ({ cliente_id: String(c.cliente_id), cliente_nome: c.cliente_nome })) });
+    clientes_ativos: clientes.filter((c) => c.ativo !== false).map((c) => ({ cliente_id: String(c.cliente_id), cliente_nome: c.cliente_nome })),
+    pessoas: pessoas.map((p) => ({ id: String(p.id), nome: p.nome })) });
   out.orcamento = base.orcamento || {}; out.fechamentos = base.fechamentos || {}; out.metas = base.metas || {};
   out.fonte_dados = base.fonte || 'jsonb';
   return out;
