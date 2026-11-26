@@ -140,6 +140,145 @@
   const util = Object.freeze({ diaLocal, soDia, somarDias, diasEntre, somarMeses, fimDoMes, mesesEntre, nomeMes, dataBr, dataCurta, num, brl, pct, plural,
     mediana, media, semAcento, variacao, tendencia, projetar, tendenciaTexto, ritmo, contarPor, porMes, dentro, esc });
 
+  // ---------- Cores do sistema ----------
+  // Paulo, 26/11/2026: "os PDFs não deviam respeitar as regras de cores do sistema? principalmente dos status". O
+  // documento não tem paleta própria. Status na cor da tela: a status_color das peças (a cor do quadro) e, sem ela, a do
+  // catálogo que o pillHtml usa (corDeStatus, vybe-gestor.js). Pronta (Finalizado) na cor de pronto do sistema e "em
+  // aberto"/"agendado" no tom claro dela, como na Semana do Hoje (padrao-v2/s-g.css). Cliente na cor da carteira
+  // (carteiraDoCliente, vybe-core.js), pessoa na cor dela (TEAM_USERS[].color) e o resto nos tokens do padrão v2 do tema
+  // claro, lidos da tela na hora de gerar (o papel é branco, qualquer que seja o tema de quem gera).
+  //   Nos registros: série, fatia ou item com { status } | { cliente } | { pessoa } | { papel } (ou `cor` pronta); no
+  //   gráfico, de: 'status' | 'cliente' | 'pessoa' pinta as fatias/itens pelo rótulo e linhasDe: 'pessoa' as linhas do
+  //   heatmap; na tabela, coluna { rotulo, status: true } vira a pílula do status (cliente/pessoa: o ponto na cor).
+  //   O relatório pode devolver `amostra` (as peças do período) para a cor do status; sem ela, vale tudo o que o painel
+  //   carregou. A amostra não vai para o documento.
+  const GR = () => G.VybeRelGraficos || null;
+  const hexOk = (c) => (/^#[0-9a-f]{6}$/i.test(String(c || '').trim()) ? String(c).trim().toUpperCase() : '');
+  const tokensAtuais = () => GR()?.cores?.() || {};
+  const misturar = (a, b, p) => (GR()?.misturar ? GR().misturar(a, b, p) : a);
+  // Os tokens que o relatório usa (os nomes de VybeRelGraficos.TOKENS) e a variável de cada um na tela.
+  const VARS = { tinta: '--d3-tinta', texto2: '--d3-texto2', apagado: '--d3-apagado', meta: '--d3-meta', borda: '--d3-borda', cartao: '--d3-cartao', folhaLeve: '--d3-folha-leve',
+    acao: '--d3-acao', acaoTexto: '--d3-acao-texto', pronto: '--d3-pronto', perigo: '--d3-perigo', ajuste: '--d3-ajuste', ambar: '--d3-ambar', info: '--d3-info', agente: '--d3-agente',
+    fumeTexto: '--d3-fume-texto', fumeTexto2: '--d3-fume-texto2', fumeApagado: '--d3-fume-apagado', fumeMeta: '--d3-fume-meta', cartVinicius: '--d3-cart-vinicius', cartEwerton: '--d3-cart-ewerton',
+    feC1: '--fe-c1', feC2: '--fe-c2', feC3: '--fe-c3', feC4: '--fe-c4', feC5: '--fe-c5', feC6: '--fe-c6' };
+  // "#abc", "#aabbcc", "rgb(…)" ou "rgba(…)" → #RRGGBB opaco (o que tem transparência sai misturado no branco do papel).
+  function corOpaca(v) {
+    const s = String(v || '').trim();
+    if (/^#[0-9a-f]{3}$/i.test(s)) return `#${s.slice(1).split('').map((x) => x + x).join('')}`.toUpperCase();
+    if (hexOk(s)) return hexOk(s);
+    const m = s.match(/^rgba?\(\s*([\d.]+)[\s,]+([\d.]+)[\s,]+([\d.]+)(?:\s*[,/]\s*([\d.]+%?))?\s*\)$/i);
+    if (!m) return '';
+    let a = m[4] == null ? 1 : m[4].endsWith('%') ? parseFloat(m[4]) / 100 : parseFloat(m[4]);
+    if (!Number.isFinite(a)) a = 1;
+    return `#${[m[1], m[2], m[3]].map((x) => Math.max(0, Math.min(255, Math.round(Number(x) * a + 255 * (1 - a)))).toString(16).padStart(2, '0')).join('')}`.toUpperCase();
+  }
+  // Lê os tokens do tema claro numa sonda escondida (com a classe do Finanças, que guarda a paleta --fe-c*). Fora do
+  // navegador, ou se não der para ler, volta vazio e valem os do VybeRelGraficos (o mesmo tema claro).
+  function lerTokens() {
+    if (typeof document === 'undefined' || !document.body || typeof getComputedStyle !== 'function') return {};
+    const sonda = document.createElement('i');
+    sonda.className = 'fe'; sonda.setAttribute('data-d3-tema', 'claro'); sonda.setAttribute('aria-hidden', 'true');
+    sonda.style.cssText = 'position:absolute;width:0;height:0;overflow:hidden;visibility:hidden;pointer-events:none';
+    try {
+      document.body.appendChild(sonda);
+      const cs = getComputedStyle(sonda), out = {};
+      for (const [k, v] of Object.entries(VARS)) { const c = corOpaca(cs.getPropertyValue(v)); if (c) out[k] = c; }
+      return out;
+    } catch { return {}; } finally { sonda.remove(); }
+  }
+  // A cor de um status: a status_color mais comum entre as peças da amostra com esse status; sem ela, a do catálogo do
+  // painel (corDeStatus, o mesmo do pillHtml). Pronta (Finalizado e sinônimos, VybeDono.util.finalizado) sai sempre na
+  // cor de pronto do sistema. '' quando não há cor conhecida: o gráfico cai no neutro.
+  function corDoStatus(nome, amostra = []) {
+    const k = semAcento(nome);
+    if (!k) return '';
+    const fin = G.VybeDono?.util?.finalizado;
+    let pronta = k === 'finalizado';
+    try { if (typeof fin === 'function') pronta = Boolean(fin(String(nome))); } catch { /* fica a regra simples */ }
+    if (pronta) return hexOk(tokensAtuais().pronto) || '#11613A';
+    const conta = new Map();
+    for (const d of lista(amostra)) {
+      if (!d || semAcento(d.status) !== k) continue;
+      const c = hexOk(d.status_color); if (c) conta.set(c, (conta.get(c) || 0) + 1);
+    }
+    if (conta.size) return [...conta.entries()].sort((a, b) => b[1] - a[1])[0][0];
+    try { return corOpaca(typeof G.corDeStatus === 'function' ? G.corDeStatus(String(nome).trim())?.cor : ''); } catch { return ''; }
+  }
+  // Cliente: a cor da carteira do head (Vinícius ou Ewerton); sem carteira, o neutro. Sem a função da carteira, ''.
+  function corDoCliente(nome) {
+    let c = null;
+    try { c = typeof G.carteiraDoCliente === 'function' ? G.carteiraDoCliente(String(nome || '')) : null; } catch { c = null; }
+    if (c == null) return '';
+    const T = tokensAtuais();
+    return hexOk(c === 'vinicius' ? T.cartVinicius : c === 'ewerton' ? T.cartEwerton : T.meta);
+  }
+  // Pessoa: a cor dela na equipe (TEAM_USERS[].color), achada pelo id, pelo nome ou pelo primeiro nome.
+  function corDaPessoaEm(equipe) {
+    const porId = new Map(), porNome = new Map(), porPrimeiro = new Map();
+    for (const p of lista(equipe)) {
+      const c = corOpaca(p?.color || p?.cor); if (!c) continue;
+      const n = semAcento(p.name || p.nome);
+      if (p.id != null) porId.set(String(p.id), c);
+      if (n) { porNome.set(n, c); const pr = n.split(/\s+/)[0]; if (!porPrimeiro.has(pr)) porPrimeiro.set(pr, c); }
+    }
+    return (x) => { if (x == null || x === '') return ''; const s = String(x), n = semAcento(s); return porId.get(s) || porNome.get(n) || porPrimeiro.get(n.split(/\s+/)[0]) || ''; };
+  }
+  // Papéis de série que não são um status do quadro: pronta, em aberto, atraso… nas cores de função do padrão.
+  // fe1…fe6 = a paleta do Finanças (--fe-c1…c6), para o relatório do Finanças sair nas cores da tela dele.
+  // "<papel>-claro" = o mesmo papel no tom claro (a faixa pessimista–otimista do Finanças, por exemplo).
+  const PAPEIS = {
+    pronto: (T) => T.pronto, aberto: (T) => misturar(T.pronto, T.cartao, 0.75), agendado: (T) => misturar(T.pronto, T.cartao, 0.75),
+    atraso: (T) => T.perigo, perigo: (T) => T.perigo, risco: (T) => T.ambar, ajuste: (T) => T.ajuste, info: (T) => T.info, agente: (T) => T.agente,
+    destaque: (T) => T.acao, neutro: (T) => T.fumeTexto2, neutro2: (T) => T.fumeMeta,
+    fe1: (T) => T.feC1, fe2: (T) => T.feC2, fe3: (T) => T.feC3, fe4: (T) => T.feC4, fe5: (T) => T.feC5, fe6: (T) => T.feC6,
+  };
+  function corDoPapel(p) {
+    const m = String(p || '').match(/^(.+?)-claro$/), f = PAPEIS[m ? m[1] : p];
+    if (!f) return '';
+    const T = tokensAtuais(), c = hexOk(f(T));
+    return c && m ? misturar(c, T.cartao, 0.45) : c;
+  }
+  function cores({ amostra = [], equipe = [] } = {}) {
+    const pessoa = corDaPessoaEm(equipe);
+    return { status: (n, a) => corDoStatus(n, a ?? amostra), cliente: corDoCliente, pessoa, papel: corDoPapel, tokens: tokensAtuais };
+  }
+  // Põe a cor certa em cada série, fatia, item e célula marcada (puro: devolve cópia). O que já traz `cor` fica.
+  function colorir(rel, c) {
+    if (!rel || typeof rel !== 'object' || !c) return rel;
+    const por = { status: (n) => c.status(n), cliente: c.cliente, pessoa: c.pessoa };
+    const pinta = (x, de) => {
+      if (!x || typeof x !== 'object' || hexOk(x.cor)) return x;
+      const cor = x.status ? por.status(x.status) : x.cliente ? por.cliente(x.cliente) : x.pessoa ? por.pessoa(x.pessoa) : x.papel ? c.papel(x.papel) : de && por[de] ? por[de](x.rotulo ?? x.nome) : '';
+      return cor ? { ...x, cor } : x;
+    };
+    const grafico = (g) => {
+      if (!g || typeof g !== 'object') return g;
+      const o = { ...g };
+      if (Array.isArray(g.series)) o.series = g.series.map((s) => pinta(s));
+      if (Array.isArray(g.fatias)) o.fatias = g.fatias.map((f) => pinta(f, g.de));
+      if (Array.isArray(g.itens)) o.itens = g.itens.map((i) => pinta(i, g.de));
+      if (Array.isArray(g.passos)) o.passos = g.passos.map((p) => pinta(p));
+      if (por[g.linhasDe] && Array.isArray(g.linhas) && !Array.isArray(g.coresLinhas)) o.coresLinhas = g.linhas.map((l) => por[g.linhasDe](l) || '');
+      if (g.papel && !hexOk(g.cor)) o.cor = c.papel(g.papel) || g.cor;
+      return o;
+    };
+    const tabela = (t) => {
+      if (!t || !Array.isArray(t.colunas)) return t;
+      const tipos = t.colunas.map((k) => (k && typeof k === 'object' ? (k.status ? 'status' : k.cliente ? 'cliente' : k.pessoa ? 'pessoa' : '') : ''));
+      if (!tipos.some(Boolean)) return t;
+      return { ...t, linhas: lista(t.linhas).map((l) => (Array.isArray(l) ? l.map((v, i) => {
+        if (!tipos[i] || v == null || typeof v === 'object') return v;
+        const texto = String(v);
+        // Vazio, traço ou mais de um nome na célula: sem cor (uma cor só não diria de quem é).
+        if (!texto.trim() || texto.trim() === '—' || /,\s/.test(texto)) return v;
+        const cor = por[tipos[i]](texto);
+        return cor ? { texto, cor, tipo: tipos[i] } : v;
+      }) : l)) };
+    };
+    const bloco = (b) => (b && typeof b === 'object' ? { ...b, ...(b.grafico ? { grafico: grafico(b.grafico) } : {}), ...(Array.isArray(b.graficos) ? { graficos: b.graficos.map(grafico) } : {}), ...(b.tabela ? { tabela: tabela(b.tabela) } : {}) } : b);
+    return { ...rel, secoes: lista(rel.secoes).map(bloco), historico: rel.historico ? bloco(rel.historico) : rel.historico, projecao: rel.projecao ? bloco(rel.projecao) : rel.projecao };
+  }
+
   // ---------- Acesso ----------
   function acessoAtual() {
     let dono = false, coord = false, verComo = '';
@@ -179,91 +318,106 @@
   const prioridadeDe = (p) => PRIORIDADE[semAcento(p)] ? semAcento(p) : 'media';
 
   function css(meta) {
+    // As cores do papel são os tokens do padrão v2 (tema claro), os mesmos dos gráficos: nada escrito à mão aqui.
+    const C = { ...(GR()?.TOKENS || {}), ...tokensAtuais(), ...(meta.cores || {}) };
+    const veuAcao = GR()?.misturar ? GR().misturar(C.acao, '#FFFFFF', 0.05) : '#FBF6F2';
     const logo = `url("data:image/svg+xml;utf8,${encodeURIComponent(LOGO)}")`;
     return `@page{size:A4;margin:22mm 15mm 20mm 15mm;
-  @top-left{content:${logo} "  " ${cssTexto(`Vybe · ${meta.modulo} · Relatório técnico`)};font:600 8pt Inter,Arial,sans-serif;color:#4A463F;vertical-align:bottom;padding-bottom:4mm}
-  @top-right{content:${cssTexto(meta.periodo)};font:500 8pt Inter,Arial,sans-serif;color:#6B665E;vertical-align:bottom;padding-bottom:4mm}
-  @bottom-left{content:${cssTexto(`Gerado em ${meta.geradoEm}${meta.geradoPor ? ` por ${meta.geradoPor}` : ''} · Vybe OS`)};font:400 7.5pt Inter,Arial,sans-serif;color:#6B665E;vertical-align:top;padding-top:4mm}
-  @bottom-right{content:"Página " counter(page) " de " counter(pages);font:600 7.5pt Inter,Arial,sans-serif;color:#4A463F;vertical-align:top;padding-top:4mm}}
+  @top-left{content:${logo} "  " ${cssTexto(`Vybe · ${meta.modulo} · Relatório técnico`)};font:600 8pt Inter,Arial,sans-serif;color:${C.texto2};vertical-align:bottom;padding-bottom:4mm}
+  @top-right{content:${cssTexto(meta.periodo)};font:500 8pt Inter,Arial,sans-serif;color:${C.apagado};vertical-align:bottom;padding-bottom:4mm}
+  @bottom-left{content:${cssTexto(`Gerado em ${meta.geradoEm}${meta.geradoPor ? ` por ${meta.geradoPor}` : ''} · Vybe OS`)};font:400 7.5pt Inter,Arial,sans-serif;color:${C.apagado};vertical-align:top;padding-top:4mm}
+  @bottom-right{content:"Página " counter(page) " de " counter(pages);font:600 7.5pt Inter,Arial,sans-serif;color:${C.texto2};vertical-align:top;padding-top:4mm}}
 @page:first{@top-left{content:none}@top-right{content:none}}
 *{box-sizing:border-box}
 html{-webkit-print-color-adjust:exact;print-color-adjust:exact}
-body{margin:0;background:#fff;color:#1F1D1A;font:400 9.6pt/1.5 Inter,'Helvetica Neue',Arial,sans-serif;font-feature-settings:"tnum" 1,"cv11" 1}
+body{margin:0;background:#fff;color:${C.tinta};font:400 9.6pt/1.5 Inter,'Helvetica Neue',Arial,sans-serif;font-feature-settings:"tnum" 1,"cv11" 1}
 .rel{max-width:180mm;margin:0 auto}
 @media screen{body{background:#ECE8E1}.rel{background:#fff;padding:18mm 15mm;margin:12px auto;box-shadow:0 10px 30px -18px rgba(0,0,0,.4)}}
-h1,h2,h3,h4{margin:0;font-weight:600;letter-spacing:-.01em;color:#1F1D1A}
+h1,h2,h3,h4{margin:0;font-weight:600;letter-spacing:-.01em;color:${C.tinta}}
 p{margin:0 0 2.2mm}
 .capa{min-height:247mm;display:flex;flex-direction:column;break-after:page;page-break-after:always}
 .capa-marca{display:flex;align-items:center;gap:3mm;font:600 10pt Inter,Arial,sans-serif;letter-spacing:.02em}
 .capa-marca svg{width:9mm;height:9mm}
-.capa-tipo{margin-top:34mm;font-size:9pt;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:#A83D08}
+.capa-tipo{margin-top:34mm;font-size:9pt;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:${C.acaoTexto}}
 .capa h1{font-size:30pt;line-height:1.08;margin-top:3mm;letter-spacing:-.025em}
-.capa-sub{font-size:13pt;color:#4A463F;margin-top:3mm}
-.capa-linha{height:1.2mm;width:24mm;background:#C2490C;margin:9mm 0 7mm}
+.capa-sub{font-size:13pt;color:${C.texto2};margin-top:3mm}
+.capa-linha{height:1.2mm;width:24mm;background:${C.acao};margin:9mm 0 7mm}
 .capa-meta{display:grid;grid-template-columns:34mm 1fr;gap:2mm 6mm;font-size:9.5pt}
-.capa-meta dt{color:#6B665E}.capa-meta dd{margin:0;font-weight:500}
+.capa-meta dt{color:${C.apagado}}.capa-meta dd{margin:0;font-weight:500}
 .capa-kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:4mm;margin-top:14mm}
-.capa-kpis div{border-top:.5mm solid #1F1D1A;padding-top:2.5mm}
+.capa-kpis div{border-top:.5mm solid ${C.tinta};padding-top:2.5mm}
 .capa-kpis b{display:block;font-size:20pt;font-weight:600;letter-spacing:-.02em;line-height:1.1}
-.capa-kpis span{font-size:8.5pt;color:#4A463F}
-.capa-indice{margin-top:auto;font-size:8.8pt;color:#4A463F;columns:2;column-gap:10mm;padding:0;list-style:none;counter-reset:ind}
-.capa-indice li{counter-increment:ind;padding:1mm 0;border-bottom:.2mm solid #E6E0D6;break-inside:avoid}
-.capa-indice li::before{content:counter(ind) ".";display:inline-block;width:7mm;color:#A83D08;font-weight:600}
-.capa-pe{margin-top:6mm;font-size:7.8pt;color:#6B665E}
+.capa-kpis span{font-size:8.5pt;color:${C.texto2}}
+.capa-indice{margin-top:auto;font-size:8.8pt;color:${C.texto2};columns:2;column-gap:10mm;padding:0;list-style:none;counter-reset:ind}
+.capa-indice li{counter-increment:ind;padding:1mm 0;border-bottom:.2mm solid ${C.borda};break-inside:avoid}
+.capa-indice li::before{content:counter(ind) ".";display:inline-block;width:7mm;color:${C.acaoTexto};font-weight:600}
+.capa-pe{margin-top:6mm;font-size:7.8pt;color:${C.apagado}}
 .sec{margin:0 0 7mm}
-.sec h2{font-size:14pt;display:flex;align-items:baseline;gap:3mm;padding-bottom:2mm;border-bottom:.3mm solid #1F1D1A;margin-bottom:4mm;break-after:avoid;page-break-after:avoid}
-.sec h2 i{font-style:normal;font-size:9pt;color:#A83D08;font-weight:600;min-width:6mm}
+.sec h2{font-size:14pt;display:flex;align-items:baseline;gap:3mm;padding-bottom:2mm;border-bottom:.3mm solid ${C.tinta};margin-bottom:4mm;break-after:avoid;page-break-after:avoid}
+.sec h2 i{font-style:normal;font-size:9pt;color:${C.acaoTexto};font-weight:600;min-width:6mm}
 .bloco,.bloco-livre{margin:0 0 5mm}.agente.bloco{break-inside:avoid;page-break-inside:avoid}
 .junto{break-inside:avoid;page-break-inside:avoid}
 .bloco>h3{font-size:11pt;margin-bottom:2mm;break-after:avoid}
-.texto p{color:#2E2B27}
+.texto p{color:${C.tinta}}
 .texto ul{margin:1mm 0 2.5mm;padding-left:5mm}.texto li{margin:.8mm 0}
-.agente{display:flex;gap:4mm;align-items:flex-start;background:#FBF6F2;border-left:1mm solid #C2490C;padding:4mm 5mm;border-radius:0 2mm 2mm 0}
-.agente-av{flex:none;width:9mm;height:9mm;border-radius:50%;background:#C2490C;color:#fff;display:grid;place-items:center;font-weight:700;font-size:11pt}
-.agente small{display:block;font-size:8pt;color:#A83D08;font-weight:600;letter-spacing:.04em;text-transform:uppercase;margin-bottom:1mm}
-.agente p{font-size:10.2pt;line-height:1.55;color:#1F1D1A;margin:0 0 1.6mm}
+.agente{display:flex;gap:4mm;align-items:flex-start;background:${veuAcao};border-left:1mm solid ${C.acao};padding:4mm 5mm;border-radius:0 2mm 2mm 0}
+.agente-av{flex:none;width:9mm;height:9mm;border-radius:50%;background:${C.acao};color:#fff;display:grid;place-items:center;font-weight:700;font-size:11pt}
+.agente small{display:block;font-size:8pt;color:${C.acaoTexto};font-weight:600;letter-spacing:.04em;text-transform:uppercase;margin-bottom:1mm}
+.agente p{font-size:10.2pt;line-height:1.55;color:${C.tinta};margin:0 0 1.6mm}
 .kpis{display:grid;grid-template-columns:repeat(2,1fr);gap:3.5mm}
-.kpi{border:.25mm solid #E6E0D6;border-radius:2mm;padding:3.2mm 4mm;break-inside:avoid}
-.kpi small{display:block;font-size:8.2pt;color:#4A463F;font-weight:500}
+.kpi{border:.25mm solid ${C.borda};border-radius:2mm;padding:3.2mm 4mm;break-inside:avoid}
+.kpi small{display:block;font-size:8.2pt;color:${C.texto2};font-weight:500}
 .kpi b{display:block;font-size:18pt;font-weight:600;letter-spacing:-.02em;line-height:1.2;margin:.6mm 0}
 .var{display:inline-block;font-size:8pt;font-weight:600;padding:.3mm 1.6mm;border-radius:1mm;border:.25mm solid currentColor}
-.var.bom{color:#11613A}.var.ruim{color:#B42318}.var.neutro{color:#4A463F}
+.var.bom{color:${C.pronto}}.var.ruim{color:${C.perigo}}.var.neutro{color:${C.texto2}}
 .var.ruim::after{content:" (pior)";font-weight:500}.var.bom::after{content:" (melhor)";font-weight:500}
-.kpi p{font-size:8.4pt;color:#4A463F;margin:1.4mm 0 0;line-height:1.45}
+.kpi p{font-size:8.4pt;color:${C.texto2};margin:1.4mm 0 0;line-height:1.45}
 figure{margin:2mm 0 3mm;break-inside:avoid;page-break-inside:avoid}
 figure svg{width:100%;height:auto}
-figcaption{font-size:7.8pt;color:#6B665E;margin-top:1mm}
+figcaption{font-size:7.8pt;color:${C.apagado};margin-top:1mm}
 table{width:100%;border-collapse:collapse;font-size:8.4pt;margin:1mm 0 2mm}
 thead{display:table-header-group}
-th{text-align:left;font-weight:600;color:#4A463F;font-size:7.8pt;text-transform:uppercase;letter-spacing:.03em;border-bottom:.35mm solid #1F1D1A;padding:1.4mm 2mm}
-td{padding:1.5mm 2mm;border-bottom:.2mm solid #E6E0D6;vertical-align:top}
+th{text-align:left;font-weight:600;color:${C.texto2};font-size:7.8pt;text-transform:uppercase;letter-spacing:.03em;border-bottom:.35mm solid ${C.tinta};padding:1.4mm 2mm}
+td{padding:1.5mm 2mm;border-bottom:.2mm solid ${C.borda};vertical-align:top}
 tr{break-inside:avoid;page-break-inside:avoid}
 td.n,th.n{text-align:right;white-space:nowrap}
 .tabela-curta{break-inside:avoid;page-break-inside:avoid}
-.nota{font-size:7.8pt;color:#6B665E}
+.nota{font-size:7.8pt;color:${C.apagado}}
 .recs{counter-reset:rec}
-.rec{display:grid;grid-template-columns:22mm 1fr;gap:4mm;padding:3mm 0;border-bottom:.25mm solid #E6E0D6;break-inside:avoid;page-break-inside:avoid}
+.rec{display:grid;grid-template-columns:22mm 1fr;gap:4mm;padding:3mm 0;border-bottom:.25mm solid ${C.borda};break-inside:avoid;page-break-inside:avoid}
 .prio{font-size:7.8pt;font-weight:700;letter-spacing:.04em;text-transform:uppercase}
 .prio i{display:flex;gap:.8mm;margin-top:1mm}.prio i em{width:2.6mm;height:2.6mm;border-radius:50%;border:.3mm solid currentColor}
 .prio i em.on{background:currentColor}
-.prio.alta{color:#B42318}.prio.media{color:#8F5600}.prio.baixa{color:#4A463F}
-.rec h4{font-size:10.2pt;margin-bottom:1mm;counter-increment:rec}.rec h4::before{content:counter(rec) ". ";color:#A83D08}
+.prio.alta{color:${C.perigo}}.prio.media{color:${C.ambar}}.prio.baixa{color:${C.texto2}}
+.rec h4{font-size:10.2pt;margin-bottom:1mm;counter-increment:rec}.rec h4::before{content:counter(rec) ". ";color:${C.acaoTexto}}
 .rec dl{display:grid;grid-template-columns:16mm 1fr;gap:.8mm 3mm;margin:0;font-size:8.8pt}
-.rec dt{color:#6B665E}.rec dd{margin:0;color:#2E2B27}
+.rec dt{color:${C.apagado}}.rec dd{margin:0;color:${C.tinta}}
 .fontes{font-size:8.4pt}.fontes td:first-child{font-weight:500}
-.vazio{color:#6B665E;font-style:italic}
+.vazio{color:${C.apagado};font-style:italic}
+.st{display:inline-flex;align-items:center;gap:1.3mm;max-width:100%;padding:.3mm 2mm .3mm 1.6mm;border-radius:3mm;background:var(--st-veu);color:${C.tinta};font-weight:600;white-space:nowrap;line-height:1.4}
+.pt{display:inline-flex;align-items:center;gap:1.3mm;max-width:100%}
+.st i,.pt i{flex:none;width:1.7mm;height:1.7mm;border-radius:50%;background:var(--st)}
 `;
   }
   function textoHtml(t) {
     const ps = lista(t).filter((x) => x != null && String(x).trim());
     return ps.map((p) => `<p>${esc(p)}</p>`).join('');
   }
+  // A célula: texto, ou { texto, cor, tipo } posto pelo colorir (status = a pílula da tela; cliente e pessoa = o ponto).
+  const textoDe = (v) => (v && typeof v === 'object' ? String(v.texto ?? '') : String(v ?? ''));
+  function celulaHtml(v) {
+    if (!v || typeof v !== 'object') return esc(v ?? '');
+    const c = hexOk(v.cor);
+    if (!c) return esc(v.texto ?? '');
+    if (v.tipo === 'status') return `<span class="st" style="--st:${c};--st-veu:${misturar(c, '#FFFFFF', 0.16)}"><i></i>${esc(v.texto)}</span>`;
+    return `<span class="pt" style="--st:${c}"><i></i>${esc(v.texto)}</span>`;
+  }
   function tabelaHtml(t) {
     if (!t || !Array.isArray(t.colunas) || !t.colunas.length) return '';
     const cols = t.colunas.map((c) => (typeof c === 'object' ? c : { rotulo: String(c) }));
     const linhas = (t.linhas || []).filter(Array.isArray);
-    const numerica = cols.map((c, i) => c.numero ?? (linhas.length > 0 && linhas.every((l) => l[i] == null || l[i] === '' || /^[\s−+\-–R$▲▼=]*[\d.,]+\s*(%|p\.p\.|h|d|dias?)?[\s▲▼]*$/.test(String(l[i])))));
-    const corpo = linhas.length ? linhas.map((l) => `<tr>${cols.map((_, i) => `<td${numerica[i] ? ' class="n"' : ''}>${esc(l[i] ?? '')}</td>`).join('')}</tr>`).join('')
+    const numerica = cols.map((c, i) => c.numero ?? (linhas.length > 0 && linhas.every((l) => l[i] == null || l[i] === '' || /^[\s−+\-–R$▲▼=]*[\d.,]+\s*(%|p\.p\.|h|d|dias?)?[\s▲▼]*$/.test(textoDe(l[i])))));
+    const corpo = linhas.length ? linhas.map((l) => `<tr>${cols.map((_, i) => `<td${numerica[i] ? ' class="n"' : ''}>${celulaHtml(l[i])}</td>`).join('')}</tr>`).join('')
       : `<tr><td colspan="${cols.length}" class="vazio">${esc(t.vazio || 'Nada no período.')}</td></tr>`;
     return `<table class="${linhas.length <= 22 ? 'tabela-curta' : ''}"><thead><tr>${cols.map((c, i) => `<th${numerica[i] ? ' class="n"' : ''}>${esc(c.rotulo)}</th>`).join('')}</tr></thead><tbody>${corpo}</tbody></table>${t.nota ? `<p class="nota">${esc(t.nota)}</p>` : ''}`;
   }
@@ -375,20 +529,30 @@ td.n,th.n{text-align:right;white-space:nowrap}
     const hoje = opcoes.hoje || (typeof G.hojeDeVerdade === 'function' ? (() => { try { const h = G.hojeDeVerdade(); return ISO.test(h) ? h : diaLocal(); } catch { return diaLocal(); } })() : diaLocal());
     const per = periodo(opcoes.periodo || 'mes', { hoje, inicio: opcoes.inicio, fim: opcoes.fim });
     const leituras = [], fontes = [];
-    const ctx = { periodo: per, hoje, acesso, util, graficos: G.VybeRelGraficos, dados: { ...dadosDaTela, ...(opcoes.dados || {}) },
+    // As cores da tela de agora (tema claro) valem para os gráficos e para o CSS do documento.
+    const tokens = GR()?.definirCores ? GR().definirCores({ ...lerTokens(), ...(opcoes.tokens || {}) }) : {};
+    const dados = { ...dadosDaTela, ...(opcoes.dados || {}) };
+    const ler = (f) => { try { return lista(typeof f === 'function' ? f() : null); } catch { return []; } };
+    const equipe = ler(dados.equipe);
+    let carregadas = null;
+    const todas = () => carregadas || (carregadas = [...ler(dados.pecas), ...ler(dados.demandas)]);
+    const paleta = cores({ equipe });
+    const ctx = { periodo: per, hoje, acesso, util, graficos: G.VybeRelGraficos, dados,
+      cores: { ...paleta, status: (n, amostra) => corDoStatus(n, amostra ?? todas()) },
       api: opcoes.api || ((area, params) => lerApi(area, params, leituras)),
       fonte: (nome, detalhe, extra = {}) => fontes.push({ nome, detalhe, lido_em: horaBr(new Date()), ...extra }),
       agente: reg.agente, modulo: reg.id };
-    const bruto = (await reg.fn(ctx)) || {};
+    const { amostra, ...bruto } = (await reg.fn(ctx)) || {};
     const agora = opcoes.agora || new Date();
     const juntas = [...fontes, ...lista(bruto.fontes).map((f) => ({ lido_em: horaBr(agora), ...f })),
       ...juntarLeituras(leituras)];
-    const rel = filtrar({ agente: reg.agente, ...bruto, fontes: juntas }, acesso);
-    return { rel, reg, per, acesso, agora };
+    const amostraStatus = Array.isArray(amostra) ? amostra : todas();
+    const rel = colorir(filtrar({ agente: reg.agente, ...bruto, fontes: juntas }, acesso), { ...paleta, status: (n) => corDoStatus(n, amostraStatus) });
+    return { rel, reg, per, acesso, agora, tokens };
   }
   async function documento(modulo, opcoes = {}) {
-    const { rel, reg, per, acesso, agora } = await relatorioDe(modulo, opcoes);
-    return montar(rel, { modulo: reg.nome, periodo: rel.periodo || per.rotulo, geradoEm: horaBr(agora), geradoPor: opcoes.geradoPor ?? acesso.nome, agente: reg.agente });
+    const { rel, reg, per, acesso, agora, tokens } = await relatorioDe(modulo, opcoes);
+    return montar(rel, { modulo: reg.nome, periodo: rel.periodo || per.rotulo, geradoEm: horaBr(agora), geradoPor: opcoes.geradoPor ?? acesso.nome, agente: reg.agente, cores: tokens });
   }
 
   // Imprime num iframe próprio: o painel fica como estava; a pessoa escolhe "Salvar como PDF" na janela do navegador.
@@ -524,6 +688,7 @@ td.n,th.n{text-align:right;white-space:nowrap}
 
   const antigo = G.VybeRelatorio && typeof G.VybeRelatorio === 'object' ? G.VybeRelatorio : {};
   const api = Object.freeze({ ...antigo, registrar, registrado, gerar, documento, relatorioDe, montar, filtrar, periodo, PERIODOS, util, acesso: acessoAtual,
+    corDoStatus, corDoCliente, corDoPapel, cores, colorir, lerTokens, corOpaca,
     modulos: () => [...REG.values()].map((r) => ({ id: r.id, nome: r.nome, telas: [...r.telas], acesso: r.acesso, agente: r.agente })), _botao: { posicionar, telaDoDock } });
   G.VybeRelatorio = api;
   if (typeof module === 'object' && module && module.exports) module.exports = api;

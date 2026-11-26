@@ -53,7 +53,7 @@
     ];
     const secoes = [
       { titulo: 'Carga do time', texto: ['Peças de cada pessoa do design no período.'],
-        grafico: pessoasTime.length ? { tipo: 'barras', rotulos: pessoasTime.map((p) => p.nome.split(' ')[0]), series: [{ nome: 'Finalizadas', valores: pessoasTime.map((p) => p.entregues) }, { nome: 'Abertas', valores: pessoasTime.map((p) => p.abertas) }, { nome: 'Atrasadas', valores: pessoasTime.map((p) => p.atrasadas) }] } : null,
+        grafico: pessoasTime.length ? { tipo: 'barras', rotulos: pessoasTime.map((p) => p.nome.split(' ')[0]), series: [{ nome: 'Finalizadas', valores: pessoasTime.map((p) => p.entregues), papel: 'pronto' }, { nome: 'Abertas', valores: pessoasTime.map((p) => p.abertas), papel: 'aberto' }, { nome: 'Atrasadas', valores: pessoasTime.map((p) => p.atrasadas), papel: 'atraso' }] } : null,
         tabela: pessoasTime.length ? { colunas: ['Pessoa', 'Peças', 'Finalizadas', 'Abertas', 'Atrasadas', 'Em alteração'], linhas: pessoasTime.map((p) => [p.nome, u.num(p.total), u.num(p.entregues), u.num(p.abertas), u.num(p.atrasadas), u.num(altPorPessoa.get(p.nome) || 0)]) } : null },
       { titulo: 'Fila do parecer da arte', texto: [fila.length ? 'A mais antiga primeiro.' : 'Sem arte esperando parecer.'],
         tabela: fila.length ? { colunas: ['Peça', 'Cliente', 'Formato', 'Esperando há'], linhas: [...fila].sort((x, y) => Number(y.horas) - Number(x.horas)).slice(0, 20).map((p) => [String(p.titulo || '').slice(0, 44), String(p.cliente || '—').slice(0, 26), String(p.formato || '—'), dias(Number(p.horas))]) } : null },
@@ -64,7 +64,7 @@
         tabela: a.atrasadas.length ? { colunas: ['Data', 'Peça', 'Cliente', 'Status', 'Com quem', 'Dias'], linhas: a.atrasadas.slice(0, 20).map((x) => [u.dataCurta(x.data), String(x.d.nome || x.d.titulo || '').slice(0, 36), x.clientes.join(', ').slice(0, 22), String(x.d.status || ''), x.pessoas.join(', ').slice(0, 20), u.num(u.diasEntre(x.data, hoje))]) } : null },
     ];
     const historico = { texto: [`Peças do design por mês. ${u.tendenciaTexto(a.hist.map((h) => h.alteracao), { coisa: 'Tendência das alterações', melhor: 'menor' }).texto}.`],
-      grafico: { tipo: 'barras', rotulos: a.hist.map((h) => u.nomeMes(h.mes)), series: [{ nome: 'Finalizadas', valores: a.hist.map((h) => h.entregues) }, { nome: 'Em aberto', valores: a.hist.map((h) => h.abertas) }], empilhado: true },
+      grafico: { tipo: 'barras', rotulos: a.hist.map((h) => u.nomeMes(h.mes)), series: [{ nome: 'Finalizadas', valores: a.hist.map((h) => h.entregues), papel: 'pronto' }, { nome: 'Em aberto', valores: a.hist.map((h) => h.abertas), papel: 'aberto' }], empilhado: true },
       tabela: { colunas: ['Mês', 'Peças', 'Finalizadas', 'Atrasadas', 'Em alteração'], linhas: a.hist.map((h) => [u.nomeMes(h.mes, true), u.num(h.total), u.num(h.entregues), u.num(h.atrasadas), u.num(h.alteracao)]) } };
     const prox = u.projetar(a.hist.map((h) => h.total), 3);
     const projecao = { texto: [a.ritmo?.projetado != null && at.total ? `No ritmo de agora (${u.num(a.ritmo.porDia, 1)} finalizadas por dia), o time fecha o período com cerca de ${u.num(Math.min(a.ritmo.projetado, at.total))} de ${u.num(at.total)}.` : 'Período fechado.',

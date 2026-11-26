@@ -35,11 +35,11 @@
     ];
     const secoes = [
       { titulo: 'O que cada pessoa tem na mão', texto: ['Abertas do período (peças) e demandas abertas; a mais carregada primeiro.'],
-        grafico: todos.length ? { tipo: 'barras', rotulos: todos.slice(0, 12).map((x) => x.nome.split(' ')[0]), series: [{ nome: 'Peças abertas', valores: todos.slice(0, 12).map((x) => x.abertas) }, { nome: 'Demandas', valores: todos.slice(0, 12).map((x) => x.demandas) }], empilhado: true } : null,
+        grafico: todos.length ? { tipo: 'barras', rotulos: todos.slice(0, 12).map((x) => x.nome.split(' ')[0]), series: [{ nome: 'Peças abertas', valores: todos.slice(0, 12).map((x) => x.abertas), papel: 'aberto' }, { nome: 'Demandas', valores: todos.slice(0, 12).map((x) => x.demandas), papel: 'neutro' }], empilhado: true } : null,
         tabela: todos.length ? { colunas: ['Pessoa', 'Cargo', 'Peças', 'Finalizadas', 'Abertas', 'Atrasadas', 'Demandas', 'Dem. atrasadas'], linhas: todos.map((x) => [x.nome, x.cargo || '—', u.num(x.pecas), u.num(x.entregues), u.num(x.abertas), u.num(x.atrasadas), u.num(x.demandas), u.num(x.demAtr)]) } : null },
     ];
     const historico = { texto: ['Entregas do time por mês (peças finalizadas pela data do cliente).'],
-      grafico: { tipo: 'barras', rotulos: a.hist.map((h) => u.nomeMes(h.mes)), series: [{ nome: 'Finalizadas', valores: a.hist.map((h) => h.entregues) }] },
+      grafico: { tipo: 'barras', rotulos: a.hist.map((h) => u.nomeMes(h.mes)), series: [{ nome: 'Finalizadas', valores: a.hist.map((h) => h.entregues), papel: 'pronto' }] },
       tabela: { colunas: ['Mês', 'Peças', 'Finalizadas', 'Atrasadas'], linhas: a.hist.map((h) => [u.nomeMes(h.mes, true), u.num(h.total), u.num(h.entregues), u.num(h.atrasadas)]) } };
     const projecao = { texto: [a.ritmo?.projetado != null && a.atual.total ? `No ritmo do período, o time fecha cerca de ${u.num(Math.min(a.ritmo.projetado, a.atual.total))} de ${u.num(a.atual.total)} peças.` : 'Período fechado.'] };
     const recomendacoes = [];

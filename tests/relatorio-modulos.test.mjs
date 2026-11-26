@@ -461,3 +461,94 @@ test('Equipe: quem tem mais na mão e sugestão de redistribuir', async () => {
   assert.equal(tab[0][0], 'Deivid', 'a mais carregada primeiro');
   assert.ok(r.recomendacoes.some((x) => /Passar parte da fila de Deivid para/.test(x.o_que)));
 });
+
+// ---------- Cores do sistema (Paulo, 26/11/2026: "os PDFs não deviam respeitar as regras de cores do sistema?") ----------
+// Contexto próprio: o catálogo do painel (corDeStatus) e a carteira (carteiraDoCliente) entram como globais, igual à tela.
+function comPainel() {
+  const c = carregar();
+  c.corDeStatus = (s) => ({ 'falta info': { cor: '#E2445C' }, 'em andamento': { cor: '#FDAB3D' }, 'alteração': { cor: '#9D50DD' } })[String(s).trim().toLowerCase()] || null;
+  c.carteiraDoCliente = (n) => ({ 'Academia Lions': 'vinicius', VOA: 'ewerton' })[n] ?? '';
+  return c;
+}
+const PRONTO = '#11613A', ACAO = '#C2490C';
+
+test('cores: corDoStatus usa o status_color das peças (o mais comum), cai no catálogo e Finalizado sai na cor de pronto', () => {
+  const c = comPainel(), R2 = c.VybeRelatorio;
+  const amostra = [{ status: 'Alteração', status_color: '#ff642e' }, { status: 'alteracao', status_color: '#FF642E' }, { status: 'Alteração', status_color: '#111111' }, { status: 'Em andamento', status_color: 'laranja' }];
+  assert.equal(R2.corDoStatus('Alteração', amostra), '#FF642E', 'a cor do quadro nas peças, a mais comum, sem acento e sem caixa');
+  assert.equal(R2.corDoStatus('Em andamento', amostra), '#FDAB3D', 'status_color inválida: vale o catálogo');
+  assert.equal(R2.corDoStatus('Falta Info', []), '#E2445C', 'sem peça com a cor: o catálogo do pillHtml');
+  assert.equal(R2.corDoStatus('Status que não existe', amostra), '', 'sem cor conhecida: vazio (o gráfico cai no neutro)');
+  for (const s of ['Finalizado', 'finalizada', 'Feito', 'Concluído']) assert.equal(R2.corDoStatus(s, [{ status: s, status_color: '#00C875' }]), PRONTO, `${s} = a cor de pronto do sistema`);
+  assert.equal(R2.corDoStatus('Para agendar', [{ status: 'Para agendar', status_color: '#579BFC' }]), '#579BFC', 'Para agendar não é pronta: fica a cor do quadro');
+  assert.equal(R2.corDoStatus(''), '');
+  // Tokens lidos da tela trocam a cor de pronto também aqui.
+  c.VybeRelGraficos.definirCores({ pronto: '#0E5A33' });
+  assert.equal(R2.corDoStatus('Finalizado'), '#0E5A33');
+  c.VybeRelGraficos.definirCores({});
+  assert.equal(R2.corDoPapel('aberto'), c.VybeRelGraficos.misturar(PRONTO, '#FFFFFF', 0.75), 'em aberto = o tom claro da cor de pronto (Semana do Hoje)');
+  assert.equal(R2.corDoPapel('atraso'), '#B42318');
+  assert.equal(R2.corDoCliente('Academia Lions'), '#9A4A1E'); assert.equal(R2.corDoCliente('VOA'), '#3B5BA9'); assert.equal(R2.corDoCliente('Sem carteira'), '#B5AFA5');
+  assert.equal(R2.corOpaca('rgba(31,29,26,.5)'), '#8F8E8D', 'token com transparência vira a cor no papel branco');
+});
+
+test('cores: gráfico sem cor dada sai no destaque e nos neutros do padrão v2, nunca na paleta antiga', () => {
+  const b = G.barras({ rotulos: ['a', 'b'], series: [{ nome: 'A', valores: [1, 2] }, { nome: 'B', valores: [2, 1] }, { nome: 'C', valores: [1, 1] }] });
+  assert.match(b, new RegExp(`<pattern id="g\\d+-h0"[^>]*><rect width="6" height="6" fill="${ACAO}"/>`), 'a primeira série no --d3-acao');
+  for (const velha of ['#1E4A9A', '#6E56CF', '#0E7490']) assert.ok(!b.includes(velha), `sem ${velha}`);
+  const r = G.rosca({ fatias: [{ rotulo: 'Finalizado', valor: 3, cor: PRONTO }, { rotulo: 'Pode Fazer', valor: 2, cor: '#FDAB3D' }] });
+  assert.match(r, new RegExp(`fill="${PRONTO}"`)); assert.match(r, /fill="#FDAB3D"/);
+  // O número dentro da fatia escolhe a letra pelo contraste com a cor dela (≥ 4,5:1).
+  const letras = [...r.matchAll(/<text [^>]*fill="(#[0-9A-F]{6})" stroke="(#[0-9A-F]{6})" stroke-width="2\.6"/g)];
+  assert.equal(letras.length, 2);
+  for (const [, letra, fundo] of letras) assert.ok(G.contraste(letra, fundo) >= 4.5, `${letra} sobre ${fundo}`);
+  assert.equal(G.textoSobre(PRONTO), '#FFFFFF'); assert.equal(G.textoSobre('#FDAB3D'), '#1F1D1A');
+  // Heatmap na cor de cada linha (a pessoa); o número da célula também pelo contraste.
+  const h = G.heatmap({ linhas: ['Jady'], colunas: ['s1', 's2'], valores: [[0, 9]], coresLinhas: ['#225091'] });
+  assert.match(h, /<circle [^>]*fill="#225091"/);
+  for (const [, fundo, letra] of h.matchAll(/fill="(#[0-9A-F]{6})" stroke="#FFFFFF" stroke-width="\.5"\/><text [^>]*fill="(#[0-9A-F]{6})"/g)) assert.ok(G.contraste(letra, fundo) >= 4.5, `${letra} sobre ${fundo}`);
+  // O preto e branco continua: hachura diferente por série por cima da cor certa.
+  assert.match(b, /<pattern id="g\d+-h1"[^>]*><rect width="6" height="6" fill="#[0-9A-F]{6}"\/><path d="M-1 7/);
+});
+
+test('cores: o relatório da Produção pinta status, pronta, em aberto, pessoa e cliente como a tela', async () => {
+  const c = comPainel();
+  const equipe = PESSOAS.map((p, i) => ({ ...p, color: ['#225091', '#E2445C', '#00A9FF', '#784BD1'][i] }));
+  const pecas = pecasFixas().map((d) => (d.status === 'Alteração' ? { ...d, status_color: '#FF642E' } : d));
+  const r = json((await c.VybeRelatorio.relatorioDe('producao', { hoje: HOJE, acesso: DONO, dados: { ...DADOS, pecas: () => pecas, equipe: () => equipe }, api: async () => null })).rel);
+  assert.equal(r.amostra, undefined, 'a amostra não vai para o documento');
+  const sec = (t) => r.secoes.find((s) => s.titulo === t);
+  const ent = sec('Entregas mês a mês').grafico.series;
+  assert.equal(ent[0].cor, PRONTO, 'Prontas na cor de pronto');
+  assert.equal(ent[1].cor, c.VybeRelGraficos.misturar(PRONTO, '#FFFFFF', 0.75), 'Em aberto no tom claro');
+  const fat = Object.fromEntries(sec('Gargalos: onde as peças param').grafico.fatias.map((f) => [f.rotulo, f.cor]));
+  assert.equal(fat['Alteração'], '#FF642E', 'status_color das peças do período');
+  assert.equal(fat['Falta Info'], '#E2445C', 'sem status_color: o catálogo');
+  assert.equal(fat['Em andamento'], '#FDAB3D');
+  const atr = sec('Quem está atrasado e com o quê');
+  assert.equal(atr.grafico.itens[0].rotulo, 'Deivid'); assert.equal(atr.grafico.itens[0].cor, '#784BD1', 'pessoa na cor dela');
+  const [, , cli, quem, st] = atr.tabela.linhas[0];
+  assert.equal(quem.texto, 'Deivid'); assert.equal(quem.cor, '#784BD1'); assert.equal(quem.tipo, 'pessoa');
+  assert.equal(st.tipo, 'status'); assert.equal(st.cor, { Alteração: '#FF642E', 'Falta Info': '#E2445C', 'Em andamento': '#FDAB3D' }[st.texto]);
+  assert.ok(['#9A4A1E', '#3B5BA9', '#B5AFA5'].includes(cli.cor), 'cliente na cor da carteira');
+  const carga = sec('Carga por pessoa').grafico.series.map((s) => s.cor);
+  assert.deepEqual(carga, [PRONTO, c.VybeRelGraficos.misturar(PRONTO, '#FFFFFF', 0.75), '#B42318']);
+  const heat = sec('Carga semana a semana').grafico;
+  assert.deepEqual(json(heat.coresLinhas), heat.linhas.map((n) => equipe.find((p) => p.name === n).color.toUpperCase()));
+  // No documento: a pílula do status com a cor da tela e o gráfico com as cores postas.
+  const html = c.VybeRelatorio.montar(r, { modulo: 'Produção', periodo: 'Novembro de 2026' });
+  assert.match(html, /<span class="st" style="--st:#[0-9A-F]{6};--st-veu:#[0-9A-F]{6}"><i><\/i>(Alteração|Falta Info|Em andamento)<\/span>/);
+  assert.match(html, /<span class="pt" style="--st:#784BD1"><i><\/i>Deivid<\/span>/);
+  assert.match(html, /\.st\{[^}]*background:var\(--st-veu\)/);
+  assert.match(html, new RegExp(`fill="${PRONTO}"`));
+});
+
+test('cores: Finanças nas cores da tela dele (--fe-c*) e a margem verde ou vermelha', async () => {
+  const m = C.VybeRelatorioFinancas.paraMotor({ titulo: 'Finanças', resumo: 'x', fontes: [], numeros: [], recomendacoes: [],
+    secoes: [{ titulo: 'DRE', texto: 't', grafico: { tipo: 'barras', rotulos: ['novembro de 2026'], series: [{ nome: 'Receita', valores: [10], papel: 'fe2' }, { nome: 'Resultado', valores: [3], papel: 'fe1' }] } },
+      { titulo: 'Margem', texto: 't', grafico: { tipo: 'barras_horizontais', rotulos: ['A', 'B'], series: [{ nome: 'Margem', valores: [5, -2] }] } }] });
+  const R = C.VybeRelatorio, c = R.cores({});
+  const cor = R.colorir({ secoes: m.secoes }, c).secoes;
+  assert.deepEqual(cor[0].grafico.series.map((s) => s.cor), ['#1BAF7A', '#2A78D6'], 'Receita k2, Resultado k1');
+  assert.deepEqual(cor[1].grafico.itens.map((i) => i.cor), [PRONTO, '#B42318'], 'margem: sobra em pronto, falta em perigo');
+});

@@ -42,18 +42,18 @@
     ];
     const secoes = [
       { titulo: 'Ranking do mês', texto: ['Posição pelo XP do trabalho; o % é da própria meta (a Superação).'],
-        grafico: comPos.length ? { tipo: 'ranking', itens: comPos.slice(0, 12).map((p, i) => ({ rotulo: `${p.posicao}º ${p.nome}`, valor: Number(p.xp) || 0, sub: `${u.num(p.pct)}% da meta`, destaque: i === 0 })) } : null,
-        tabela: ps.length ? { colunas: ['Posição', 'Pessoa', 'XP', 'Entregas', 'Meta', '% da meta', 'Sobre o mês passado'], linhas: [...ps].sort((a, b) => (a.posicao || 999) - (b.posicao || 999)).map((p) => [p.posicao ? `${p.posicao}º` : '—', p.nome, u.num(p.xp), u.num(p.entregas), u.num(p.meta), `${u.num(p.pct)}%`, seta(p)]) } : null },
+        grafico: comPos.length ? { tipo: 'ranking', itens: comPos.slice(0, 12).map((p, i) => ({ rotulo: `${p.posicao}º ${p.nome}`, pessoa: p.nome, valor: Number(p.xp) || 0, sub: `${u.num(p.pct)}% da meta`, destaque: i === 0 })) } : null,
+        tabela: ps.length ? { colunas: ['Posição', { rotulo: 'Pessoa', pessoa: true }, 'XP', 'Entregas', 'Meta', '% da meta', 'Sobre o mês passado'], linhas: [...ps].sort((a, b) => (a.posicao || 999) - (b.posicao || 999)).map((p) => [p.posicao ? `${p.posicao}º` : '—', p.nome, u.num(p.xp), u.num(p.entregas), u.num(p.meta), `${u.num(p.pct)}%`, seta(p)]) } : null },
       { titulo: 'Semana em curso', texto: [sem.length ? 'Quem está na frente nesta semana (o pódio da semana é pago no fechamento).' : 'Sem dado da semana.'],
-        tabela: sem.length ? { colunas: ['Posição', 'Pessoa', 'XP', 'Entregas', '% da meta'], linhas: [...sem].filter((p) => p.posicao).sort((a, b) => a.posicao - b.posicao).slice(0, 10).map((p) => [`${p.posicao}º`, p.nome, u.num(p.xp), u.num(p.entregas), `${u.num(p.pct)}%`]) } : null },
+        tabela: sem.length ? { colunas: ['Posição', { rotulo: 'Pessoa', pessoa: true }, 'XP', 'Entregas', '% da meta'], linhas: [...sem].filter((p) => p.posicao).sort((a, b) => a.posicao - b.posicao).slice(0, 10).map((p) => [`${p.posicao}º`, p.nome, u.num(p.xp), u.num(p.entregas), `${u.num(p.pct)}%`]) } : null },
       { titulo: 'De onde vem o XP', texto: ['As atividades que mais deram XP no mês.'],
         tabela: (() => { const m = new Map(); for (const p of ps) for (const [k, v] of Object.entries(p.xpPor || {})) m.set(k, (m.get(k) || 0) + Number(v)); const l = [...m].sort((a, b) => b[1] - a[1]).slice(0, 12); return l.length ? { colunas: ['Atividade', 'XP'], linhas: l.map(([k, v]) => [String(k).replace(/_/g, ' '), u.num(v)]) } : null; })() },
     ];
     if (principal?.anterior?.podio?.length) secoes.push({ titulo: 'Pódio da semana passada', texto: [`Semana de ${u.dataCurta(principal.anterior.inicio)} a ${u.dataCurta(principal.anterior.fim)}${principal.anterior.agenciaBateu ? '; a agência bateu a meta' : ''}.`],
-      tabela: { colunas: ['Posição', 'Pessoa'], linhas: principal.anterior.podio.sort((a, b) => a.posicao - b.posicao).map((p) => [`${p.posicao}º`, p.nome]) } });
+      tabela: { colunas: ['Posição', { rotulo: 'Pessoa', pessoa: true }], linhas: principal.anterior.podio.sort((a, b) => a.posicao - b.posicao).map((p) => [`${p.posicao}º`, p.nome]) } });
     const historico = semanas.length >= 3
       ? { texto: [`Score semanal guardado (12 semanas). ${u.tendenciaTexto(mediaSem.filter((v) => v != null), { coisa: 'Tendência do score médio', melhor: 'maior' }).texto.replace('por mês', 'por semana')}.`],
-        grafico: { tipo: 'linha', rotulos: semanas.map((d) => u.dataCurta(d)), series: [{ nome: 'Média da equipe', valores: mediaSem }, ...linhas.slice(0, 4).map((x) => ({ nome: x.nome, valores: semanas.map((d) => { const p = x.pontos.find((q) => q.dia === d); return p ? Number(p.valor) : null; }) }))] },
+        grafico: { tipo: 'linha', rotulos: semanas.map((d) => u.dataCurta(d)), series: [{ nome: 'Média da equipe', valores: mediaSem }, ...linhas.slice(0, 4).map((x) => ({ nome: x.nome, pessoa: x.nome, valores: semanas.map((d) => { const p = x.pontos.find((q) => q.dia === d); return p ? Number(p.valor) : null; }) }))] },
         tabela: { colunas: ['Semana de', 'Score médio'], linhas: semanas.map((d, i) => [u.dataCurta(d), mediaSem[i] != null ? u.num(mediaSem[i]) : '—']) } }
       : { texto: ['O servidor ainda não guardou semanas suficientes do score.'] };
     const proj = ag && principal?.fim ? u.ritmo({ feito: ag.pecas, inicio: principal.inicio, fim: principal.fim, hoje: principal.hoje || ctx.hoje }) : null;
