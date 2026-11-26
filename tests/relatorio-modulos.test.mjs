@@ -360,3 +360,51 @@ test('Ranking: líder, meta da agência, superação e score semanal', async () 
   assert.ok(r.recomendacoes.some((x) => /Puxar a meta da agência/.test(x.o_que)), '60 de 100 no dia 26 não chega');
   assert.equal(r.historico.tabela.linhas.length, 3);
 });
+
+test('RH: gestão vê o time, pedidos e documentos; a equipe só o próprio, sem recrutamento nem documentos', async () => {
+  const chamadas = [];
+  const rank = [{ id: '1', nome: 'Jady', cargoNome: 'Design', score: 88, entregues: 30, meta: 25, comData: 30, noPrazo: 28, ajustes: 1, atrasadas: 0 },
+    { id: '3', nome: 'Deivid', cargoNome: 'Direção de arte', score: 52, entregues: 10, meta: 25, comData: 12, noPrazo: 6, ajustes: 4, atrasadas: 9, frases: ['9 peças abertas atrasadas'] }];
+  const api = async (area, p) => {
+    chamadas.push(p.aba);
+    if (p.aba === 'produtividade') return ctxDono ? { ranking: rank, detalhe: rank[0] } : { detalhe: { ...rank[1], posicao: null } };
+    if (p.aba === 'rh') return { indicadores: { abertos: 2, foraDoPrazo: 1, respondidos: 4, tempoMedioDias: 2.5, noPrazoPct: 75 }, pedidos: [{ pessoa_nome: 'Jady', tipo: 'ferias', status: 'aberto', sla: 'atrasado', atrasoUteis: 2, idadeDias: 6, prazo: '2026-11-20' }],
+      visao: { headcount: 9, admissoes: 1, desligamentos: 0, tempoMedioMeses: 14 }, climaResultado: { trimestre: '2026-T4', liberado: false, minimo: 3, respostas: 1 } };
+    if (p.aba === 'documentos') return { avisoDias: 30, documentos: [{ pessoa_nome: 'Jady', titulo: 'Contrato PJ', renovacao: '2026-12-05', situacao: 'renovar' }] };
+    if (p.aba === 'recrutamento') return { vagas: [{ id: 'v1', titulo: 'Designer', status: 'aberta', aberta_em: '2026-11-01' }], candidatos: [{ vaga_id: 'v1' }], indicadores: {} };
+    return null;
+  };
+  let ctxDono = true;
+  const r = await gerar('rh', { api });
+  assert.match(r.resumo[0], /score médio do time é 70/);
+  assert.match(r.recomendacoes[0].o_que, /Conversar com Deivid/);
+  assert.ok(r.secoes.some((s) => s.titulo === 'Documentos a renovar') && r.secoes.some((s) => s.titulo === 'Recrutamento'));
+  ctxDono = false; chamadas.length = 0;
+  const e = json((await C.VybeRelatorio.relatorioDe('rh', { hoje: HOJE, acesso: EQUIPE, dados: DADOS, api })).rel);
+  assert.ok(!chamadas.includes('documentos') && !chamadas.includes('recrutamento'), 'nem pede o que é da gestão');
+  assert.equal(e.numeros[0].rotulo, 'Seu score');
+  assert.ok(!e.secoes.some((s) => /Produtividade do time|Documentos|Recrutamento/.test(s.titulo)));
+});
+
+test('Impressões: pedidas, atrasadas com a gráfica, sem fornecedor, o Nestor e o valor só para dono', async () => {
+  const imp = { etapas: [{ id: 'orcamento', nome: 'Orçamento' }, { id: 'em_impressao', nome: 'Em impressão' }, { id: 'entregue', nome: 'Entregue' }],
+    impressoes: [{ id: '1', titulo: 'Banner', cliente_nome: 'VOA', etapa: 'em_impressao', fornecedor_id: '7', fornecedor_nome: 'Gráfica Irecê', pedido_em: '2026-11-04', previsao: '2026-11-20', atrasada: true, valor: 800 },
+      { id: '2', titulo: 'Panfleto', cliente_nome: 'Gonzalez', etapa: 'orcamento', criado_em: '2026-11-10T10:00:00Z', previsao: '2026-12-10', atrasada: false, valor: null },
+      { id: '3', titulo: 'Adesivo', cliente_nome: 'VOA', etapa: 'entregue', fornecedor_id: '7', pedido_em: '2026-11-02', previsao: '2026-11-09', entregue_em: '2026-11-08', atrasada: false, valor: 300 }],
+    ranking: [{ nome: 'Gráfica Irecê', categoria: 'grafica', entregues: 5, pontualidade: 0.8, prazo_medio_dias: 4, motivo: 'Irecê · 5 entregas' }], aguardando: [{ titulo: 'Cartão de visita', cliente: 'Alpha1', proposta: { responsavel: 'Deivid' } }] };
+  const r = await gerar('impressoes', { api: async (area) => (area === 'impressoes' ? imp : null) });
+  assert.equal(r.agente.nome, 'Nestor');
+  assert.equal(r.numeros[0].valor, '3');
+  assert.equal(r.numeros.find((n) => n.rotulo === 'Atrasadas agora').valor, '1');
+  assert.equal(r.numeros.find((n) => n.rotulo === 'Sem fornecedor').valor, '1');
+  assert.match(r.recomendacoes[0].o_que, /Cobrar a gráfica das 1 atrasadas, começando pela Gráfica Irecê/);
+  const e = json((await C.VybeRelatorio.relatorioDe('impressoes', { hoje: HOJE, acesso: EQUIPE, dados: DADOS, api: async (area) => (area === 'impressoes' ? imp : null) })).rel);
+  assert.ok(!e.numeros.some((n) => n.rotulo === 'Valor pedido') && !JSON.stringify(e).includes('1.100'));
+});
+
+test('Equipe: quem tem mais na mão e sugestão de redistribuir', async () => {
+  const r = await gerar('equipe', { dados: { ...DADOS, equipe: () => [...PESSOAS, { id: '9', name: 'Tainara' }] } });
+  const tab = r.secoes[0].tabela.linhas;
+  assert.equal(tab[0][0], 'Deivid', 'a mais carregada primeiro');
+  assert.ok(r.recomendacoes.some((x) => /Passar parte da fila de Deivid para/.test(x.o_que)));
+});
