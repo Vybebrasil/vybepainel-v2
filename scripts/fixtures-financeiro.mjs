@@ -5,6 +5,9 @@
 //   DEMO_FIN_MESES=3            o caso do Paulo hoje: só três meses (base baixa, o que pede 12 meses escondido)
 //   DEMO_FIN_ATE=2026-11-13     o extrato termina nesse dia (para ver o aviso de extrato parado com o passo a passo)
 //   DEMO_FINANCEIRO_VAZIO=1     sem extrato nenhum
+//   DEMO_FIN_UM_CONTRATO=1      o caso da produção (26/11/2026): 15 clientes ativos, só um com contrato (R$ 1.200), os
+//                               outros pagando pelo extrato (dois sem dizer de quem), ~R$ 30 mil de entrada e ~R$ 21 mil
+//                               de saída por mês. Com DEMO_FIN_MESES=3 é o relatório que deu o alarme falso.
 // Finanças completo (26/11/2026): contratos com dia de vencimento, fim e reajuste; um cliente que saiu e um novo; peças
 // da produção (rateio), clientes em risco (pessimista), funil do Comercial (otimista), cartão com itens, orçamento,
 // um mês fechado, metas e um cenário guardado.
@@ -17,6 +20,10 @@ const CLIENTES = [
   ['ConectaSim', 3200, 8, 18, null, null], ['DiaLab', 2200, 26, 16, null, null], ['Hebravet', 1200, 5, 20, null, null],
   ['Serra Grande Bebidas', 4000, 18, 20, null, [10, 3]], ['VOA', 900, 10, 5, null, null], ['Nova Era Imóveis', 2800, 12, 2, null, null],
 ];
+// Os seis clientes a mais do caso da produção: [nome, quanto paga por mês, dia, trecho do Pix, ligado ao cliente na conferência]
+const EXTRAS = [['Lyo Exemplo', 2500, 7, 'Lyo Exemplo Ltda', true], ['Ótica Exemplo', 2300, 11, 'Otica Exemplo', true], ['Clínica Sorriso Exemplo', 2100, 13, 'Clinica Sorriso Exemplo', true],
+  ['Pet Exemplo', 2000, 16, 'Pet Exemplo', true], ['Construtora Exemplo', 1900, 21, 'Joao Exemplo Silva', false], ['Café Exemplo', 1700, 24, 'Maria Exemplo Souza', false]];
+const umContrato = () => process.env.DEMO_FIN_UM_CONTRATO === '1';
 const brl = (v) => { const n = Math.abs(v).toFixed(2).split('.'); return `${v < 0 ? '-' : ''}${n[0].replace(/\B(?=(\d{3})+(?!\d))/g, '.')},${n[1]}`; };
 const br = (iso) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)}`;
 const hojeBahia = () => new Date(Date.now() - 3 * 36e5).toISOString().slice(0, 10);
@@ -32,7 +39,12 @@ export function csvFicticio(hoje = hojeBahia(), nMeses = 14) {
   for (let k = nMeses - 1; k >= 0; k--) {
     const M = mesAtras(hoje, k), dia = (d) => `${M}-${String(Math.min(d, ultimo(M))).padStart(2, '0')}`;
     const ate = k === 0 ? Number(hoje.slice(8, 10)) : 31;
-    const add = (d, h, v) => { if (d <= ate) ls.push([dia(d), h, v]); };
+    // Caso da produção: o Pix dos clientes antigos chega no nome de quem pagou (sócio, financeiro do cliente), sem o nome
+    // da empresa: o extrato não sabe de quem é.
+    const PAGADOR = { 'Pix Recebido Alpha Um Comunicacao': 'Pix Recebido Carlos Exemplo Lima', 'Pix Recebido Conecta Sim Telecom': 'Pix Recebido Fulano Exemplo Reis',
+      'Pix Recebido Voa Viagens': 'Pix Recebido Ana Exemplo Costa', 'Pix Recebido Nova Era Imoveis': 'Pix Recebido Bruno Exemplo Dias',
+      'Pix Recebido Serra Grande Bebidas': 'Pix Recebido Sg Exemplo Comercio', 'Pix Recebido DiaLab Analises': 'Pix Recebido Lab Exemplo Me' };
+    const add = (d, h, v) => { if (d <= ate) ls.push([dia(d), umContrato() && PAGADOR[h] ? PAGADOR[h] : h, v]); };
     const sazonal = [1, 0.9, 1, 1.05, 1.1, 1, 0.95, 1, 1.2, 1.1, 1, 1.3][Number(M.slice(5, 7)) - 1]; // dezembro e setembro gastam mais
     add(2, 'Rendimento Liquido De Contamax', 3.12);
     // Lions + Brussolo + Hebravet pagam juntos por boleto no dia 5.
@@ -63,6 +75,11 @@ export function csvFicticio(hoje = hojeBahia(), nMeses = 14) {
     if (k % 4 === 3) add(23, 'Pix Enviado Grafica Ficticia Impressos', -480);
     add(27, 'Comissao Recurso Nao Disp. Dia', -14.27);
     add(28, 'Pix Automatico Enviado Programa Ficticio', -103.4);
+    if (umContrato()) {
+      for (const [, v, d, pix] of EXTRAS) add(d, `Pix Recebido ${pix}`, v);
+      add(5, 'Pix Enviado Equipe Exemplo Salarios Producao', -4000);
+      add(6, 'Pix Enviado Imobiliaria Exemplo Aluguel', -1200);
+    }
   }
   ls.sort((x, y) => x[0].localeCompare(y[0]));
   let saldo = 900;
@@ -90,15 +107,19 @@ async function banco() {
       CREATE TABLE vybe_crm_oportunidades (id serial PRIMARY KEY, empresa text, etapa text, valor_mensal numeric, valor_avulso numeric);`);
     const quem = { tipo: 'sessao', pessoa: { id: 1, nome: 'Operador de teste', dono: true } };
     const ir = (b) => escreverFinanceiro(sql, quem, b);
+    // No caso da produção só a Hebravet (R$ 1.200) tem contrato: os outros 14 clientes ativos não têm mensalidade cadastrada.
+    const comContrato = (nome) => !umContrato() || nome === 'Hebravet';
     for (const [i, [nome, valor]] of CLIENTES.entries()) {
       await db.query('INSERT INTO vybe_clientes (id,nome) VALUES ($1,$2)', [i + 1, nome]);
-      await db.query("INSERT INTO vybe_cliente_contratos (cliente_id, valor_mensal, inicio) VALUES ($1,$2,'2026-01-01')", [i + 1, valor]);
+      if (comContrato(nome)) await db.query("INSERT INTO vybe_cliente_contratos (cliente_id, valor_mensal, inicio) VALUES ($1,$2,'2026-01-01')", [i + 1, valor]);
     }
+    if (umContrato()) for (const [j, [nome]] of EXTRAS.entries()) await db.query('INSERT INTO vybe_clientes (id,nome) VALUES ($1,$2)', [CLIENTES.length + j + 1, nome]);
     if (process.env.DEMO_FINANCEIRO_VAZIO !== '1') {
       const fimExtrato = /^\d{4}-\d{2}-\d{2}$/.test(process.env.DEMO_FIN_ATE || '') ? process.env.DEMO_FIN_ATE : hoje;
       await ir({ acao: 'importar', csv: csvFicticio(fimExtrato, nMeses) });
       // O contrato completo de cada cliente (o mesmo que o dono salva na ficha do cliente).
-      for (const [i, [, valor, diaV, ini, fim, rj]] of CLIENTES.entries()) {
+      for (const [i, [nomeC, valor, diaV, ini, fim, rj]] of CLIENTES.entries()) {
+        if (!comContrato(nomeC)) continue;
         const mf = fim == null ? '' : mesAtras(hoje, fim + 1);
         await ir({ acao: 'contrato_salvar', cliente_id: String(i + 1), valor_mensal: valor, dia_vencimento: diaV, inicio: `${mesAtras(hoje, ini)}-01`,
           fim: mf ? `${mf}-${ultimo(mf)}` : '', sem_fim: fim == null, status: fim == null ? 'ativo' : 'encerrado',
@@ -107,11 +128,15 @@ async function banco() {
       // O lado real das entradas, como o dono confere: cada recebimento no cliente dele, o boleto dividido entre os três
       // e o segundo pagamento da Serra Grande no mês que ela atrasou. O mês corrente fica sem conferir (o lote mostra).
       const { lerTudo } = await import('../server/financeiro.js');
-      const id = (nome) => String(CLIENTES.findIndex((c) => c[0] === nome) + 1);
-      const PIX = [['alpha um', 'Alpha1'], ['conecta sim', 'ConectaSim'], ['voa viagens', 'VOA'], ['nova era', 'Nova Era Imóveis'], ['serra grande', 'Serra Grande Bebidas'], ['dialab', 'DiaLab']];
+      const id = (nome) => { const i = CLIENTES.findIndex((c) => c[0] === nome); return String(i >= 0 ? i + 1 : CLIENTES.length + EXTRAS.findIndex((c) => c[0] === nome) + 1); };
+      const PIX = [['alpha um', 'Alpha1'], ['conecta sim', 'ConectaSim'], ['voa viagens', 'VOA'], ['nova era', 'Nova Era Imóveis'], ['serra grande', 'Serra Grande Bebidas'], ['dialab', 'DiaLab'],
+        ...(umContrato() ? EXTRAS.filter((c) => c[4]).map((c) => [c[3].toLowerCase(), c[0]]) : [])];
       const vistos = new Set();
       for (const t of (await lerTudo(sql)).extrato.transacoes) {
         if (!(t.banco.valor > 0)) continue;
+        // Caso da produção: quase nada foi ligado ao cliente ainda. Só quatro dos clientes novos estão conferidos no
+        // cliente; o resto fica como o extrato chegou (o Pix pela regra, o boleto sem dividir).
+        if (umContrato() && !EXTRAS.some((c) => c[4] && t.banco.historico.toLowerCase().includes(c[3].toLowerCase()))) continue;
         const h = t.banco.historico.toLowerCase(), mes = t.banco.data.slice(0, 7), conferido = mes < hoje.slice(0, 7);
         let mudanca = null;
         if (h.includes('cr cob bloq')) mudanca = { categoria: 'receita_cliente', conferido, partes: ['Academia Lions', 'Brussolo Ristorante', 'Hebravet'].map((n) => ({ valor: CLIENTES[Number(id(n)) - 1][1], categoria: 'receita_cliente', cliente_id: id(n), cliente_nome: n })) };

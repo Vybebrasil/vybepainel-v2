@@ -29,13 +29,19 @@
     const res = i >= 0 ? dre.resultado[i] : null, resAnt = iAnt >= 0 ? dre.resultado[iAnt] : null;
     const receita = i >= 0 ? dre.linhas[0].valores[i] : null;
     const varia = (a, b) => (a == null || b == null || !b ? null : Math.round((a - b) / Math.abs(b) * 100));
-    const conf = an.confianca?.texto || '';
+    // A confiança da projeção (fin2): com poucos contratos cadastrados ela cai e o motivo vai escrito.
+    const cf = pj.confianca || an.confianca || {}, conf = String(cf.texto || '').split(' · ')[0], motivo = cf.motivo ? `A confiança é ${({ alta: 'alta', media: 'média', baixa: 'baixa' })[cf.nivel] || cf.nivel} porque ${cf.motivo}` : '';
+    const confFrase = cf.motivo ? `${conf}, porque ${cf.motivo}` : conf;
+    const cob = rec.cobertura || pj.premissas?.cobertura || null, temEst = rec.mrr_estimado != null && rec.mrr_estimado !== rec.mrr;
+    const rcb = pj.premissas?.receita || null;
+    const receitaBase = rcb ? `Receita da base: ${reais(rcb.projetada)} por mês (média real recente ${reais(rcb.media_recente)}): contratos ${reais(rcb.contratos)}${rcb.clientes_estimados ? `, ${rcb.clientes_estimados} cliente(s) sem contrato pela média de cada um no extrato ${reais(rcb.estimados)} (estimado pelo extrato)` : ''} e ${reais(rcb.outras)} das entradas sem cliente identificado e outras, pela média${rcb.complemento ? `, mais ${reais(rcb.complemento)} de complemento até 90% da média recente` : ''}.` : '';
     const numeros = [
       { rotulo: 'Receita do mês', valor: reais(receita), variacao: varia(receita, iAnt >= 0 ? dre.linhas[0].valores[iAnt] : null), porque: 'Entradas classificadas como receita, por competência.' },
       { rotulo: 'Resultado do mês', valor: reais(res), variacao: varia(res, resAnt), porque: `Receita − impostos − equipe − ferramentas − despesas gerais. Margem ${pct(i >= 0 ? dre.margem[i] : null)}.` },
-      { rotulo: 'MRR', valor: reais(rec.mrr), variacao: varia(ult.mrr, ult.mrr_anterior), porque: `Contratos ativos; novo ${reais(ult.novo)}, perdido ${reais(ult.perdido)} no último mês.` },
-      { rotulo: 'Vencido a receber', valor: reais(an.aging.vencido), variacao: null, porque: `Atraso médio de ${an.aging.atraso_medio_dias || 0} dias pelo dia de vencimento do contrato.` },
-      { rotulo: 'Saldo em 12 meses (base)', valor: reais(pj.base.saldo_final), variacao: null, porque: `${conf}. Pessimista ${reais(pj.pessimista.saldo_final)}, otimista ${reais(pj.otimista.saldo_final)}.` },
+      { rotulo: 'MRR de contrato', valor: reais(rec.mrr), variacao: varia(ult.mrr, ult.mrr_anterior), porque: `Contratos cadastrados; novo ${reais(ult.novo)}, perdido ${reais(ult.perdido)} no último mês.${cob?.sem_contrato ? ` ${cob.texto}: cliente sem contrato não conta como perdido.` : ''}` },
+      ...(temEst ? [{ rotulo: 'MRR estimado', valor: reais(rec.mrr_estimado), variacao: null, porque: `Contratos + o que entra todo mês de quem não tem contrato, pela média dos meses fechados do extrato${rec.sem_identificar ? ` (${reais(rec.sem_identificar)} de Pix ou boleto de cliente ainda sem dizer de quem)` : ''}.` }] : []),
+      { rotulo: 'Vencido a receber', valor: reais(an.aging.vencido), variacao: null, porque: `Atraso médio de ${an.aging.atraso_medio_dias || 0} dias pelo dia de vencimento do contrato. Sem contrato, só o que foi marcado em aberto.${an.aging.vencido_incerto ? ` ${reais(an.aging.vencido_incerto)} pode já ter entrado (há entrada de cliente sem dizer de quem no mesmo mês) e fica fora do vencido.` : ''}` },
+      { rotulo: 'Saldo em 12 meses (base)', valor: reais(pj.base.saldo_final), variacao: null, porque: `${confFrase}. Pessimista ${reais(pj.pessimista.saldo_final)}, otimista ${reais(pj.otimista.saldo_final)}.` },
       { rotulo: 'Fôlego', valor: pj.base.folego_meses == null ? '12+ meses' : `${pj.base.folego_meses} meses`, variacao: null, porque: pj.base.primeiro_dia_negativo ? `Caixa negativo em ${pj.base.primeiro_dia_negativo.split('-').reverse().join('/')} no base.` : 'O base não fica negativo nos próximos 12 meses.' },
     ];
     const rot = dre.meses.map((x) => ({ curto: x.slice(5, 7) + '/' + x.slice(2, 4), longo: nomeMes(x) }));
@@ -44,25 +50,25 @@
         grafico: { tipo: 'barras', rotulos: rot.map((r) => r.longo), series: [{ nome: 'Receita', valores: dre.linhas[0].valores }, { nome: 'Resultado', valores: dre.resultado }],
           svg: svgDe('barras', { rotX: rot, series: [{ nome: 'Receita', vals: dre.linhas[0].valores, cor: 'k2' }, { nome: 'Resultado', vals: dre.resultado, cor: 'k1' }], rotulo: 'Receita e resultado' }) },
         tabela: { colunas: ['Linha', ...rot.map((r) => r.longo), 'Período'], linhas: [...dre.linhas.map((l) => [l.nome, ...l.valores.map((v) => reais(v * (l.sinal < 0 ? -1 : 1))), reais(l.total * (l.sinal < 0 ? -1 : 1))]), ['Resultado', ...dre.resultado.map(reais), reais(dre.total_resultado)]] } },
-      { titulo: 'Receita recorrente', texto: `MRR de ${reais(rec.mrr)}, ticket médio ${reais(rec.ticket)}, churn médio ${pct(rec.churn_medio_pct)} ao mês${rec.ltv ? `, LTV ${reais(rec.ltv)}` : ''}.`,
+      { titulo: 'Receita recorrente', texto: `MRR de contrato ${reais(rec.mrr)}${temEst ? `; MRR estimado ${reais(rec.mrr_estimado)} (contratos + quem paga sem contrato, pela média do extrato), ticket estimado ${reais(rec.ticket_estimado)}` : `, ticket médio ${reais(rec.ticket)}`}, churn médio ${pct(rec.churn_medio_pct)} ao mês${cob?.sem_contrato ? ' (só dos contratos cadastrados)' : ''}${(temEst ? rec.ltv_estimado : rec.ltv) ? `, LTV ${reais(temEst ? rec.ltv_estimado : rec.ltv)}` : ''}.${cob?.sem_contrato ? ` ${cob.texto}${cob.pct_receita != null ? `: os contratos explicam ${cob.pct_receita}% da receita recente` : ''}. Cliente sem contrato não entra na cascata como novo nem perdido.` : ''}`,
         grafico: { tipo: 'linha', rotulos: rec.meses.map((x) => nomeMes(x.mes)), series: [{ nome: 'MRR', valores: rec.meses.map((x) => x.mrr) }],
           svg: svgDe('linhaFaixa', { rotX: rec.meses.map((x) => ({ curto: x.mes.slice(5, 7) + '/' + x.mes.slice(2, 4), longo: nomeMes(x.mes) })), series: [{ nome: 'MRR', vals: rec.meses.map((x) => x.mrr), cor: 'k1' }], rotulo: 'MRR' }) },
-        tabela: { colunas: ['Mês', 'MRR', 'Novo', 'Expansão', 'Contração', 'Perdido'], linhas: rec.meses.filter((x) => x.mrr || x.mrr_anterior).map((x) => [nomeMes(x.mes), reais(x.mrr), reais(x.novo), reais(x.expansao), reais(x.contracao), reais(x.perdido)]) } },
-      { titulo: 'Margem por cliente', texto: `Custo de equipe rateado ${an.margem.regra.includes('pecas') ? 'pelas peças da produção' : 'pela receita'}. ${an.margem.prejuizo.length ? `${an.margem.prejuizo.length} cliente(s) com prejuízo.` : 'Nenhum cliente com prejuízo.'}`,
+        tabela: { colunas: ['Mês', 'MRR', 'Novo', 'Expansão', 'Contração', 'Perdido', ...(temEst ? ['Com o extrato'] : [])], linhas: rec.meses.filter((x) => x.mrr || x.mrr_anterior || x.com_extrato).map((x) => [nomeMes(x.mes), reais(x.mrr), reais(x.novo), reais(x.expansao), reais(x.contracao), reais(x.perdido), ...(temEst ? [x.com_extrato == null ? '—' : reais(x.com_extrato)] : [])]) } },
+      { titulo: 'Margem por cliente', texto: `Custo de equipe rateado ${an.margem.regra.includes('pecas') ? 'pelas peças da produção' : 'pela receita'}. ${an.margem.prejuizo.length ? `${an.margem.prejuizo.length} cliente(s) com prejuízo.` : 'Nenhum cliente com prejuízo.'}${(an.margem.sem_receita || []).length ? ` ${an.margem.sem_receita.length} cliente(s) sem recebimento ligado no extrato não entram como prejuízo.` : ''}`,
         grafico: { tipo: 'barras_horizontais', rotulos: an.margem.linhas.map((l) => l.cliente_nome), series: [{ nome: 'Margem', valores: an.margem.linhas.map((l) => l.margem) }],
           svg: svgDe('barrasH', { itens: an.margem.linhas.slice(0, 12).map((l) => ({ nome: l.cliente_nome, valor: l.margem })), rotulo: 'Margem por cliente' }) },
         tabela: { colunas: ['Cliente', 'Receita', 'Custo direto', 'Equipe', 'Margem', '%'], linhas: an.margem.linhas.map((l) => [l.cliente_nome, reais(l.receita), reais(l.custo_direto), reais(l.custo_equipe), reais(l.margem), pct(l.margem_pct)]) } },
-      { titulo: 'A receber por idade', texto: `Total ${reais(an.aging.total)}, vencido ${reais(an.aging.vencido)}.`,
+      { titulo: 'A receber por idade', texto: `Total ${reais(an.aging.total)}, vencido ${reais(an.aging.vencido)}.${an.aging.vencido_incerto ? ` Mais ${reais(an.aging.vencido_incerto)} que pode já ter entrado sem dizer de quem.` : ''} Sem contrato, só entra o que foi marcado em aberto.`,
         grafico: { tipo: 'barras', rotulos: an.aging.faixas.map((f) => f.nome), series: [{ nome: 'A receber', valores: an.aging.faixas.map((f) => f.total) }], svg: '' },
-        tabela: { colunas: ['Cliente', 'Mês', 'Venceu', 'Atraso (dias)', 'Valor'], linhas: an.aging.itens.map((x) => [x.cliente_nome, nomeMes(x.mes), x.vence.split('-').reverse().join('/'), String(x.atraso_dias), reais(x.valor)]) } },
-      { titulo: 'Projeção (12 meses)', texto: `${conf}. Base: contratos no dia do vencimento, fixos e a média do variável. Pessimista: atraso médio, clientes em risco saem, variável alto. Otimista: funil do Comercial pela chance.`,
+        tabela: { colunas: ['Cliente', 'Mês', 'Venceu', 'Atraso (dias)', 'Valor'], linhas: an.aging.itens.map((x) => [x.cliente_nome, nomeMes(x.mes), x.vence.split('-').reverse().join('/'), x.incerto ? `${x.atraso_dias} (pode já ter entrado)` : String(x.atraso_dias), reais(x.valor)]) } },
+      { titulo: 'Projeção (12 meses)', texto: `${confFrase}. Base: contratos no dia do vencimento, cliente sem contrato pela média dele no extrato, fixos e a média do variável. ${receitaBase} Pessimista: o que vem pela média entra 15% menor, atraso médio nos contratos, clientes em risco saem, variável alto. Otimista: funil do Comercial pela chance.`,
         grafico: { tipo: 'linha_faixa', rotulos: pj.meses.map(nomeMes), series: ['pessimista', 'base', 'otimista'].map((k) => ({ nome: k, valores: pj[k].meses.map((x) => x.saldo) })),
           svg: svgDe('linhaFaixa', { rotX: pj.meses.map((x) => ({ curto: x.slice(5, 7) + '/' + x.slice(2, 4), longo: nomeMes(x) })), series: [{ nome: 'Base', vals: pj.base.meses.map((x) => x.saldo), cor: 'k1' }], faixa: { nome: 'Pessimista a otimista', de: pj.pessimista.meses.map((x) => x.saldo), ate: pj.otimista.meses.map((x) => x.saldo) }, rotulo: 'Saldo projetado' }) },
         tabela: { colunas: ['Mês', 'Pessimista', 'Base', 'Otimista'], linhas: pj.meses.map((x, k) => [nomeMes(x), reais(pj.pessimista.meses[k].saldo), reais(pj.base.meses[k].saldo), reais(pj.otimista.meses[k].saldo)]) } },
     ];
     const recomendacoes = (an.achados || []).map((a) => ({ o_que: a.fazer || a.rot, por_que: a.texto || a.det, impacto: a.impacto ? reais(a.impacto) : '', prioridade: PRIOR[a.g] || 'baixa' }));
     const fech = d.fechamentos?.[m];
-    return { titulo: `Finanças da Vybe · ${nomeMes(m)}`, periodo: m, resumo: `${fech?.situacao === 'fechado' ? 'Mês fechado' : 'Mês em aberto'}. Resultado de ${reais(res)} com receita de ${reais(receita)}; MRR ${reais(rec.mrr)}. ${conf}.`,
+    return { titulo: `Finanças da Vybe · ${nomeMes(m)}`, periodo: m, resumo: `${fech?.situacao === 'fechado' ? 'Mês fechado' : 'Mês em aberto'}. Resultado de ${reais(res)} com receita de ${reais(receita)}; MRR de contrato ${reais(rec.mrr)}${temEst ? `, estimado ${reais(rec.mrr_estimado)} pelo extrato` : ''}.${cob?.sem_contrato ? ` ${cob.texto}.` : ''} ${conf}.${motivo ? ` ${motivo}.` : ''}`,
       numeros, secoes, recomendacoes, fontes: ['Extrato da conta PJ (Santander), com o lado real conferido no Vybe OS', 'Contratos dos clientes (Vybe OS)', 'Peças da produção (Vybe OS)', 'Funil do Comercial (Vybe OS)', 'Saúde da Carteira (Vybe OS)'] };
   }
 
@@ -122,7 +128,8 @@
       recomendacoes: (r.recomendacoes || []).length ? r.recomendacoes.map((x) => ({ ...x, dinheiro: true }))
         : [(r.secoes || []).length ? { o_que: 'Conferir e fechar o mês no Finanças.', por_que: 'Nenhum achado pede ação agora.', impacto: 'Números fechados no próximo relatório.', prioridade: 'baixa', dinheiro: true }
           : { o_que: 'Importar o extrato da conta PJ no Finanças.', por_que: 'Sem extrato não há resultado, recorrência nem projeção.', impacto: 'Relatório com números.', prioridade: 'alta', dinheiro: true }],
-      metodologia: ['Números do extrato da conta PJ, com o lado real conferido no Vybe OS. O DRE e a recorrência mostram todos os meses do extrato; os números do mês são do último mês do período escolhido.'],
+      metodologia: ['Números do extrato da conta PJ, com o lado real conferido no Vybe OS. O DRE e a recorrência mostram todos os meses do extrato; os números do mês são do último mês do período escolhido.',
+        'Receita da projeção, cliente a cliente: com contrato, o contrato; ativo sem contrato, a média do que ele pagou nos meses fechados do extrato (estimado pelo extrato); entradas sem cliente identificado e outras entradas, pela média. Sem motivo explícito (contrato que acaba, cliente que saiu, cliente perdido no cenário), a receita projetada não fica abaixo de 90% da média recente. Com menos de 70% da receita explicada por contrato, a confiança cai.'],
       fontes: (r.fontes || []).map((x) => (typeof x === 'string' ? { nome: x, detalhe: 'leitura do Financeiro (só donos)' } : x)),
     };
   }

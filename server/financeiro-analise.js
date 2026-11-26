@@ -87,23 +87,32 @@ export function mesesDaBase(lista, hoje) {
 }
 
 // Tudo o que as abas Análise, Projeção e Fechamento mostram, a partir do que montar() já tem.
-export function montarAnalise(base, extras, { hoje, saldo_hoje = 0, fixos_analise = null, cartao = null, por_cliente = null, serie = [] }) {
+// clientes_ativos: [{ cliente_id, cliente_nome }] (vybe_clientes ativos): a receita da base e a cobertura de contratos (fin2).
+export function montarAnalise(base, extras, { hoje, saldo_hoje = 0, fixos_analise = null, cartao = null, por_cliente = null, serie = [], clientes_ativos = null }) {
   const lista = base.extrato.transacoes;
   const todosMeses = X.mesesDa(lista);
   const { meses: mesesBase, completos, parciais } = mesesDaBase(lista, hoje);
-  const conf = A.confianca(mesesBase.length);
   const contratos = extras.contratos || [];
   const ativos = contratos.filter((c) => c.ativo && c.valor_mensal > 0);
-  const nomes = Object.fromEntries(contratos.map((c) => [c.cliente_id, c.cliente_nome]));
+  const nomes = Object.fromEntries([...(clientes_ativos || []).map((c) => [String(c.cliente_id), c.cliente_nome]), ...contratos.map((c) => [c.cliente_id, c.cliente_nome])]);
+  // A projeção primeiro (fin2): a receita da base dela (contrato, senão a média do extrato) alimenta o MRR estimado, a
+  // cobertura, a confiança e o equilíbrio. Sem contrato cadastrado nada vira "perdido" nem zero.
+  const atraso = A.atrasoMedioPago(lista, ativos);
+  const projecao = A.projecao3({ hoje, saldo_hoje, lista, meses_base: mesesBase, contratos: ativos, clientes_ativos, fixos: base.fixos, salarios: base.salarios, itensCartao: base.cartao, risco: extras.risco || [],
+    pipeline: extras.pipeline || [], atraso_medio: atraso ?? 10, horizonte: 12 });
+  const conf = projecao.confianca;
   const mesesAnalise = todosMeses.length ? A.mesesEntre(todosMeses[0], hoje.slice(0, 7) > todosMeses[todosMeses.length - 1] ? todosMeses[todosMeses.length - 1] : hoje.slice(0, 7)) : [];
   const dreC = A.dre(lista, { meses: mesesAnalise, base: 'competencia', itensCartao: base.cartao });
   const dreX = A.dre(lista, { meses: mesesAnalise, base: 'caixa' });
   // MRR: do primeiro contrato (até 14 meses antes de hoje) até hoje.
   const ini = A.mesesEntre(X.somarMeses(hoje.slice(0, 7), -13), hoje.slice(0, 7));
-  const rec = A.recorrente(contratos, ini, { hoje });
+  // O que entrou de quem não tem contrato, nos meses fechados do extrato (a linha "com o extrato" do MRR).
+  const foraDeContrato = A.entradasForaDeContrato(lista, completos, ativos);
+  const semContrato = Object.fromEntries(completos.map((m, i) => [m, foraDeContrato[i]]));
+  const rec = A.recorrente(contratos, ini, { hoje, estimado: projecao.receita_base, semContratoPorMes: semContrato });
   const margem = A.margemClientes(lista, { meses: mesesAnalise, pecas: extras.pecas || [], nomes, itensCartao: base.cartao });
   const porCli = por_cliente?.linhas || [];
-  const ag = A.aging(porCli, contratos, { hoje });
+  const ag = A.aging(porCli, contratos, { hoje, semCliente: A.semClientePorMes(lista) });
   const cobrados = new Set(Object.values(extras.avisos?.ultimo_por_cliente || {}).filter((a) => a.cliente_id).map((a) => String(a.cliente_id)));
   for (const i of ag.itens) { const a = extras.avisos?.ultimo_por_cliente?.['id:' + i.cliente_id]; i.cobrado_em = a?.em || ''; i.cobrado_por = a?.quem_nome || ''; }
   const mesHoje = hoje.slice(0, 7);
@@ -115,20 +124,18 @@ export function montarAnalise(base, extras, { hoje, saldo_hoje = 0, fixos_analis
   const checklists = todosMeses.filter((m) => m < mesHoje).map((m) => ({ ...A.checklistFechamento({ lista, mes: m, faturas: cartao?.faturas || [], pagamentosSemFatura: cartao?.pagamentos_sem_fatura || [], aging: ag, cobrados }),
     fechado: fechados.has(m), registro: fechamentos[m] || null }));
   const hist = A.historico(serie);
-  const atraso = A.atrasoMedioPago(lista, ativos);
-  const projecao = A.projecao3({ hoje, saldo_hoje, lista, meses_base: mesesBase, contratos: ativos, fixos: base.fixos, salarios: base.salarios, itensCartao: base.cartao, risco: extras.risco || [],
-    pipeline: extras.pipeline || [], atraso_medio: atraso ?? 10, horizonte: 12 });
   const fixosMes = projecao.premissas.fixos, comb = projecao.premissas.combinados;
-  const eq = A.equilibrio({ mrr: rec.mrr, fixos: fixosMes, combinados: comb, variaveis: projecao.premissas.variaveis_base });
+  // O equilíbrio e a meta de MRR pelo MRR estimado (contratos + quem paga todo mês sem contrato); o de contrato vai junto.
+  const eq = { ...A.equilibrio({ mrr: rec.mrr_estimado, fixos: fixosMes, combinados: comb, variaveis: projecao.premissas.variaveis_base }), mrr_contrato: rec.mrr, estimado: rec.mrr_estimado !== rec.mrr };
   const receitaPorCliente = margem.linhas.map((l) => [l.cliente_nome, l.receita]);
-  const metas = A.metas(base.metas || {}, { mrr: rec.mrr, margem_pct: dreC.margem_total, menor_saldo: projecao.base.menor_saldo });
+  const metas = A.metas(base.metas || {}, { mrr: rec.mrr_estimado, margem_pct: dreC.margem_total, menor_saldo: projecao.base.menor_saldo });
   const parado = A.extratoParado(lista, hoje);
   const saidaMedia = mesesBase.length ? mesesBase.reduce((s, m) => s + X.resumo(lista, { mes: m }).saidas, 0) / mesesBase.length : 0;
   const achados = A.achados({ hoje, mrr: rec, margem, receitaPorCliente, projecao, orcamento: orc, fechados, mesesExtrato: completos, parado, saidaMediaMes: saidaMedia,
     valorAbertos: 0 });
   return {
     confianca: conf, meses_base: mesesBase, meses_parciais: parciais, meses: mesesAnalise,
-    extrato_parado: parado, contratos, dre: { competencia: dreC, caixa: dreX }, recorrente: rec, margem, aging: ag,
+    extrato_parado: parado, contratos, clientes_ativos: clientes_ativos || null, dre: { competencia: dreC, caixa: dreX }, recorrente: rec, margem, aging: ag,
     orcamento: { atual: orc, meses: orcMeses, guardado: orcamento, sugestao: A.sugerirOrcamento(lista, mesesBase.slice(-3)), grupos: A.GRUPOS_ORCAMENTO },
     fechamento: { meses: checklists, fechados: [...fechados] }, historico: hist, projecao, equilibrio: eq, metas, metas_guardadas: base.metas || {},
     atraso_medio_dias: atraso, pipeline: extras.pipeline || [], risco: extras.risco || [], cobrancas: (extras.avisos?.lista || []).slice(0, 30),
