@@ -10,7 +10,7 @@
 
   async function relatorio(ctx) {
     const u = ctx.util, per = ctx.periodo, hoje = ctx.hoje, P = raiz.VybeRelPecas, S = raiz.VybeCarteiraSaude;
-    const [setor, agentes, funil] = await Promise.all([ctx.api('series', { para: 'setor' }), ctx.api('series', { para: 'agentes' }), ctx.api('comercial', { aba: 'funil', mes: per.fim.slice(0, 7) })]);
+    const [setor, agentes, funil] = await Promise.all([ctx.api('series', { para: 'setor', leitura: 1 }), ctx.api('series', { para: 'agentes', leitura: 1 }), ctx.api('comercial', { aba: 'funil', mes: per.fim.slice(0, 7) })]);
     const pecas = ctx.dados.pecas(), equipe = ctx.dados.equipe(), dem = ctx.dados.demandas(), cad = ctx.dados.clientes().filter((c) => c && c.nome && c.ativo !== false && !c.nao_e_cliente);
     ctx.fonte('Painel (DADOS_ALL, DADOS_DEMANDAS, CADASTRO_CLIENTES)', `${u.num(pecas.length)} peças, ${u.num(dem.length)} demandas, ${u.num(cad.length)} clientes ativos`);
     const a = P.analisar({ pecas, per, hoje, equipe });

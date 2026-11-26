@@ -10,7 +10,7 @@
   async function relatorio(ctx) {
     const u = ctx.util, per = ctx.periodo;
     const curto = per.meses.length <= 1 && per.emCurso;
-    const [mes, semana, score] = await Promise.all([ctx.api('escritorio', { acao: 'ranking', periodo: 'mes' }), ctx.api('escritorio', { acao: 'ranking', periodo: 'semana' }), ctx.api('series', { para: 'pessoas' })]);
+    const [mes, semana, score] = await Promise.all([ctx.api('escritorio', { acao: 'ranking', periodo: 'mes' }), ctx.api('escritorio', { acao: 'ranking', periodo: 'semana' }), ctx.api('series', { para: 'pessoas', leitura: 1 })]);
     const principal = mes?.disponivel === false ? null : mes;
     const ps = lista(principal?.pessoas), sem = lista(semana?.pessoas);
     const comPos = ps.filter((p) => p.posicao).sort((a, b) => a.posicao - b.posicao);

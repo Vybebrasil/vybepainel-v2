@@ -1,9 +1,9 @@
 // vybe-relatorio-impressoes.js — o relatório técnico das Impressões, pelo Nestor (Compras). Paulo, 26/11/2026
-// (vybe-relatorio.js). Lê a mesma rota da tela (GET /api/painel?area=impressoes&todas=1, server/impressoes.js): etapas,
+// (vybe-relatorio.js). Lê a mesma rota da tela (GET /api/painel?area=impressoes&todas=1&leitura=1, server/impressoes.js): etapas,
 // atrasadas, sem fornecedor, o histórico de cada gráfica e o que espera o Nestor. Valor e cotação são dinheiro (só os
 // quatro donos: o servidor já não manda para os outros, e aqui vão marcados `dinheiro`).
-// Atenção: como ao abrir a tela, essa leitura também passa de "Arte" para "Orçamento" a impressão cuja arte terminou na
-// esteira (andarComAArte, regra do servidor). O relatório não grava mais nada.
+// Só lê: com leitura=1 o servidor não anda a arte concluída de "Arte" para "Orçamento" (isso fica para quando a tela
+// abre). Uma impressão cuja arte acabou de terminar pode aparecer ainda em "Arte" até alguém abrir a tela.
 (function (raiz) {
   'use strict';
   const lista = (v) => (Array.isArray(v) ? v : []);
@@ -11,7 +11,7 @@
 
   async function relatorio(ctx) {
     const u = ctx.util, per = ctx.periodo, hoje = ctx.hoje;
-    const r = await ctx.api('impressoes', { todas: 1 });
+    const r = await ctx.api('impressoes', { todas: 1, leitura: 1 });
     const todas = lista(r?.impressoes), etapas = lista(r?.etapas), nomeEtapa = new Map(etapas.map((e) => [e.id, e.nome]));
     const dia = (v) => String(v || '').slice(0, 10);
     const pedidaEm = (i) => dia(i.pedido_em) || dia(i.criado_em);

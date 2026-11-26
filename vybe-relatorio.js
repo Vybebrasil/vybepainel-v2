@@ -346,7 +346,9 @@ td.n,th.n{text-align:right;white-space:nowrap}
     clientes: () => lista(typeof CADASTRO_CLIENTES !== 'undefined' ? CADASTRO_CLIENTES : null),
   };
   async function lerApi(area, params = {}, leituras = []) {
-    const q = new URLSearchParams({ area, ...Object.fromEntries(Object.entries(params).filter(([, v]) => v != null && v !== '')) });
+    // leitura=1 em toda leitura do relatório: as rotas que gravam algo ao abrir a tela (Impressões anda a arte, Séries grava
+    // o dia) só leem quando o pedido vem daqui. O relatório nunca grava.
+    const q = new URLSearchParams({ area, ...Object.fromEntries(Object.entries(params).filter(([, v]) => v != null && v !== '')), leitura: '1' });
     const em = new Date();
     try {
       const r = await fetch(`/api/painel?${q}`, { credentials: 'same-origin', headers: { Accept: 'application/json' } });

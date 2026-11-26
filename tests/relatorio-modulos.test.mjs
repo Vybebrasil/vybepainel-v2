@@ -196,13 +196,22 @@ test('Produção: tendência, atrasados com quem, gargalo, projeção e recomend
 test('fontes: a mesma rota lida várias vezes vira uma linha com a contagem; a que falhou aparece à parte', async () => {
   const C2 = carregar([]);
   let n = 0;
-  C2.fetch = async () => { n += 1; return n === 4 ? { ok: false } : { ok: true, json: async () => ({ ok: true }) }; };
+  const urls = [];
+  C2.fetch = async (url) => { urls.push(String(url)); n += 1; return n === 4 ? { ok: false } : { ok: true, json: async () => ({ ok: true }) }; };
   C2.VybeRelatorio.registrar('teste-fontes', async (ctx) => { for (const mes of ['2026-09', '2026-10', '2026-11']) await ctx.api('setor_pessoas', { aba: 'produtividade', mes }); await ctx.api('carteira', {});
     return { titulo: 'Teste', resumo: ['ok'], numeros: [], secoes: [], recomendacoes: [{ o_que: 'x', por_que: 'y', impacto: 'z' }] }; }, { nome: 'Teste' });
   const html = await C2.VybeRelatorio.documento('teste-fontes', { hoje: HOJE, acesso: DONO, dados: DADOS });
   assert.equal(html.split('area=setor_pessoas (produtividade)').length - 1, 1);
   assert.match(html, /3 leituras/);
+  assert.equal(urls.length, 4); assert.ok(urls.every((x) => /[?&]leitura=1(&|$)/.test(x)), 'toda leitura do relatório vai com leitura=1');
   assert.ok(html.includes('area=carteira</td><td>não respondeu'));
+});
+test('Impressões e séries: o relatório pede só leitura (o servidor não anda a arte nem grava o dia)', async () => {
+  const pedidos = [];
+  for (const m of ['impressoes', 'gestao', 'ranking']) await C.VybeRelatorio.relatorioDe(m, { hoje: HOJE, acesso: DONO, dados: DADOS, api: async (area, p) => { pedidos.push([area, p]); return null; } });
+  const deles = pedidos.filter(([a]) => a === 'impressoes' || a === 'series');
+  assert.ok(deles.length >= 4);
+  for (const [a, p] of deles) assert.equal(String(p.leitura), '1', a);
 });
 test('registros: todos geram sem dado nenhum e sem servidor', async () => {
   const vazio = { pecas: () => [], equipe: () => [], demandas: () => [], clientes: () => [] };
