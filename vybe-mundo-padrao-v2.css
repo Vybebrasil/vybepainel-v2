@@ -7190,6 +7190,174 @@ body.vfd-aberto .fc-overlay{z-index:743}
   #painel-clientes #clientes-hero .pv-cabeca > div{justify-content:flex-start}
 }
 
+/* ===== padrao-v2/fin.css ===== */
+/* padrao-v2/fin.css — Finanças completo (Paulo, 26/11/2026): Análise com subabas, Projeção, Fechamento, conferir em lote,
+   o aviso do extrato parado e os gráficos de vybe-graficos.js (vg-*). Só tokens --d3-* (e a paleta --fe-c1..c6 do
+   Finanças, que nasce deles em zz-financas-5telas.css). Sem !important, sem :has. */
+
+/* ---------- Gráficos (vybe-graficos.js) ---------- */
+.fe .vg-caixa{display:flex;flex-direction:column;gap:8px;min-width:0}
+.fe .vg-leg{display:flex;flex-wrap:wrap;gap:6px 14px}
+.fe .vg-leg-b{display:inline-flex;align-items:center;gap:6px;padding:2px 0;border:0;background:none;color:var(--d3-tinta);font:inherit;font-size:12px;cursor:pointer}
+.fe .vg-leg-b[aria-pressed="false"]{color:var(--d3-meta);text-decoration:line-through}
+.fe .vg-cor{width:14px;height:4px;border-radius:2px;background:var(--d3-meta)}
+.fe .vg-cor.trac{background:repeating-linear-gradient(90deg,currentColor 0 4px,transparent 4px 7px);color:var(--d3-meta)}
+.fe .vg-cor.k1{background:var(--fe-c1)}.fe .vg-cor.k2{background:var(--fe-c2)}.fe .vg-cor.k3{background:var(--fe-c3)}
+.fe .vg-cor.k4{background:var(--fe-c4)}.fe .vg-cor.k5{background:var(--fe-c5)}.fe .vg-cor.k6{background:var(--fe-c6)}
+.fe .vg-cor.kf{height:10px;background:color-mix(in srgb,var(--fe-c1) 22%,transparent)}
+.fe .vg .vg-ln{fill:none;stroke-width:2.25;stroke-linejoin:round;stroke-linecap:round;stroke:var(--d3-meta)}
+.fe .vg .vg-ln.trac{stroke-dasharray:5 5}
+.fe .vg .vg-ln.k1{stroke:var(--fe-c1)}.fe .vg .vg-ln.k2{stroke:var(--fe-c2)}.fe .vg .vg-ln.k3{stroke:var(--fe-c3)}
+.fe .vg .vg-ln.k4{stroke:var(--fe-c4)}.fe .vg .vg-ln.k5{stroke:var(--fe-c5)}.fe .vg .vg-ln.k6{stroke:var(--fe-c6)}
+.fe .vg .vg-faixa{fill:color-mix(in srgb,var(--fe-c1) 16%,transparent);stroke:none}
+.fe .vg .vg-zero{stroke:var(--d3-perigo);stroke-width:1;stroke-dasharray:3 3}
+.fe .vg .vg-area{stroke:var(--d3-cartao);stroke-width:1;fill:var(--d3-meta);fill-opacity:.85}
+.fe .vg .vg-area.k1{fill:var(--fe-c1)}.fe .vg .vg-area.k2{fill:var(--fe-c2)}.fe .vg .vg-area.k3{fill:var(--fe-c3)}
+.fe .vg .vg-area.k4{fill:var(--fe-c4)}.fe .vg .vg-area.k5{fill:var(--fe-c5)}.fe .vg .vg-area.k6{fill:var(--fe-c6)}
+.fe .vg .vg-bar{fill:var(--d3-meta)}
+.fe .vg .vg-bar.k0{fill:var(--d3-linha);stroke:var(--d3-meta);stroke-width:1}
+.fe .vg .vg-bar.k1{fill:var(--fe-c1)}.fe .vg .vg-bar.k2{fill:var(--fe-c2)}.fe .vg .vg-bar.k3{fill:var(--fe-c3)}
+.fe .vg .vg-bar.k4{fill:var(--fe-c4)}.fe .vg .vg-bar.k5{fill:var(--fe-c5)}.fe .vg .vg-bar.k6{fill:var(--fe-c6)}
+.fe .vg .vg-bar.sobe{fill:var(--d3-pronto)}.fe .vg .vg-bar.desce{fill:var(--d3-perigo)}.fe .vg .vg-bar.tot{fill:var(--d3-tinta)}
+.fe .vg .vg-rot{font-size:11px;font-weight:600;fill:var(--d3-tinta)}
+.fe .vg .vg-ponte{stroke:var(--d3-meta);stroke-width:1;stroke-dasharray:2 2}
+.fe .vg-some{display:none}
+.fe .vg-hv{width:100%}
+.fe .vg-hv > svg{display:block;width:100%;height:auto}
+/* Heatmap */
+.fe .vg-calor{display:grid;gap:3px;overflow-x:auto}
+.fe .vg-calor-l{display:grid;grid-template-columns:minmax(110px,1.4fr) repeat(var(--vg-cols,6),minmax(26px,1fr));gap:3px;align-items:center}
+.fe .vg-calor-l.cab span{font-size:11px;color:var(--d3-meta);text-align:center}
+.fe .vg-calor-n{font:inherit;font-size:12px;color:var(--d3-tinta);text-align:left;background:none;border:0;padding:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer}
+.fe .vg-cel{display:block;height:22px;border-radius:4px;background:var(--d3-trilho)}
+.fe .vg-cel.cv{background:transparent;outline:1px dashed var(--d3-linha);outline-offset:-1px}
+.fe .vg-cel.c0{background:var(--d3-trilho)}
+.fe .vg-cel.cp1{background:color-mix(in srgb,var(--d3-pronto) 22%,var(--d3-cartao))}
+.fe .vg-cel.cp2{background:color-mix(in srgb,var(--d3-pronto) 42%,var(--d3-cartao))}
+.fe .vg-cel.cp3{background:color-mix(in srgb,var(--d3-pronto) 66%,var(--d3-cartao))}
+.fe .vg-cel.cp4{background:var(--d3-pronto)}
+.fe .vg-cel.cn1{background:color-mix(in srgb,var(--d3-perigo) 22%,var(--d3-cartao))}
+.fe .vg-cel.cn2{background:color-mix(in srgb,var(--d3-perigo) 42%,var(--d3-cartao))}
+.fe .vg-cel.cn3{background:color-mix(in srgb,var(--d3-perigo) 66%,var(--d3-cartao))}
+.fe .vg-cel.cn4{background:var(--d3-perigo)}
+.fe .vg-calor-esc{display:flex;align-items:center;gap:4px;margin-top:8px;font-size:11px;color:var(--d3-meta)}
+.fe .vg-calor-esc .vg-cel{width:22px;height:10px}
+/* Barras horizontais */
+.fe .vg-bh{display:flex;flex-direction:column;gap:4px}
+.fe .vg-bh-l{display:grid;grid-template-columns:minmax(90px,1.2fr) 2fr minmax(72px,auto);gap:10px;align-items:center;padding:4px 6px;border:0;border-radius:6px;background:none;color:var(--d3-tinta);font:inherit;font-size:13px;text-align:left}
+button.vg-bh-l{cursor:pointer}
+button.vg-bh-l:hover,button.vg-bh-l:focus-visible{background:var(--d3-folha-leve)}
+.fe .vg-bh-n{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fe .vg-bh-t{position:relative;height:10px;border-radius:5px;background:var(--d3-trilho)}
+.fe .vg-bh-t i{position:absolute;inset:0 auto 0 0;width:var(--v,0%);border-radius:5px;background:var(--d3-pronto)}
+.fe .vg-bh-t i.desce{background:var(--d3-perigo)}
+.fe .vg-bh-l > b{text-align:right;font-variant-numeric:tabular-nums}
+.fe .vg-bh-l > b.r{color:var(--d3-perigo)}
+
+/* ---------- Subabas, confiança e o "por quê" ---------- */
+.fe .fe-subs{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:4px 0 12px}
+.fe .fe-sub-b{padding:6px 12px;border:1px solid var(--d3-borda);border-radius:999px;background:var(--d3-cartao);color:var(--d3-tinta);font:inherit;font-size:13px;cursor:pointer}
+.fe .fe-sub-b[aria-current="true"]{background:var(--d3-tinta);border-color:var(--d3-tinta);color:var(--d3-contra)}
+.fe .fe-conf{display:inline-flex;align-items:center;gap:6px;margin-left:auto;padding:3px 10px;border-radius:999px;font-size:12px;color:var(--d3-tinta);background:var(--d3-folha-leve);border:1px solid var(--d3-borda)}
+.fe .fe-conf::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--d3-meta)}
+.fe .fe-conf.baixa::before{background:var(--d3-perigo)}
+.fe .fe-conf.media::before{background:var(--d3-ajuste)}
+.fe .fe-conf.alta::before{background:var(--d3-pronto)}
+.fe .fe-card-cab .fe-conf{margin-left:0}
+.fe .fe-porque{margin:10px 0 0;padding:8px 10px;border-left:3px solid var(--d3-linha);background:var(--d3-folha-leve);border-radius:0 6px 6px 0;font-size:13px;color:var(--d3-tinta)}
+.fe .fe-porque .fe-rot{margin-right:4px}
+.fe .fe-regra{margin:0 0 12px;padding:10px 12px;border:1px solid var(--d3-borda);border-radius:8px;background:var(--d3-cartao);font-size:13px;color:var(--d3-tinta)}
+.fe .fe-aviso12{margin:0 0 12px;padding:10px 12px;border:1px dashed var(--d3-linha);border-radius:8px;color:var(--d3-tinta);font-size:13px}
+.fe .fe-dre tr.sub th,.fe .fe-dre tr.sub td{font-size:12px;color:var(--d3-meta)}
+.fe .fe-dre tr.sub th{padding-left:18px}
+.fe .fe-alerta{display:flex;flex-direction:column;gap:2px}
+.fe .fe-off{opacity:.55}
+
+/* ---------- Extrato parado ---------- */
+.fe .fe-parado{border-left:4px solid var(--d3-perigo)}
+.fe .fe-parado p{margin:0 0 8px;color:var(--d3-tinta)}
+.fe .fe-passos{margin:0 0 8px;padding-left:20px;display:grid;gap:4px;color:var(--d3-tinta);font-size:13px}
+
+/* ---------- Conferir em lote ---------- */
+.fe .fe-lote{display:flex;flex-direction:column;gap:2px}
+.fe .fe-lote-ferr{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:6px}
+.fe .fe-lote-ferr .fe-check{font-size:13px}
+.fe .fe-teclas{margin:0 0 6px}
+.fe .fe-teclas kbd{padding:0 5px;border:1px solid var(--d3-borda);border-radius:4px;background:var(--d3-cartao);font:inherit;font-size:11px}
+.fe .fe-lote-l{display:grid;grid-template-columns:28px minmax(0,1.4fr) minmax(0,1.3fr) minmax(86px,auto);gap:10px;align-items:center;padding:8px 6px;border-radius:8px;border-bottom:1px solid var(--d3-linha)}
+.fe .fe-lote-l:focus-visible{outline:2px solid var(--d3-tinta);outline-offset:-2px}
+.fe .fe-lote-l.on{background:var(--d3-folha-leve)}
+.fe .fe-lote-m{display:flex;justify-content:center}
+.fe .fe-lote-m input{width:18px;height:18px}
+.fe .fe-lote-s{display:flex;flex-direction:column;gap:3px;min-width:0}
+.fe .fe-lote-s select{max-width:100%}
+.fe .fe-lote-s small{font-size:11px;color:var(--d3-meta);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fe .fe-lote-l .fe-bk{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fe .fe-lote-l .fe-bk small{color:var(--d3-meta)}
+
+/* ---------- Projeção ---------- */
+.fe .fe-cen3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:12px}
+.fe .fe-cen3-c{display:flex;flex-direction:column;gap:3px;padding:12px 14px;border:1px solid var(--d3-borda);border-radius:var(--d3-r-cartao,12px);background:var(--d3-cartao)}
+.fe .fe-cen3-c small{font-size:12px;color:var(--d3-meta);text-transform:uppercase;letter-spacing:.04em}
+.fe .fe-cen3-c b{font-size:22px;font-weight:600;color:var(--d3-tinta);font-variant-numeric:tabular-nums}
+.fe .fe-cen3-c b.r{color:var(--d3-perigo)}
+.fe .fe-cen3-c span{font-size:12px;color:var(--d3-tinta)}
+.fe .fe-cen3-c.base{border-color:var(--fe-c1);box-shadow:inset 0 3px 0 var(--fe-c1)}
+.fe .fe-prem{margin:10px 0 0;padding-left:18px;display:grid;gap:4px;font-size:13px;color:var(--d3-tinta)}
+.fe .fe-barra-meta{position:relative;height:8px;border-radius:4px;background:var(--d3-trilho);margin:6px 0 4px}
+.fe .fe-barra-meta i{position:absolute;inset:0 auto 0 0;width:var(--v,0%);border-radius:4px;background:var(--d3-tinta)}
+.fe .fe-barra-meta.ok i{background:var(--d3-pronto)}
+.fe .fe-ese2{display:flex;flex-direction:column;gap:10px}
+.fe .fe-ese2 fieldset{margin:0;padding:8px 10px;border:1px solid var(--d3-borda);border-radius:8px;display:flex;flex-direction:column;gap:6px}
+.fe .fe-ese2 legend{padding:0 4px;font-size:12px;color:var(--d3-meta)}
+.fe .fe-ese-l{display:flex;flex-wrap:wrap;align-items:center;gap:6px;font-size:13px;color:var(--d3-tinta)}
+.fe .fe-ese-l .fx-in{width:auto;min-width:0;max-width:160px}
+.fe .fe-ese-l .fx-num{max-width:96px}
+.fe .fe-metas{display:flex;flex-direction:column;gap:10px}
+.fe .fe-meta small{font-size:12px;color:var(--d3-tinta)}
+
+/* ---------- Fechamento ---------- */
+.fe .fe-kvs{display:flex;flex-direction:column;gap:2px}
+.fe .fe-hist{margin:10px 0 0;padding-left:18px;font-size:12px;color:var(--d3-meta)}
+.fe .fe-al[aria-pressed="true"]{background:var(--d3-folha-leve)}
+.fe .fe-orc .fx-in{max-width:120px}
+.fe .fe-curto{max-width:110px}
+.fe .fe-sem-fim{align-self:end;font-size:13px}
+.fe .fe-rec{grid-template-columns:minmax(0,1.4fr) minmax(0,1.2fr) auto}
+.fe .fe-rec .fe-real{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.fe .fe-rec .fe-real small{font-size:11px;color:var(--d3-meta)}
+
+/* ---------- Telas menores ---------- */
+@media (max-width: 900px){
+  .fe .fe-cen3{grid-template-columns:1fr}
+  .fe .fe-lote-l{grid-template-columns:28px minmax(0,1fr) minmax(76px,auto);grid-template-areas:"m b v" "m s s"}
+  .fe .fe-lote-m{grid-area:m}.fe .fe-lote-l .fe-bk{grid-area:b}.fe .fe-lote-s{grid-area:s}.fe .fe-lote-l .fe-val{grid-area:v}
+  .fe .fe-conf{margin-left:0}
+  .fe .vg-bh-l{grid-template-columns:minmax(80px,1fr) 1.2fr minmax(64px,auto)}
+}
+/* DRE: até 6 meses na tabela; no celular e em janela estreita, os 3 últimos e sem a coluna de tendência. */
+.fe .fe-dre-todos{margin:8px 0 0;font-size:13px}
+@media (max-width:900px){.fe .fe-dre .m-ant,.fe .fe-dre .fe-tend{display:none}}
+/* Celular: as tabelas cabem sem rolar de lado (só as colunas que decidem; o resto está no gráfico ou na ficha). */
+@media (max-width:600px){
+  .fe .fe-dre .m-3{display:none}
+  .fe .fe-dre th[scope="row"]{white-space:normal}
+  .fe .fe-orc th:nth-child(4),.fe .fe-orc td:nth-child(4){display:none}
+  .fe .fe-mgt th:nth-child(3),.fe .fe-mgt td:nth-child(3),.fe .fe-mgt th:nth-child(4),.fe .fe-mgt td:nth-child(4),
+  .fe .fe-mgt th:nth-child(7),.fe .fe-mgt td:nth-child(7),.fe .fe-mgt th:nth-child(8),.fe .fe-mgt td:nth-child(8){display:none}
+  .fe .vg-calor{overflow-x:visible}
+  .fe .vg-calor-l{grid-template-columns:minmax(64px,1.2fr) repeat(var(--vg-cols,6),minmax(0,1fr));gap:2px}
+  .fe .vg-calor-l.cab span{font-size:0}
+  .fe .vg-calor-l.cab span:nth-child(2),.fe .vg-calor-l.cab span:last-child{font-size:10px;white-space:nowrap}
+  .fe .vg-calor-l.cab span:last-child{text-align:right}
+  .fe .vg-calor-n{font-size:11px}
+}
+/* Fechamento: item ok em verde e a etiqueta "ok" do tamanho dela. */
+.fe .fe-dot.g{background:var(--d3-pronto)}
+.fe .fe-al > .fe-tag{flex:0 0 auto;margin-left:auto}
+/* Contraste 4,5:1 nos três temas: o cabeçalho das tabelas do Finanças e o rótulo dos três cenários. */
+.fe table.fe-dre thead th,.fe .fe-cen3-c > small,.fe span.fe-rot,.fe h2.fe-rot{color:var(--d3-texto2)}
+
 /* ===== padrao-v2/financas.css ===== */
 /* PADRÃO V2 · FINANÇAS (quadros Finanças, Recebimentos, Contas a pagar e Inadimplência do moodboard, 12/11/2026).
    As telas são desenhadas por vybe-mundo-financas.js (VybeFinancas.telas) dentro da janela do Comercial e da Visão

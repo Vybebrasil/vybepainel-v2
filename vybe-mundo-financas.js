@@ -824,5 +824,7 @@
   }
   const telas = Object.freeze({ recebimentos, contas, inadimplencia, visao, _teste: { ui, visaoHtml, lidas } });
 
-  window.VybeFinancas = Object.freeze({ carregar, estado, ligado, contratosDaCarteira, contratoDoCliente, telas });
+  // O relatório do Finanças (vybe-relatorio-financas.js): o mesmo contrato do motor de relatórios, só donos.
+  const relatorio = (o = {}) => (window.VybeRelatorioFinancas ? window.VybeRelatorioFinancas.gerar(o) : Promise.resolve({ erro: 'O relatório do Finanças não carregou.' }));
+  window.VybeFinancas = Object.freeze({ carregar, estado, ligado, contratosDaCarteira, contratoDoCliente, telas, relatorio });
 })();

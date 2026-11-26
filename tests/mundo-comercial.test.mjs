@@ -74,7 +74,7 @@ test('dono: todas as abas pintam com dados reais, com o dinheiro e sem HTML inje
     inadimplencia: 'Crítico', caixa: 'Entradas recorrentes', fornecedores: 'Gráfica', creators: 'Ana',
     vorcaro: 'Sem extrato ainda', extrato: 'Importar extrato', clientes_mes: 'Hebravet', cartao: 'Colar fatura', fixos: 'Novo gasto fixo', projecao: 'Sem mês fechado', vales: 'Pessoas e vales',
     // Finanças em 5 telas (23/11/2026): o que cada uma mostra mesmo sem extrato.
-    fin_hoje: 'Ainda sem extrato', fin_movimento: 'A conferir', fin_clientes: 'Mais de 30 dias', fin_pessoas: 'Vale acumulado', fin_assinaturas: 'Por mês', fin_analise: 'Fôlego do caixa' };
+    fin_hoje: 'Ainda sem extrato', fin_movimento: 'A conferir', fin_clientes: 'Mais de 30 dias', fin_pessoas: 'Vale acumulado', fin_assinaturas: 'Por mês', fin_analise: 'Fôlego do caixa', fin_projecao: 'Projeção', fin_fechamento: 'Fechamento' };
   for (const aba of ctx.VybeComercial.ABAS.map((a) => a.id)) {
     ctx.VybeComercial.abrir(aba); await esperar();
     const html = janela().innerHTML;
