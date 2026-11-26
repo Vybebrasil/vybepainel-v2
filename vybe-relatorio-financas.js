@@ -50,11 +50,11 @@
     const rot = dre.meses.map((x) => ({ curto: x.slice(5, 7) + '/' + x.slice(2, 4), longo: nomeMes(x) }));
     const secoes = [
       { titulo: 'DRE por competência', texto: `De ${nomeMes(dre.meses[0])} a ${nomeMes(dre.meses[dre.meses.length - 1])}. Resultado do período: ${reais(dre.total_resultado)} (margem ${pct(dre.margem_total)}).`,
-        grafico: { tipo: 'barras', rotulos: rot.map((r) => r.longo), series: [{ nome: 'Receita', valores: dre.linhas[0].valores }, { nome: 'Resultado', valores: dre.resultado }],
+        grafico: { tipo: 'barras', rotulos: rot.map((r) => r.longo), series: [{ nome: 'Receita', valores: dre.linhas[0].valores, papel: 'fe2' }, { nome: 'Resultado', valores: dre.resultado, papel: 'fe1' }],
           svg: svgDe('barras', { rotX: rot, series: [{ nome: 'Receita', vals: dre.linhas[0].valores, cor: 'k2' }, { nome: 'Resultado', vals: dre.resultado, cor: 'k1' }], rotulo: 'Receita e resultado' }) },
         tabela: { colunas: ['Linha', ...rot.map((r) => r.longo), 'Período'], linhas: [...dre.linhas.map((l) => [l.nome, ...l.valores.map((v) => reais(v * (l.sinal < 0 ? -1 : 1))), reais(l.total * (l.sinal < 0 ? -1 : 1))]), ['Resultado', ...dre.resultado.map(reais), reais(dre.total_resultado)]] } },
       { titulo: 'Receita recorrente', texto: `MRR de contrato ${reais(rec.mrr)}${temEst ? `; MRR estimado ${reais(rec.mrr_estimado)} (contratos + quem paga sem contrato, pela média do extrato), ticket estimado ${reais(rec.ticket_estimado)}` : `, ticket médio ${reais(rec.ticket)}`}, churn médio ${pct(rec.churn_medio_pct)} ao mês${cob?.sem_contrato ? ' (só dos contratos cadastrados)' : ''}${(temEst ? rec.ltv_estimado : rec.ltv) ? `, LTV ${reais(temEst ? rec.ltv_estimado : rec.ltv)}` : ''}.${cob?.sem_contrato ? ` ${cob.texto}${cob.pct_receita != null ? `: os contratos explicam ${cob.pct_receita}% da receita recente` : ''}. Cliente sem contrato não entra na cascata como novo nem perdido.` : ''}`,
-        grafico: { tipo: 'linha', rotulos: rec.meses.map((x) => nomeMes(x.mes)), series: [{ nome: 'MRR', valores: rec.meses.map((x) => x.mrr) }],
+        grafico: { tipo: 'linha', rotulos: rec.meses.map((x) => nomeMes(x.mes)), series: [{ nome: 'MRR', valores: rec.meses.map((x) => x.mrr), papel: 'fe1' }],
           svg: svgDe('linhaFaixa', { rotX: rec.meses.map((x) => ({ curto: x.mes.slice(5, 7) + '/' + x.mes.slice(2, 4), longo: nomeMes(x.mes) })), series: [{ nome: 'MRR', vals: rec.meses.map((x) => x.mrr), cor: 'k1' }], rotulo: 'MRR' }) },
         tabela: { colunas: ['Mês', 'MRR', 'Novo', 'Expansão', 'Contração', 'Perdido', ...(temEst ? ['Com o extrato'] : [])], linhas: rec.meses.filter((x) => x.mrr || x.mrr_anterior || x.com_extrato).map((x) => [nomeMes(x.mes), reais(x.mrr), reais(x.novo), reais(x.expansao), reais(x.contracao), reais(x.perdido), ...(temEst ? [x.com_extrato == null ? '—' : reais(x.com_extrato)] : [])]) } },
       { titulo: 'Margem por cliente', texto: `Custo de equipe rateado ${an.margem.regra.includes('pecas') ? 'pelas peças da produção' : 'pela receita'}. ${an.margem.prejuizo.length ? `${an.margem.prejuizo.length} cliente(s) com prejuízo.` : 'Nenhum cliente com prejuízo.'}${(an.margem.sem_receita || []).length ? ` ${an.margem.sem_receita.length} cliente(s) sem recebimento ligado no extrato não entram como prejuízo.` : ''}`,
@@ -62,10 +62,10 @@
           svg: svgDe('barrasH', { itens: an.margem.linhas.slice(0, 12).map((l) => ({ nome: l.cliente_nome, valor: l.margem })), rotulo: 'Margem por cliente' }) },
         tabela: { colunas: ['Cliente', 'Receita', 'Custo direto', 'Equipe', 'Margem', '%'], linhas: an.margem.linhas.map((l) => [l.cliente_nome, reais(l.receita), reais(l.custo_direto), reais(l.custo_equipe), reais(l.margem), pct(l.margem_pct)]) } },
       { titulo: 'A receber por idade', texto: `Total ${reais(an.aging.total)}, vencido ${reais(an.aging.vencido)}.${an.aging.vencido_incerto ? ` Mais ${reais(an.aging.vencido_incerto)} que pode já ter entrado sem dizer de quem.` : ''} Sem contrato, só entra o que foi marcado em aberto.`,
-        grafico: { tipo: 'barras', rotulos: an.aging.faixas.map((f) => f.nome), series: [{ nome: 'A receber', valores: an.aging.faixas.map((f) => f.total) }], svg: '' },
+        grafico: { tipo: 'barras', rotulos: an.aging.faixas.map((f) => f.nome), series: [{ nome: 'A receber', valores: an.aging.faixas.map((f) => f.total), papel: 'fe4' }], svg: '' },
         tabela: { colunas: ['Cliente', 'Mês', 'Venceu', 'Atraso (dias)', 'Valor'], linhas: an.aging.itens.map((x) => [x.cliente_nome, nomeMes(x.mes), x.vence.split('-').reverse().join('/'), x.incerto ? `${x.atraso_dias} (pode já ter entrado)` : String(x.atraso_dias), reais(x.valor)]) } },
       { titulo: 'Projeção (12 meses)', texto: `${confFrase}. Base: contratos no dia do vencimento, cliente sem contrato pela média dele no extrato, fixos e a média do variável. ${receitaBase} ${saidasBase} Pessimista: o que vem pela média entra 15% menor, atraso médio nos contratos, clientes em risco saem, variável alto (${prs.variaveis_alto_regra || "percentil 80"}: ${reais(prs.variaveis_alto)} por mês). Otimista: funil do Comercial pela chance.`,
-        grafico: { tipo: 'linha_faixa', rotulos: pj.meses.map(nomeMes), series: ['pessimista', 'base', 'otimista'].map((k) => ({ nome: k, valores: pj[k].meses.map((x) => x.saldo) })),
+        grafico: { tipo: 'linha_faixa', rotulos: pj.meses.map(nomeMes), series: ['pessimista', 'base', 'otimista'].map((k) => ({ nome: k, valores: pj[k].meses.map((x) => x.saldo), papel: k === 'base' ? 'fe1' : 'fe1-claro', tracejada: k !== 'base' })),
           svg: svgDe('linhaFaixa', { rotX: pj.meses.map((x) => ({ curto: x.slice(5, 7) + '/' + x.slice(2, 4), longo: nomeMes(x) })), series: [{ nome: 'Base', vals: pj.base.meses.map((x) => x.saldo), cor: 'k1' }], faixa: { nome: 'Pessimista a otimista', de: pj.pessimista.meses.map((x) => x.saldo), ate: pj.otimista.meses.map((x) => x.saldo) }, rotulo: 'Saldo projetado' }) },
         tabela: { colunas: ['Mês', 'Pessimista', 'Base', 'Otimista'], linhas: pj.meses.map((x, k) => [nomeMes(x), reais(pj.pessimista.meses[k].saldo), reais(pj.base.meses[k].saldo), reais(pj.otimista.meses[k].saldo)]) } },
     ];
@@ -108,8 +108,10 @@
   function graficoDoMotor(g) {
     const series = (g?.series || []).filter((x) => Array.isArray(x?.valores));
     if (!series.length) return null;
-    if (g.tipo === 'barras_horizontais') return { tipo: 'ranking', itens: (g.rotulos || []).map((r, i) => ({ rotulo: r, valor: series[0].valores[i], tom: series[0].valores[i] < 0 ? 'ruim' : '' })).filter((x) => Number.isFinite(x.valor)).sort((a, b) => b.valor - a.valor).slice(0, 12), formato: brlCurto };
-    return { tipo: g.tipo === 'linha_faixa' || g.tipo === 'linha' ? 'linha' : 'barras', rotulos: (g.rotulos || []).map(mesCurto), series: series.map((x) => ({ nome: x.nome, valores: x.valores })), formato: brlCurto };
+    // Cores da tela do Finanças: a margem por cliente é verde quando sobra e vermelha quando falta (vg-bh, padrao-v2/fin.css);
+    // as séries levam o papel da paleta --fe-c* que a tela usa (Receita k2, Resultado e MRR k1, A receber k4, cenários k1).
+    if (g.tipo === 'barras_horizontais') return { tipo: 'ranking', itens: (g.rotulos || []).map((r, i) => ({ rotulo: r, valor: series[0].valores[i], papel: series[0].valores[i] < 0 ? 'perigo' : 'pronto' })).filter((x) => Number.isFinite(x.valor)).sort((a, b) => b.valor - a.valor).slice(0, 12), formato: brlCurto };
+    return { tipo: g.tipo === 'linha_faixa' || g.tipo === 'linha' ? 'linha' : 'barras', rotulos: (g.rotulos || []).map(mesCurto), series: series.map((x) => ({ nome: x.nome, valores: x.valores, ...(x.papel ? { papel: x.papel } : {}), ...(x.tracejada ? { tracejada: true } : {}) })), formato: brlCurto };
   }
   function tabelaDoMotor(t) {
     if (!t?.colunas?.length) return null;

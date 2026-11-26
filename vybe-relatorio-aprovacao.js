@@ -68,7 +68,7 @@
         grafico: apr && filaPecas.length ? { tipo: 'barras', rotulos: tempo.map((t) => t.f), series: [{ nome: 'Interna', valores: tempo.map((t) => t.i) }, { nome: 'Cliente', valores: tempo.map((t) => t.c) }] } : null,
         tabela: velhas.length ? { colunas: ['Peça', 'Cliente', 'Etapa', 'Status', 'Parada há'], linhas: velhas.slice(0, 20).map((p) => [String(p.titulo || '').slice(0, 40), String(p.cliente || '—').slice(0, 26), p.etapa === 'cliente' ? 'Cliente' : 'Interna', String(p.status || ''), dias(Number(p.horas))]) } : null },
       { titulo: 'Fila por cliente', texto: [clientes[0] ? `Mais itens esperando: ${clientes.slice(0, 3).map((c) => `${c.nome} (${c.total})`).join(', ')}.` : 'Sem fila por cliente.'],
-        grafico: clientes.length ? { tipo: 'ranking', itens: clientes.slice(0, 10).map((c) => ({ rotulo: c.nome, valor: c.total, sub: `mediana ${dias(c.med)}`, tom: c.med >= 72 ? 'ruim' : '' })) } : null,
+        grafico: clientes.length ? { tipo: 'ranking', de: 'cliente', itens: clientes.slice(0, 10).map((c) => ({ rotulo: c.nome, valor: c.total, sub: `mediana ${dias(c.med)}`, tom: c.med >= 72 ? 'ruim' : '' })) } : null,
         tabela: clientes.length ? { colunas: ['Cliente', 'Interna', 'Cliente', 'Espera mediana'], linhas: clientes.slice(0, 15).map((c) => [c.nome, u.num(c.interna), u.num(c.cliente), dias(c.med)]) } : null },
       { titulo: 'Planejamentos', texto: [filaPlanos.length ? 'Planejamentos do mês e em que etapa estão.' : 'Nenhum planejamento esperando.'],
         grafico: planosEtapa.length ? { tipo: 'rosca', fatias: planosEtapa.map(([e, n]) => ({ rotulo: e, valor: n })), centro: u.num(filaPlanos.length), sub: 'planejamentos' } : null,
@@ -78,7 +78,7 @@
     ];
     const hist = a.hist.map((h) => ({ mes: h.mes, alteracao: h.alteracao, cliente: h.cliente, total: h.total }));
     const historico = { texto: [`Peças de cada mês que estão em alteração ou esperando o cliente hoje. ${u.tendenciaTexto(hist.map((h) => h.alteracao), { coisa: 'Tendência das alterações', melhor: 'menor' }).texto}.`],
-      grafico: { tipo: 'linha', rotulos: hist.map((h) => u.nomeMes(h.mes)), series: [{ nome: 'Em alteração', valores: hist.map((h) => h.alteracao) }, { nome: 'Esperando o cliente', valores: hist.map((h) => h.cliente) }] },
+      grafico: { tipo: 'linha', rotulos: hist.map((h) => u.nomeMes(h.mes)), series: [{ nome: 'Em alteração', valores: hist.map((h) => h.alteracao), status: 'Alteração' }, { nome: 'Esperando o cliente', valores: hist.map((h) => h.cliente), status: 'Ag. Aprovação Cliente' }] },
       tabela: { colunas: ['Mês', 'Peças', 'Em alteração', 'Esperando o cliente'], linhas: hist.map((h) => [u.nomeMes(h.mes, true), u.num(h.total), u.num(h.alteracao), u.num(h.cliente)]) } };
     const projecao = { texto: [interna.length && hInt != null ? `Com a espera mediana de ${dias(hInt)}, a fila interna de hoje (${u.num(interna.length)}) só sai toda em cerca de ${dias(Math.max(...interna.map((p) => Number(p.horas) || 0)) + hInt)} se nada novo entrar.` : 'Sem fila interna para projetar.',
       esperandoPer.length ? `${u.plural(esperandoPer.length, 'peça do período ainda depende', 'peças do período ainda dependem')} de aprovação antes da data.` : ''].filter(Boolean) };
@@ -89,7 +89,7 @@
     if (marcadasObj) { const fraco = Object.entries(porObj).sort((x, y) => x[1] - y[1])[0]; if (u.pct(fraco[1], marcadasObj) < 20) recomendacoes.push({ o_que: `Planejar mais peças de ${OBJ[fraco[0]].toLowerCase()} no próximo mês.`, por_que: `Ficou com ${u.pct(fraco[1], marcadasObj)}% do período.`, impacto: 'Feed equilibrado entre atrair, educar e converter.', prioridade: 'baixa' }); }
     if (semObj && a.doPer.length && u.pct(semObj, a.doPer.length) > 50) recomendacoes.push({ o_que: `Marcar o objetivo nas ${u.num(semObj)} peças sem ele.`, por_que: 'Sem objetivo não dá para medir o equilíbrio do mês.', impacto: 'Leitura do equilíbrio mais fiel.', prioridade: 'baixa' });
     if (!recomendacoes.length) recomendacoes.push({ o_que: 'Manter a aprovação interna em menos de 1 dia.', por_que: 'É o que segura a fila curta hoje.', impacto: 'Mais tempo para produzir e para o cliente responder.', prioridade: 'baixa' });
-    return { titulo: 'Produção · Aprovação', subtitulo: 'Aprovação interna e do cliente, planejamentos e o equilíbrio do conteúdo', resumo, numeros, secoes, historico, projecao, recomendacoes,
+    return { titulo: 'Produção · Aprovação', subtitulo: 'Aprovação interna e do cliente, planejamentos e o equilíbrio do conteúdo', amostra: a.doPer.map((x) => x.d), resumo, numeros, secoes, historico, projecao, recomendacoes,
       metodologia: ['A fila vem do servidor (a mesma do Seu dia) e mostra só o que quem gerou pode ver. Tempo parado = horas desde a última troca de status.', 'Aprovação pelo link = última resposta do cliente (aprovar ou ajuste) nos últimos 120 dias, das peças do período. O histórico mostra o status de hoje das peças de cada mês, não o que aconteceu no mês.'] };
   }
   if (raiz.VybeRelatorio?.registrar) raiz.VybeRelatorio.registrar('aprovacao', relatorio, { nome: 'Aprovação', telas: ['conteudo', 'planejamentos'], agente: { nome: 'Heitor', papel: 'Coordenação de produção' } });

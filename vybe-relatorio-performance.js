@@ -46,20 +46,20 @@
     const sem = lista(r.semanas);
     const secoes = [
       { titulo: 'Onde a fila trava (por etapa)', texto: ['Peças abertas em cada status, a pior combinação de quantidade e tempo parado primeiro.'],
-        grafico: etapas.length ? { tipo: 'ranking', itens: etapas.slice(0, 10).map((e) => ({ rotulo: e.status, valor: e.qtd, sub: `${dd(u, e.idadeMediana)} parada`, tom: e.atrasadas ? 'ruim' : '' })) } : null,
-        tabela: etapas.length ? { colunas: ['Etapa', 'Peças', 'Atrasadas', 'Parada (mediana)', 'Clientes com atraso'], linhas: etapas.slice(0, 15).map((e) => [e.status, u.num(e.qtd), u.num(e.atrasadas), dd(u, e.idadeMediana), lista(e.atrasadasPorCliente).slice(0, 3).map((c) => `${c.cliente} (${c.qtd})`).join(', ') || '—']) } : null },
+        grafico: etapas.length ? { tipo: 'ranking', de: 'status', itens: etapas.slice(0, 10).map((e) => ({ rotulo: e.status, valor: e.qtd, sub: `${dd(u, e.idadeMediana)} parada`, tom: e.atrasadas ? 'ruim' : '' })) } : null,
+        tabela: etapas.length ? { colunas: [{ rotulo: 'Etapa', status: true }, 'Peças', 'Atrasadas', 'Parada (mediana)', 'Clientes com atraso'], linhas: etapas.slice(0, 15).map((e) => [e.status, u.num(e.qtd), u.num(e.atrasadas), dd(u, e.idadeMediana), lista(e.atrasadasPorCliente).slice(0, 3).map((c) => `${c.cliente} (${c.qtd})`).join(', ') || '—']) } : null },
       { titulo: 'Por departamento', texto: ['Cada grupo do quadro.'], tabela: grupos.length ? tab(grupos, 'Departamento') : null },
       { titulo: 'Por pessoa', texto: ['Peça de vários responsáveis conta para cada um.'],
-        grafico: pessoasL.length ? { tipo: 'barras', rotulos: pessoasL.slice(0, 10).map((p) => p.nome.split(' ')[0]), series: [{ nome: 'Entregues', valores: pessoasL.slice(0, 10).map((p) => p.entregues) }, { nome: 'Abertas', valores: pessoasL.slice(0, 10).map((p) => p.abertas) }, { nome: 'Atrasadas', valores: pessoasL.slice(0, 10).map((p) => p.atrasadas) }] } : null,
-        tabela: pessoasL.length ? tab(pessoasL, 'Pessoa') : null },
+        grafico: pessoasL.length ? { tipo: 'barras', rotulos: pessoasL.slice(0, 10).map((p) => p.nome.split(' ')[0]), series: [{ nome: 'Entregues', valores: pessoasL.slice(0, 10).map((p) => p.entregues), papel: 'pronto' }, { nome: 'Abertas', valores: pessoasL.slice(0, 10).map((p) => p.abertas), papel: 'aberto' }, { nome: 'Atrasadas', valores: pessoasL.slice(0, 10).map((p) => p.atrasadas), papel: 'atraso' }] } : null,
+        tabela: pessoasL.length ? tab(pessoasL, { rotulo: 'Pessoa', pessoa: true }) : null },
       { titulo: 'Por formato', texto: [lento ? `Tempo mediano mais alto: ${lento.nome} (${dd(u, lento.tempoMediano)}).` : 'Formatos do período.'], tabela: formatos.length ? tab(formatos, 'Formato') : null },
-      { titulo: 'Por cliente', texto: ['Clientes com mais atraso primeiro.'], tabela: clientes.length ? tab(clientes, 'Cliente') : null },
+      { titulo: 'Por cliente', texto: ['Clientes com mais atraso primeiro.'], tabela: clientes.length ? tab(clientes, { rotulo: 'Cliente', cliente: true }) : null },
       { titulo: 'Processos', texto: ['O que falta em volta das peças abertas.'],
         tabela: { colunas: ['Processo', 'Peças'], linhas: [['Sem briefing', u.num(lista(proc.semBriefing).length)], ['Sem responsável', u.num(lista(proc.semResponsavel).length)], ['Captação a agendar', u.num(lista(proc.captacaoAgendar).length)], ['Sem data', u.num(lista(proc.semData).length)], ['Pausadas', u.num(lista(proc.pausadas).length)], ['Esquecidas (30+ dias)', u.num(lista(proc.esquecidas).length)], ['Solicitações vencidas', u.num(lista(proc.solicitacoesVencidas).length)]] } },
     ];
     const historico = sem.length >= 2
       ? { texto: [`Entregas por semana (até 26 semanas). ${u.tendenciaTexto(sem.map((s) => s.entregues), { coisa: 'Tendência das entregas', melhor: 'maior' }).texto.replace('por mês', 'por semana')}.`],
-        grafico: { tipo: 'linha', rotulos: sem.map((s) => u.dataCurta(s.inicio)), series: [{ nome: 'Entregues', valores: sem.map((s) => s.entregues) }, { nome: 'No prazo', valores: sem.map((s) => s.noPrazo) }, { nome: 'Cadastradas', valores: sem.map((s) => s.criadas) }] },
+        grafico: { tipo: 'linha', rotulos: sem.map((s) => u.dataCurta(s.inicio)), series: [{ nome: 'Entregues', valores: sem.map((s) => s.entregues), papel: 'pronto' }, { nome: 'No prazo', valores: sem.map((s) => s.noPrazo), papel: 'pronto-claro' }, { nome: 'Cadastradas', valores: sem.map((s) => s.criadas), papel: 'neutro' }] },
         tabela: { colunas: ['Semana de', 'Entregues', 'No prazo', 'Atrasadas', 'Cadastradas'], linhas: sem.map((s) => [u.dataCurta(s.inicio), u.num(s.entregues), u.num(s.noPrazo), u.num(s.atrasadas), u.num(s.criadas)]) } }
       : { texto: ['Período curto demais para a série semanal.'] };
     const ent = sem.map((s) => s.entregues), cri = sem.map((s) => s.criadas);

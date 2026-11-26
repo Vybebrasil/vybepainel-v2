@@ -57,17 +57,17 @@
           ['Comercial', funil ? u.num(leads) : '—', funil ? u.num(ganhos) : '—', '—', funil ? `${u.num(ganhos)} fechados` : 'sem leitura'],
         ] } },
       { titulo: 'Quem segura o atraso', texto: [P.quemAtrasa(a).length ? `Atrasadas por pessoa: ${P.quemAtrasa(a, 5).map((p) => `${p.nome} (${p.atrasadas})`).join(', ')}.` : 'Ninguém com peça atrasada no período.'],
-        grafico: a.porPessoa.some((p) => p.atrasadas) ? { tipo: 'ranking', itens: a.porPessoa.filter((p) => p.atrasadas).slice(0, 10).map((p) => ({ rotulo: p.nome, valor: p.atrasadas, sub: `${p.abertas} abertas`, tom: 'ruim' })) } : null },
+        grafico: a.porPessoa.some((p) => p.atrasadas) ? { tipo: 'ranking', de: 'pessoa', itens: a.porPessoa.filter((p) => p.atrasadas).slice(0, 10).map((p) => ({ rotulo: p.nome, valor: p.atrasadas, sub: `${p.abertas} abertas`, tom: 'ruim' })) } : null },
       { titulo: 'Carga do time', texto: [carga.length ? `Peças abertas de cada pessoa no último dia guardado${limite ? `; o limite é ${u.num(limite)}` : ''}.` : 'O servidor ainda não guardou a carga por pessoa.'],
-        grafico: carga.length ? { tipo: 'ranking', itens: carga.slice(0, 12).map((x) => ({ rotulo: x.nome, valor: x.valor, sub: x.cap ? `limite ${x.cap}` : '', tom: x.cap && x.valor > x.cap ? 'ruim' : '' })) } : null },
+        grafico: carga.length ? { tipo: 'ranking', de: 'pessoa', itens: carga.slice(0, 12).map((x) => ({ rotulo: x.nome, valor: x.valor, sub: x.cap ? `limite ${x.cap}` : '', tom: x.cap && x.valor > x.cap ? 'ruim' : '' })) } : null },
       { titulo: 'Acerto dos agentes', texto: [acertos.length ? `Quanto cada agente acertou no último dia guardado${metaAcerto ? ` (meta de ${u.num(metaAcerto)}%)` : ''}.` : 'Sem série de acerto dos agentes guardada.'],
         tabela: acertos.length ? { colunas: ['Agente', 'Acerto', 'Meta'], linhas: acertos.map((x) => [x.nome, `${u.num(x.valor)}%`, metaAcerto ? (x.valor >= metaAcerto ? 'batida' : 'abaixo') : '—']) } : null },
     ];
     const historico = atr.length >= 3
       ? { texto: [`Peças atrasadas da agência, dia a dia (o servidor guarda 60 dias). ${u.tendenciaTexto(atr.map((p) => Number(p.valor)), { coisa: 'Tendência do atraso', melhor: 'menor' }).texto.replace('por mês', 'por dia')}.`],
-        grafico: { tipo: 'area', rotulos: atr.map((p) => u.dataCurta(p.dia)), series: [{ nome: 'Atrasadas', valores: atr.map((p) => Number(p.valor)) }] },
+        grafico: { tipo: 'area', rotulos: atr.map((p) => u.dataCurta(p.dia)), series: [{ nome: 'Atrasadas', valores: atr.map((p) => Number(p.valor)), papel: 'atraso' }] },
         tabela: { colunas: ['Mês', 'Peças', 'Prontas', 'Atrasadas', 'No prazo'], linhas: a.hist.map((h) => [u.nomeMes(h.mes, true), u.num(h.total), u.num(h.entregues), u.num(h.atrasadas), h.julgadas ? `${h.noPrazoPct}%` : '—']) } }
-      : { texto: ['Peças por mês de veiculação.'], grafico: { tipo: 'barras', rotulos: a.hist.map((h) => u.nomeMes(h.mes)), series: [{ nome: 'Prontas', valores: a.hist.map((h) => h.entregues) }, { nome: 'Em aberto', valores: a.hist.map((h) => h.abertas) }], empilhado: true },
+      : { texto: ['Peças por mês de veiculação.'], grafico: { tipo: 'barras', rotulos: a.hist.map((h) => u.nomeMes(h.mes)), series: [{ nome: 'Prontas', valores: a.hist.map((h) => h.entregues), papel: 'pronto' }, { nome: 'Em aberto', valores: a.hist.map((h) => h.abertas), papel: 'aberto' }], empilhado: true },
         tabela: { colunas: ['Mês', 'Peças', 'Prontas', 'Atrasadas', 'No prazo'], linhas: a.hist.map((h) => [u.nomeMes(h.mes, true), u.num(h.total), u.num(h.entregues), u.num(h.atrasadas), h.julgadas ? `${h.noPrazoPct}%` : '—']) } };
     const proxA = atr.length >= 7 ? u.projetar(atr.slice(-30).map((p) => Number(p.valor)), 14) : null;
     const projecao = { texto: [a.ritmo?.projetado != null && at.total ? `No ritmo do período, a agência fecha com cerca de ${u.num(Math.min(a.ritmo.projetado, at.total))} de ${u.num(at.total)} peças prontas.` : 'Período fechado.',

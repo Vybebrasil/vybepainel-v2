@@ -119,34 +119,34 @@
     const secoes = [];
     secoes.push({ titulo: 'Entregas mês a mês',
       texto: [`Peças com data em cada mês e quantas ficaram prontas. ${u.tendenciaTexto(a.hist.map((h) => h.entregues), { coisa: 'Tendência das prontas' }).texto}.`],
-      grafico: { tipo: 'barras', rotulos: meses, series: [{ nome: 'Prontas', valores: a.hist.map((h) => h.entregues) }, { nome: 'Em aberto', valores: a.hist.map((h) => h.abertas) }], empilhado: true },
+      grafico: { tipo: 'barras', rotulos: meses, series: [{ nome: 'Prontas', valores: a.hist.map((h) => h.entregues), papel: 'pronto' }, { nome: 'Em aberto', valores: a.hist.map((h) => h.abertas), papel: 'aberto' }], empilhado: true },
       tabela: { colunas: ['Mês', 'Peças', 'Prontas', 'Atrasadas', 'No prazo'], linhas: a.hist.map((h) => [u.nomeMes(h.mes, true), u.num(h.total), u.num(h.entregues), u.num(h.atrasadas), h.noPrazoPct == null ? '—' : `${h.noPrazoPct}%`]) } });
     if (a.travas.length || a.porStatus.length) secoes.push({ titulo: 'Gargalos: onde as peças param',
       texto: [`Das ${u.num(a.abertas.length)} peças em aberto no período, esta é a distribuição pelo que as segura. Cada parada aqui é uma peça que não anda sem alguém agir.`],
-      grafico: { tipo: 'rosca', fatias: a.porStatus.slice(0, 7).map(([s, n]) => ({ rotulo: s, valor: n })), centro: u.num(a.abertas.length), sub: 'em aberto' },
+      grafico: { tipo: 'rosca', de: 'status', fatias: a.porStatus.slice(0, 7).map(([s, n]) => ({ rotulo: s, valor: n })), centro: u.num(a.abertas.length), sub: 'em aberto' },
       tabela: { colunas: ['O que segura', 'Peças'], linhas: a.travas.slice(0, 8).map(([t, n]) => [t, u.num(n)]) } });
     const comAtraso = a.porPessoa.filter((p) => p.atrasadas);
     secoes.push({ titulo: 'Quem está atrasado e com o quê',
       texto: comAtraso.length ? [`${u.plural(comAtraso.length, 'pessoa tem', 'pessoas têm')} peça atrasada. A lista abaixo é a ordem para cobrar: a veiculação mais antiga primeiro.`] : ['Ninguém tem peça atrasada no período.'],
-      grafico: comAtraso.length ? { tipo: 'ranking', itens: comAtraso.slice(0, 10).map((p) => ({ rotulo: p.nome, valor: p.atrasadas, sub: `${p.abertas} em aberto`, tom: 'ruim' })) } : null,
-      tabela: a.atrasadas.length ? { colunas: ['Data', 'Peça', 'Cliente', 'Com quem', 'Status', 'Dias'], linhas: a.atrasadas.slice(0, 20).map((x) => [u.dataCurta(x.data), String(x.d.nome || '').slice(0, 48), x.clientes.join(', ').slice(0, 28), x.pessoas.join(', ').slice(0, 26), String(x.d.status || ''), u.num(u.diasEntre(x.data, hoje))]), nota: a.atrasadas.length > 20 ? `Mais ${a.atrasadas.length - 20} atrasadas fora da lista.` : '' } : null });
+      grafico: comAtraso.length ? { tipo: 'ranking', de: 'pessoa', itens: comAtraso.slice(0, 10).map((p) => ({ rotulo: p.nome, valor: p.atrasadas, sub: `${p.abertas} em aberto`, tom: 'ruim' })) } : null,
+      tabela: a.atrasadas.length ? { colunas: ['Data', 'Peça', { rotulo: 'Cliente', cliente: true }, { rotulo: 'Com quem', pessoa: true }, { rotulo: 'Status', status: true }, 'Dias'], linhas: a.atrasadas.slice(0, 20).map((x) => [u.dataCurta(x.data), String(x.d.nome || '').slice(0, 48), x.clientes.join(', ').slice(0, 28), x.pessoas.join(', ').slice(0, 26), String(x.d.status || ''), u.num(u.diasEntre(x.data, hoje))]), nota: a.atrasadas.length > 20 ? `Mais ${a.atrasadas.length - 20} atrasadas fora da lista.` : '' } : null });
     if (a.porPessoa.length) secoes.push({ titulo: 'Carga por pessoa',
       texto: ['Peças de cada pessoa no período: o que já saiu, o que está aberto e o atrasado. Peça de duas pessoas conta para as duas.'],
-      grafico: { tipo: 'barras', rotulos: a.porPessoa.slice(0, 10).map((p) => p.nome.split(' ')[0]), series: [{ nome: 'Prontas', valores: a.porPessoa.slice(0, 10).map((p) => p.entregues) }, { nome: 'Abertas', valores: a.porPessoa.slice(0, 10).map((p) => p.abertas) }, { nome: 'Atrasadas', valores: a.porPessoa.slice(0, 10).map((p) => p.atrasadas) }] },
-      tabela: { colunas: ['Pessoa', 'Peças', 'Prontas', 'Abertas', 'Atrasadas'], linhas: a.porPessoa.slice(0, 15).map((p) => [p.nome, u.num(p.total), u.num(p.entregues), u.num(p.abertas), u.num(p.atrasadas)]) } });
+      grafico: { tipo: 'barras', rotulos: a.porPessoa.slice(0, 10).map((p) => p.nome.split(' ')[0]), series: [{ nome: 'Prontas', valores: a.porPessoa.slice(0, 10).map((p) => p.entregues), papel: 'pronto' }, { nome: 'Abertas', valores: a.porPessoa.slice(0, 10).map((p) => p.abertas), papel: 'aberto' }, { nome: 'Atrasadas', valores: a.porPessoa.slice(0, 10).map((p) => p.atrasadas), papel: 'atraso' }] },
+      tabela: { colunas: [{ rotulo: 'Pessoa', pessoa: true }, 'Peças', 'Prontas', 'Abertas', 'Atrasadas'], linhas: a.porPessoa.slice(0, 15).map((p) => [p.nome, u.num(p.total), u.num(p.entregues), u.num(p.abertas), u.num(p.atrasadas)]) } });
     // Heatmap: pessoa × semana (peças com data na semana).
     if (a.semanas.length >= 2 && a.porPessoa.length) {
       const top = a.porPessoa.filter((p) => p.nome !== 'Sem responsável').sort((x, y) => y.total - x.total).slice(0, 10);
       secoes.push({ titulo: 'Carga semana a semana',
         texto: ['Quantas peças cada pessoa tem com data em cada semana do período. Célula escura = semana pesada; o número vale também no papel em preto e branco.'],
-        grafico: { tipo: 'heatmap', linhas: top.map((p) => p.nome), colunas: a.semanas.map((s) => u.dataCurta(s)), valores: top.map((p) => a.semanas.map((s) => a.doPer.filter((x) => x.pessoas.includes(p.nome) && a.segunda(x.data) === s).length)) } });
+        grafico: { tipo: 'heatmap', linhasDe: 'pessoa', linhas: top.map((p) => p.nome), colunas: a.semanas.map((s) => u.dataCurta(s)), valores: top.map((p) => a.semanas.map((s) => a.doPer.filter((x) => x.pessoas.includes(p.nome) && a.segunda(x.data) === s).length)) } });
     }
     if (a.porFormato.length) secoes.push({ titulo: 'Formatos',
       texto: [`O que a Produção mais entrega no período: ${a.porFormato.slice(0, 3).map(([f, n]) => `${f} (${n})`).join(', ')}.`],
       grafico: { tipo: 'ranking', itens: a.porFormato.slice(0, 8).map(([f, n]) => ({ rotulo: f, valor: n })) } });
     if (a.porCliente.length) secoes.push({ titulo: 'Clientes com mais atraso',
       texto: [a.porCliente[0].atrasadas ? `${a.porCliente[0].nome} é o cliente com mais peças atrasadas (${a.porCliente[0].atrasadas}).` : 'Nenhum cliente com peça atrasada no período.'],
-      tabela: { colunas: ['Cliente', 'Peças', 'Prontas', 'Atrasadas'], linhas: a.porCliente.slice(0, 12).map((c) => [c.nome, u.num(c.total), u.num(c.entregues), u.num(c.atrasadas)]) } });
+      tabela: { colunas: [{ rotulo: 'Cliente', cliente: true }, 'Peças', 'Prontas', 'Atrasadas'], linhas: a.porCliente.slice(0, 12).map((c) => [c.nome, u.num(c.total), u.num(c.entregues), u.num(c.atrasadas)]) } });
 
     const prox = u.projetar(a.hist.map((h) => h.total), 3), mesesProx = [1, 2, 3].map((k) => u.somarMeses(per.fim.slice(0, 7), k));
     const projecao = {
@@ -156,7 +156,7 @@
     };
     const historico = {
       texto: [`Prontas e atrasadas nos últimos ${a.hist.length} meses. ${u.tendenciaTexto(a.hist.map((h) => h.atrasadas), { melhor: 'menor', coisa: 'Tendência do atraso' }).texto}.`],
-      grafico: { tipo: 'linha', rotulos: meses, series: [{ nome: 'Prontas', valores: a.hist.map((h) => h.entregues) }, { nome: 'Atrasadas', valores: a.hist.map((h) => h.atrasadas) }] },
+      grafico: { tipo: 'linha', rotulos: meses, series: [{ nome: 'Prontas', valores: a.hist.map((h) => h.entregues), papel: 'pronto' }, { nome: 'Atrasadas', valores: a.hist.map((h) => h.atrasadas), papel: 'atraso' }] },
     };
     const recomendacoes = [];
     if (at.atrasadas) recomendacoes.push({ o_que: `Destravar as ${u.num(at.atrasadas)} atrasadas, começando por ${atrasam[0] ? `${atrasam[0].nome} (${atrasam[0].atrasadas})` : 'as de veiculação mais antiga'}.`, por_que: at.furos ? `${u.num(at.furos)} já passaram da veiculação: o cliente vê o buraco no feed.` : 'Atraso no prazo interno vira furo de veiculação em poucos dias.', impacto: `Até ${u.num(at.atrasadas)} peças a menos em atraso; a nota de saúde dos clientes afetados sobe (cada furo tira 10 pontos).`, prioridade: 'alta' });
@@ -173,7 +173,8 @@
     if (at.emRisco) recomendacoes.push({ o_que: `Olhar hoje as ${u.num(at.emRisco)} peças em risco de furo.`, por_que: 'Vão ao ar em até 2 dias e não andaram.', impacto: 'Furo evitado antes de acontecer.', prioridade: 'alta' });
     if (!recomendacoes.length) recomendacoes.push({ o_que: 'Manter o ritmo e adiantar as peças da próxima quinzena.', por_que: 'Sem atraso nem gargalo relevante no período.', impacto: 'Folga para imprevistos e captações.', prioridade: 'baixa' });
 
-    return { titulo: 'Produção · Visão geral', subtitulo: 'Entregas, prazos, gargalos e carga do time', resumo, numeros, secoes, historico, projecao, recomendacoes,
+    // amostra: as peças do período, para a cor de cada status ser a do quadro (vybe-relatorio.js, corDoStatus).
+    return { titulo: 'Produção · Visão geral', subtitulo: 'Entregas, prazos, gargalos e carga do time', amostra: a.doPer.map((x) => x.d), resumo, numeros, secoes, historico, projecao, recomendacoes,
       metodologia: ['Data da peça = veiculação (o dia em que o cliente publica); sem ela, o prazo interno. Uma peça entra no período pela data dela.',
         'Situação de cada peça pela função oficial da Gestão (VybeDono.util.situacaoDaPeca): pronta só com Finalizado; Para agendar e Agendado esperam a postagem; Segurar Post pausa; peça vencida há mais de 30 dias conta como esquecida e sai do atraso.',
         'No prazo = pronta até a data do cliente, pelo dia da última troca de status. Comparação com o período anterior de mesmo tamanho. Projeção = reta pelos meses do histórico e ritmo diário do período em curso.'] };
