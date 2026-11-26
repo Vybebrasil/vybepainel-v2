@@ -7352,6 +7352,11 @@ button.vg-bh-l:hover,button.vg-bh-l:focus-visible{background:var(--d3-folha-leve
   .fe .vg-calor-l.cab span:last-child{text-align:right}
   .fe .vg-calor-n{font-size:11px}
 }
+/* Fechamento: item ok em verde e a etiqueta "ok" do tamanho dela. */
+.fe .fe-dot.g{background:var(--d3-pronto)}
+.fe .fe-al > .fe-tag{flex:0 0 auto;margin-left:auto}
+/* Contraste 4,5:1 nos três temas: o cabeçalho das tabelas do Finanças e o rótulo dos três cenários. */
+.fe table.fe-dre thead th,.fe .fe-cen3-c > small,.fe span.fe-rot,.fe h2.fe-rot{color:var(--d3-texto2)}
 
 /* ===== padrao-v2/financas.css ===== */
 /* PADRÃO V2 · FINANÇAS (quadros Finanças, Recebimentos, Contas a pagar e Inadimplência do moodboard, 12/11/2026).
