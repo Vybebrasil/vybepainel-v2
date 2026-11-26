@@ -234,6 +234,16 @@ test('Finanças em 5 telas: Hoje, Movimento, Clientes, Pessoas e Análise pintam
   // A Projeção tem o laranja dela (o fôlego); as outras, nenhum.
   for (const aba of abas.slice(1).filter((a) => a !== 'fin_projecao')) assert.doesNotMatch(V.telas[aba](ctxTela), /class="fe-lar"/, aba);
   assert.equal((V.telas.fin_projecao(ctxTela).match(/class="fe-lar"/g) || []).length, 1);
+  // Cada subaba da Análise desenha sem quebrar, com a confiança da base e sem laranja.
+  for (const sub of ['dre', 'recorrente', 'margem', 'receber', 'orcamento', 'historico']) {
+    V._teste.ui.fe.sub = sub;
+    const h = V.telas.fin_analise(ctxTela);
+    assert.match(h, new RegExp('data-valor="' + sub + '" aria-current="true"'), sub);
+    assert.match(h, /confiança/, sub);
+    assert.doesNotMatch(h, /class="fe-lar"/, sub);
+  }
+  V._teste.ui.fe.sub = 'dre';
+  assert.match(V.telas.fin_fechamento(ctxTela), /fe-lista/);
   // Pessoas: a ficha mostra o salário seguinte já descontado.
   V._teste.ui.fe.pes.sel = '7';
   const pes = V.telas.fin_pessoas(ctxTela);

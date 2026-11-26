@@ -7335,6 +7335,23 @@ button.vg-bh-l:hover,button.vg-bh-l:focus-visible{background:var(--d3-folha-leve
   .fe .fe-conf{margin-left:0}
   .fe .vg-bh-l{grid-template-columns:minmax(80px,1fr) 1.2fr minmax(64px,auto)}
 }
+/* DRE: até 6 meses na tabela; no celular e em janela estreita, os 3 últimos e sem a coluna de tendência. */
+.fe .fe-dre-todos{margin:8px 0 0;font-size:13px}
+@media (max-width:900px){.fe .fe-dre .m-ant,.fe .fe-dre .fe-tend{display:none}}
+/* Celular: as tabelas cabem sem rolar de lado (só as colunas que decidem; o resto está no gráfico ou na ficha). */
+@media (max-width:600px){
+  .fe .fe-dre .m-3{display:none}
+  .fe .fe-dre th[scope="row"]{white-space:normal}
+  .fe .fe-orc th:nth-child(4),.fe .fe-orc td:nth-child(4){display:none}
+  .fe .fe-mgt th:nth-child(3),.fe .fe-mgt td:nth-child(3),.fe .fe-mgt th:nth-child(4),.fe .fe-mgt td:nth-child(4),
+  .fe .fe-mgt th:nth-child(7),.fe .fe-mgt td:nth-child(7),.fe .fe-mgt th:nth-child(8),.fe .fe-mgt td:nth-child(8){display:none}
+  .fe .vg-calor{overflow-x:visible}
+  .fe .vg-calor-l{grid-template-columns:minmax(64px,1.2fr) repeat(var(--vg-cols,6),minmax(0,1fr));gap:2px}
+  .fe .vg-calor-l.cab span{font-size:0}
+  .fe .vg-calor-l.cab span:nth-child(2),.fe .vg-calor-l.cab span:last-child{font-size:10px;white-space:nowrap}
+  .fe .vg-calor-l.cab span:last-child{text-align:right}
+  .fe .vg-calor-n{font-size:11px}
+}
 
 /* ===== padrao-v2/financas.css ===== */
 /* PADRÃO V2 · FINANÇAS (quadros Finanças, Recebimentos, Contas a pagar e Inadimplência do moodboard, 12/11/2026).
