@@ -34,7 +34,8 @@ test('o topo do mundo some como nas janelas novas; tela cheia e fechar ficam den
   assert.ok(!css.includes('body.mundo.mundo-modulo::before{content:"";float:right'));
   assert.ok(css.includes('body.mundo.mundo-modulo :is(.workspace-heading,.client-module-hero,.prod-v2-head,.conta-secao-topo,.pv-cabeca,.container > .vb-cabecalho){margin-right:var(--vv-caixa-vao);max-width:calc(100% - var(--vv-caixa-vao))}'));
   // com a gaveta da demanda aberta só o X dela aparece
-  assert.ok(css.includes('body.mundo:has(> #workspace-drawer) .vv-canto-modulo{display:none}'));
+  // (a marca com-gaveta, que o vybe-core.js põe no canto enquanto a gaveta é filha do body, no lugar do :has)
+  assert.ok(css.includes('body:where(.mundo) .vv-canto-modulo.com-gaveta:not(#sem-gaveta){display:none}'));
   // os dois botões e os atalhos continuam (F alterna, Esc fecha)
   assert.ok(js.includes('data-modulo-acao="cheia"') && js.includes('data-modulo-acao="fechar"'));
   assert.ok(js.includes("if (body.classList.contains('mundo-modulo')) { fecharModulo(); return; }"));

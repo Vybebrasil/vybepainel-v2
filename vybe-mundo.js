@@ -2970,6 +2970,15 @@
     <aside class="vv-placa" id="vv-placa" hidden></aside>
     <div class="vv-cartao-mouse" id="vv-cartao" hidden></div>`;
 
+  // Hoje V2 na tela: a marca com-d3q no #vv-hoje quando o filho dele é o quadro .d3q (padrao-v2/z-direcao.css, 5). Era
+  // #mundo-hud:has(> #vv-hoje > .d3q) com "> *" à direita: cada repintura do Hoje recalculava o HUD inteiro. O observador
+  // olha só os filhos do #vv-hoje e a classe só muda quando o quadro entra ou sai (sistema leve 2, 26/11/2026).
+  function marcarHojeD3q() {
+    const h = hud.querySelector?.('#vv-hoje'); if (!h?.classList) return;
+    h.classList.toggle('com-d3q', Boolean(h.querySelector(':scope > .d3q')));
+  }
+  try { const h = hud.querySelector?.('#vv-hoje'); if (h && typeof MutationObserver === 'function') { new MutationObserver(marcarHojeD3q).observe(h, { childList: true }); marcarHojeD3q(); } } catch { /* sem DOM de verdade */ }
+
   const placa = () => hud.querySelector('#vv-placa');
   const cartao = () => hud.querySelector('#vv-cartao');
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));

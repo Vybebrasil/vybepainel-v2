@@ -24453,8 +24453,10 @@ html.vb-sem-animacao *, html.vb-sem-animacao *::before, html.vb-sem-animacao *::
 #workflow-modal.ofc-snc-jogo .snc-arena.snc-hud{--snc-reserva:160px}
 /* Com um jogo aberto, nada atrás anima nem é desenhado: o escritório e o resto
    do painel saem da renderização até o jogo fechar (só os filhos diretos do
-   body entram na conta, sem [style]: não pesa como o :has do Escritório #458). */
-body:has(> #workflow-modal.ofc-xdz) > :not(#workflow-modal,#workflow-backdrop,.versao-nova,.snc-perfil,script,style){content-visibility:hidden}
+   body entram na conta, sem [style]: não pesa como o :has do Escritório #458). "Jogo aberto" é a marca com-xadrez
+   no body (vybe-core.js, vbMarcasDoCorpo), no lugar do :has(> #workflow-modal.ofc-xdz); o :not(#sem-xadrez) mantém a
+   especificidade (sistema leve 2, 26/11/2026). */
+body.com-xadrez:not(#sem-xadrez) > :not(#workflow-modal,#workflow-backdrop,.versao-nova,.snc-perfil,script,style){content-visibility:hidden}
 /* HUD vazada (Paulo, 04/11/2026: "ainda tá ficando travada a tacada em alguns
    lugares"): os blocos da HUD seguravam o clique na área inteira, e 19% da mesa
    não recebia o puxar — inclusive o meio de baixo, onde fica o taco. Agora só o

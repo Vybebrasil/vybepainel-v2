@@ -640,7 +640,14 @@
     marcando.delete(k);
     pintarCorpo();
   }
-  // De 4 em 4: cada cliente leva alguns segundos no Hub. O que chega repinta só o que depende dele.
+  // De 4 em 4: cada cliente leva alguns segundos no Hub. O que chega repinta só o que depende dele, uma vez por quadro: os
+  // que chegam juntos (no cache ou na demo, os 18 de uma vez) viram uma repintura só, não uma por cliente (sistema leve 2).
+  let corpoNoQuadro = false;
+  function pintarCorpoNoQuadro() {
+    if (corpoNoQuadro) return; corpoNoQuadro = true;
+    const quadro = typeof requestAnimationFrame === 'function' ? requestAnimationFrame : (f) => setTimeout(f, 16);
+    quadro(() => { corpoNoQuadro = false; if (janela && !janela.hidden) pintarCorpo(); });
+  }
   // Com a ponte desligada não pergunta a ninguém: cada cliente já fica como "ponte desligada".
   async function buscarMetas(dias = estado.dias) {
     const minha = geracao;
@@ -656,7 +663,7 @@
           const d = await lerJson(`/api/painel?area=midia&acao=cliente&cliente_id=${encodeURIComponent(c.id)}&dias=${dias}`);
           mapa[c.id] = { estado: 'pronto', dados: d.meta || { estado: 'sem_dados' }, registros: Array.isArray(d.registros) ? d.registros : [] };
         } catch { mapa[c.id] = { estado: 'falhou' }; }
-        if (minha === geracao && janela && !janela.hidden && (dias === estado.dias || dias === 7)) pintarCorpo();
+        if (minha === geracao && janela && !janela.hidden && (dias === estado.dias || dias === 7)) pintarCorpoNoQuadro();
       }
     };
     await Promise.all([trabalhar(), trabalhar(), trabalhar(), trabalhar()]);
