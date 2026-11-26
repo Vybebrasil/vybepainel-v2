@@ -177,3 +177,78 @@ test('Produção: tendência, atrasados com quem, gargalo, projeção e recomend
   // Mês em curso compara com o anterior até o mesmo dia.
   assert.match(r.numeros[0].variacao.texto, /vs outubro de 2026 até 26\/10/);
 });
+
+// Todos os registros geram com o painel vazio e o servidor fora (sem quebrar, com recomendação e metodologia).
+test('registros: todos geram sem dado nenhum e sem servidor', async () => {
+  const vazio = { pecas: () => [], equipe: () => [], demandas: () => [], clientes: () => [] };
+  for (const m of C.VybeRelatorio.modulos().map((x) => x.id)) {
+    const r = await gerar(m, { dados: vazio });
+    assert.ok(r.titulo && r.resumo.length >= 1 && r.resumo.length <= 5, `${m}: resumo`);
+    assert.ok(r.recomendacoes.length >= 1, `${m}: recomendação`);
+    const html = await C.VybeRelatorio.documento(m, { hoje: HOJE, acesso: DONO, dados: vazio, api: async () => null });
+    assert.match(html, /Metodologia e fontes/, `${m}: documento`);
+  }
+});
+
+test('Demandas: tipos, atrasadas com quem e tarefas, travadas perto do prazo', async () => {
+  const dem = [
+    { id: 'd1', nome: 'Panfleto Black Friday', tipo: 'Impresso', cliente: 'VOA', status: 'Em andamento', responsavel_ids: ['3'], conclusao_iso: '2026-11-20', tarefas: 4, tarefas_feitas: 1 },
+    { id: 'd2', nome: 'Site novo', tipo: 'Site', cliente: 'Gonzalez', status: 'Em andamento', responsavel_ids: ['1'], conclusao_iso: '2026-11-28', tarefas: 5, tarefas_feitas: 0 },
+    { id: 'd3', nome: 'Banner loja', tipo: 'Impresso', cliente: 'Alpha1', status: 'Finalizado', responsavel_ids: ['0'], conclusao_iso: '2026-11-10', status_updated_at: '2026-11-09T10:00:00-03:00' },
+    { id: 'd4', nome: 'Evento', tipo: 'Evento', cliente: 'VOA', status: 'Finalizado', responsavel_ids: ['0'], conclusao_iso: '2026-10-12', status_updated_at: '2026-10-12T10:00:00-03:00' },
+  ];
+  const r = await gerar('demandas', { dados: { ...DADOS, demandas: () => dem } });
+  assert.equal(r.numeros[0].valor, '3');
+  assert.equal(r.numeros.find((n) => n.rotulo === 'Atrasadas').valor, '1');
+  const atr = r.secoes.find((s) => s.titulo === 'Quem está atrasado e com o quê');
+  assert.deepEqual([atr.tabela.linhas[0][1], atr.tabela.linhas[0][4], atr.tabela.linhas[0][5]], ['Panfleto Black Friday', 'Deivid', '1/4']);
+  assert.match(r.resumo.join(' '), /impresso \(2\)/);
+  assert.ok(r.recomendacoes.some((x) => /vencem em até 3 dias sem tarefa feita/.test(x.o_que)), 'Site novo vence em 2 dias sem tarefa');
+});
+
+const CAPT = { ok: true, clientes: [{ id: '1', nome: 'VOA' }, { id: '2', nome: 'Gonzalez' }], captacoes: [
+  { id: '1', cliente: 'VOA', dia: '2026-11-05', estado: 'gravada', fechada_em: '2026-11-05', pecas: [{ id: '10', gravado: true, tipo: 'video' }, { id: '11', gravado: true, tipo: 'foto' }] },
+  { id: '2', cliente: 'VOA', dia: '2026-11-20', estado: 'agendada', pecas: [{ id: '12', gravado: false, tipo: 'video' }] },
+  { id: '3', cliente: 'Gonzalez', dia: '2026-11-30', estado: 'agendada', pecas: [{ id: '13', gravado: false, tipo: 'video' }] },
+  { id: '4', cliente: 'VOA', dia: '2026-10-08', estado: 'gravada', fechada_em: '2026-10-08', pecas: [{ id: '9', gravado: true, tipo: 'video' }] },
+] };
+test('Agenda: captações do período, falta fechar, peças sem captação e sem repetir entre janelas', async () => {
+  const chamadas = [];
+  const pecas = [...pecasFixas(), { id: '13', nome: 'Reels marcado', status: 'Agendar Captação', veiculacao_iso: '2026-12-01', cliente: 'Gonzalez', clientes: ['Gonzalez'] },
+    { id: 'x1', nome: 'Reels sem dia', status: 'Agendar Captação', veiculacao_iso: '2026-11-29', cliente: 'Alpha1', clientes: ['Alpha1'] }];
+  const r = await gerar('agenda', { dados: { ...DADOS, pecas: () => pecas }, api: async (area, p) => { chamadas.push([area, p]); return area === 'captacoes' ? CAPT : null; } });
+  assert.ok(chamadas.length > 1 && chamadas.every(([a, p]) => a === 'captacoes' && p.dias === 42), 'janelas de 42 dias');
+  assert.equal(r.numeros[0].valor, '3');
+  assert.equal(r.numeros.find((n) => n.rotulo === 'Falta fechar').valor, '1');
+  assert.equal(r.numeros.find((n) => n.rotulo === 'Sem captação marcada').valor, '1');
+  assert.match(r.recomendacoes[0].o_que, /Marcar captação para as 1 peças/);
+  assert.ok(r.secoes.find((s) => s.titulo === 'Gravações que faltam fechar').tabela.linhas[0][1] === 'VOA');
+});
+
+test('Aprovação: fila interna e do cliente, parados há mais de 3 dias, aprovação pelo link e equilíbrio', async () => {
+  const apr = { pecas: [
+    { titulo: 'Card 1', cliente: 'VOA', etapa: 'interna', status: 'Para aprovação', horas: 100 },
+    { titulo: 'Card 2', cliente: 'VOA', etapa: 'interna', status: 'Para aprovação', horas: 5 },
+    { titulo: 'Reels', cliente: 'Gonzalez', etapa: 'cliente', status: 'Ag. Aprovação Cliente', horas: 50 },
+  ], planejamentos: [{ cliente: 'Alpha1', mes: '2026-12', estado: 'enviado', pecas: 20, horas: 30 }] };
+  const ids = pecasFixas().filter((d) => d.veiculacao_iso >= '2026-11-01').map((d) => d.id);
+  const obj = { objetivos: Object.fromEntries(ids.map((id, i) => [id, i % 10 === 0 ? 'conversao' : 'atracao'])), respostas: { [ids[0]]: { acao: 'aprovar' }, [ids[1]]: { acao: 'ajuste' } } };
+  const r = await gerar('aprovacao', { api: async (area) => (area === 'aprovacoes' ? apr : area === 'conteudo_modulo' ? obj : null) });
+  assert.equal(r.numeros[0].valor, '2'); assert.equal(r.numeros[1].valor, '1'); assert.equal(r.numeros[3].valor, '1');
+  assert.equal(r.numeros.find((n) => /pelo link/.test(n.rotulo)).valor, '50%');
+  assert.match(r.recomendacoes[0].o_que, /Destravar os 1 itens parados há mais de 3 dias, a começar por Card 1/);
+  assert.ok(r.recomendacoes.some((x) => /Planejar mais peças de educação/.test(x.o_que)));
+});
+
+test('Direção de arte: carga do time, fila do parecer e taxa de alteração', async () => {
+  const apr = { pecas: [{ titulo: 'Card 1', cliente: 'VOA', etapa: 'interna', status: 'Para aprovação', horas: 30 }] };
+  C.EQUIPES = { design: ['1', '3'] }; // Jady e Deivid (vybe-config.js usa o id do Monday)
+  const r = await gerar('direcao', { api: async (area) => (area === 'aprovacoes' ? apr : null) });
+  assert.equal(r.agente.nome, 'Danilo');
+  assert.equal(r.numeros.find((n) => n.rotulo === 'Esperando parecer').valor, '1');
+  assert.ok(Number(r.numeros.find((n) => n.rotulo === 'Taxa de alteração').valor.replace('%', '')) > 0);
+  assert.ok(r.recomendacoes.some((x) => /parecer/.test(x.o_que)));
+  const carga = r.secoes.find((s) => s.titulo === 'Carga do time').tabela.linhas.map((l) => l[0]).sort();
+  assert.deepEqual(carga, ['Deivid', 'Jady'], 'só o time de design');
+  delete C.EQUIPES;
+});
