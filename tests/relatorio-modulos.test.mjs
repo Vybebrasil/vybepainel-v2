@@ -179,6 +179,17 @@ test('Produção: tendência, atrasados com quem, gargalo, projeção e recomend
 });
 
 // Todos os registros geram com o painel vazio e o servidor fora (sem quebrar, com recomendação e metodologia).
+test('fontes: a mesma rota lida várias vezes vira uma linha com a contagem; a que falhou aparece à parte', async () => {
+  const C2 = carregar([]);
+  let n = 0;
+  C2.fetch = async () => { n += 1; return n === 4 ? { ok: false } : { ok: true, json: async () => ({ ok: true }) }; };
+  C2.VybeRelatorio.registrar('teste-fontes', async (ctx) => { for (const mes of ['2026-09', '2026-10', '2026-11']) await ctx.api('setor_pessoas', { aba: 'produtividade', mes }); await ctx.api('carteira', {});
+    return { titulo: 'Teste', resumo: ['ok'], numeros: [], secoes: [], recomendacoes: [{ o_que: 'x', por_que: 'y', impacto: 'z' }] }; }, { nome: 'Teste' });
+  const html = await C2.VybeRelatorio.documento('teste-fontes', { hoje: HOJE, acesso: DONO, dados: DADOS });
+  assert.equal(html.split('area=setor_pessoas (produtividade)').length - 1, 1);
+  assert.match(html, /3 leituras/);
+  assert.ok(html.includes('area=carteira</td><td>não respondeu'));
+});
 test('registros: todos geram sem dado nenhum e sem servidor', async () => {
   const vazio = { pecas: () => [], equipe: () => [], demandas: () => [], clientes: () => [] };
   for (const m of C.VybeRelatorio.modulos().map((x) => x.id)) {

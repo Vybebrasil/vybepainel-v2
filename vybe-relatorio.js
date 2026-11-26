@@ -351,9 +351,17 @@ td.n,th.n{text-align:right;white-space:nowrap}
     try {
       const r = await fetch(`/api/painel?${q}`, { credentials: 'same-origin', headers: { Accept: 'application/json' } });
       const j = r.ok ? await r.json().catch(() => null) : null;
-      leituras.push({ area, ok: Boolean(j), em });
+      leituras.push({ area, parte: params.aba || params.acao || params.para || '', ok: Boolean(j), em });
       return j;
-    } catch { leituras.push({ area, ok: false, em }); return null; }
+    } catch { leituras.push({ area, parte: params.aba || params.acao || params.para || '', ok: false, em }); return null; }
+  }
+  function juntarLeituras(leituras) {
+    const por = new Map();
+    for (const l of leituras) {
+      const nome = `Vybe OS · /api/painel?area=${l.area}${l.parte ? ` (${l.parte})` : ''}`, k = `${nome}|${l.ok}`;
+      const x = por.get(k) || por.set(k, { nome, ok: l.ok, n: 0, em: l.em }).get(k); x.n += 1; if (l.em > x.em) x.em = l.em;
+    }
+    return [...por.values()].map((x) => ({ nome: x.nome, detalhe: (x.ok ? 'leitura do servidor (só leitura)' : 'não respondeu: os números dela ficaram de fora') + (x.n > 1 ? ` · ${x.n} leituras` : ''), lido_em: horaBr(x.em) }));
   }
   const horaBr = (d) => `${dataBr(diaLocal(d))} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
 
@@ -372,7 +380,7 @@ td.n,th.n{text-align:right;white-space:nowrap}
     const bruto = (await reg.fn(ctx)) || {};
     const agora = opcoes.agora || new Date();
     const juntas = [...fontes, ...lista(bruto.fontes).map((f) => ({ lido_em: horaBr(agora), ...f })),
-      ...leituras.map((l) => ({ nome: `Vybe OS · /api/painel?area=${l.area}`, detalhe: l.ok ? 'leitura do servidor (só leitura)' : 'não respondeu: os números dela ficaram de fora', lido_em: horaBr(l.em) }))];
+      ...juntarLeituras(leituras)];
     const rel = filtrar({ agente: reg.agente, ...bruto, fontes: juntas }, acesso);
     return { rel, reg, per, acesso, agora };
   }
@@ -401,12 +409,15 @@ td.n,th.n{text-align:right;white-space:nowrap}
 
   // ---------- O botão no cabeçalho do módulo ----------
   // Fica logo à direita do título do módulo (o mesmo lugar em todos), só onde há relatório registrado e acesso.
-  const TITULOS = '.d3m-tit, .d3m-c-tit, .d3m-d-tit, .d3m-e-tit, .rv2-tit, .d3h-ola, .d3s-tit';
+  const TITULOS = '.d3m-tit, .d3m-c-tit, .d3m-d-tit, .d3m-e-tit, .d3m-a-ap-tit, .rv2-tit, .d3h-ola, .d3s-tit';
   const ICONE = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M9 13h6M9 17h4"/></svg>';
   let botao = null, pop = null, telaAtual = '', agendado = false;
   function telaDoDock() {
     if (typeof document === 'undefined') return '';
     const q = (s) => document.querySelector(s);
+    // Janela por cima da tela (Recursos Humanos abre como diálogo e o dock fica no que estava): vale a aba dela.
+    const aba = q('#vv-pessoas [data-vp-aba][aria-selected="true"]');
+    if (aba) return aba.dataset.vpAba;
     const b = q('.vv-trilho [data-submodulo][aria-current]') || q('.vv-trilho [data-visao-setor][aria-current]') || q('.vv-trilho [data-trilho][aria-current]');
     return b ? b.dataset.submodulo || b.dataset.visaoSetor || b.dataset.trilho || '' : '';
   }
