@@ -17,7 +17,8 @@
 //   lote          sugestão para cada lançamento a conferir (regra ou o histórico da mesma contraparte)
 //   repetidas     saídas que se repetem (mesma contraparte, valor parecido em 2–3 meses) e ainda não são fixo
 //   achados       o que o Vorcaro vê: o que fazer e o impacto em reais
-//   confianca     quanto histórico a conta usou e a confiança dela
+//   confianca     quanto histórico a conta usou e a confiança dela (cai com poucos contratos cadastrados, com o motivo)
+//   receitaDaBase a receita da projeção cliente a cliente: contrato, senão a média do extrato; MRR estimado e cobertura
 // Dinheiro em centavos inteiros nas contas; a saída volta em reais.
 (function (raiz) {
   'use strict';
@@ -37,11 +38,21 @@
   const percentil = (l, p) => { if (!l.length) return 0; const o = l.slice().sort((a, b) => a - b), i = (o.length - 1) * p, a = Math.floor(i), b = Math.ceil(i); return o[a] + (o[b] - o[a]) * (i - a); };
 
   // ---------- Quanto histórico e qual confiança (Paulo só tem 3 meses de extrato, de 17/08 a 13/11/2026) ----------
-  function confianca(nMeses) {
+  // Com a cobertura de contratos (fin2, 26/11/2026): se os contratos cadastrados cobrem menos de 70% da receita recente,
+  // a conta se apoia na média do extrato e a confiança cai (abaixo de 40%, fica baixa), com o motivo dito na tela e no PDF.
+  function confianca(nMeses, { cobertura_pct = null, sem_contrato = 0 } = {}) {
     const n = Number(nMeses) || 0;
-    const nivel = n >= 9 ? 'alta' : n >= 5 ? 'media' : n >= 1 ? 'baixa' : 'nenhuma';
-    const nome = { alta: 'alta', media: 'média', baixa: 'baixa', nenhuma: 'sem base' }[nivel];
-    return { meses: n, nivel, texto: n ? `base em ${n} ${n === 1 ? 'mês' : 'meses'}: confiança ${nome}` : 'sem mês fechado para usar de base' };
+    let nivel = n >= 9 ? 'alta' : n >= 5 ? 'media' : n >= 1 ? 'baixa' : 'nenhuma';
+    const nomeDe = (x) => ({ alta: 'alta', media: 'média', baixa: 'baixa', nenhuma: 'sem base' }[x]);
+    let motivo = '';
+    if (n && cobertura_pct != null && Number(cobertura_pct) < 70) {
+      nivel = Number(cobertura_pct) < 40 ? 'baixa' : ({ alta: 'media', media: 'baixa', baixa: 'baixa' }[nivel]);
+      const sc = Number(sem_contrato) || 0;
+      motivo = sc > 0 ? `a projeção usa a média do extrato para ${sc} ${sc === 1 ? 'cliente' : 'clientes'} sem contrato`
+        : `os contratos cadastrados cobrem só ${cobertura_pct}% da receita recente`;
+    }
+    const texto = n ? `base em ${n} ${n === 1 ? 'mês' : 'meses'}: confiança ${nomeDe(nivel)}${motivo ? ` · ${motivo}` : ''}` : 'sem mês fechado para usar de base';
+    return { meses: n, nivel, texto, motivo, cobertura_pct: cobertura_pct == null ? null : Number(cobertura_pct) };
   }
 
   // ---------- Contrato do cliente ----------
@@ -121,7 +132,10 @@
 
   // ---------- Receita recorrente (MRR) ----------
   // contratos de TODOS os clientes, inclusive os que saíram (o fim, ou o dia em que saíram, diz até quando contam).
-  function recorrente(contratos = [], meses = [], { hoje = '' } = {}) {
+  // estimado (receitaDaBase): o MRR estimado ao lado do de contrato (contratos + clientes que pagam todo mês sem contrato,
+  // pela média do extrato) e a cobertura. Cliente sem contrato nunca entra como "perdido" nem zera o MRR: ele só não está
+  // na cascata de contratos. semContratoPorMes: { 'AAAA-MM': o que entrou de quem não tem contrato } (meses do extrato).
+  function recorrente(contratos = [], meses = [], { hoje = '', estimado = null, semContratoPorMes = null } = {}) {
     const cs = contratos.filter((c) => Number(c.valor_mensal) > 0);
     const out = meses.map((mes, i) => {
       const ant = somarMeses(mes, -1);
@@ -135,8 +149,10 @@
         else if (b > a) { expansao += b - a; mov.push({ tipo: 'expansao', cliente_id: String(c.cliente_id), cliente_nome: c.cliente_nome, valor: reais(b - a) }); }
         else if (b < a) { contracao += a - b; mov.push({ tipo: 'contracao', cliente_id: String(c.cliente_id), cliente_nome: c.cliente_nome, valor: reais(b - a) }); }
       }
+      const sem = semContratoPorMes && semContratoPorMes[mes] != null ? centavos(semContratoPorMes[mes]) : null;
       return { mes, mrr: reais(mrr), mrr_anterior: reais(mrrAnt), novo: reais(novo), expansao: reais(expansao), contracao: contracao ? reais(-contracao) : 0, perdido: perdido ? reais(-perdido) : 0, ativos,
-        churn_pct: mrrAnt > 0 ? Math.round(perdido / mrrAnt * 1000) / 10 : 0, ticket: ativos ? reais(Math.round(mrr / ativos)) : 0, movimentos: mov, primeiro: i === 0 };
+        churn_pct: mrrAnt > 0 ? Math.round(perdido / mrrAnt * 1000) / 10 : 0, ticket: ativos ? reais(Math.round(mrr / ativos)) : 0, movimentos: mov, primeiro: i === 0,
+        recebido_sem_contrato: sem == null ? null : reais(sem), com_extrato: sem == null ? null : reais(mrr + sem) };
     });
     // Vida média: do início ao fim (ou até hoje, se ainda está) de cada contrato com início conhecido.
     const ate = ehDia(hoje) ? hoje : (meses.length ? `${meses[meses.length - 1]}-28` : '');
@@ -147,9 +163,22 @@
     const churnMedio = churns.length ? Math.round(media(churns) * 10) / 10 : 0;
     // LTV: ticket × vida média (contratos conhecidos); com churn, ticket ÷ churn mensal é a outra leitura.
     const ticket = ult?.ticket || 0;
-    return { meses: out, mrr: ult?.mrr || 0, ticket, vida_media_meses: vida, churn_medio_pct: churnMedio,
+    const r = { meses: out, mrr: ult?.mrr || 0, ticket, vida_media_meses: vida, churn_medio_pct: churnMedio,
       ltv: vida ? reais(Math.round(centavos(ticket) * vida)) : null, ltv_pelo_churn: churnMedio > 0 ? reais(Math.round(centavos(ticket) / (churnMedio / 100))) : null,
       vidas_conhecidas: vidas.length };
+    // O estimado: contratos + quem paga todo mês sem contrato + entrada de cliente sem dizer de quem. Ticket e LTV estimados.
+    const est = estimado || null;
+    let nEst = (ult?.ativos || 0) + (est?.recorrentes?.length || 0);
+    const mrrEst = est ? centavos(r.mrr) + centavos(est.estimado_recorrente || 0) + centavos(est.sem_identificar || 0) : centavos(r.mrr);
+    // Com entrada de cliente sem dizer de quem, o ticket estimado divide pelos clientes ativos (é deles esse dinheiro).
+    if (est?.cobertura?.ativos > nEst && centavos(est.sem_identificar || 0) > 0) nEst = est.cobertura.ativos;
+    r.mrr_estimado = reais(mrrEst);
+    r.sem_identificar = est ? reais(centavos(est.sem_identificar || 0)) : 0;
+    r.estimados = (est?.recorrentes || []).map((e) => ({ cliente_id: e.cliente_id, cliente_nome: e.cliente_nome, valor: e.media, meses_pagos: e.meses_pagos }));
+    r.ticket_estimado = nEst ? reais(Math.round(mrrEst / nEst)) : 0;
+    r.ltv_estimado = vida && nEst ? reais(Math.round(mrrEst / nEst * vida)) : null;
+    r.cobertura = est?.cobertura || null;
+    return r;
   }
 
   // ---------- Margem real por cliente ----------
@@ -182,18 +211,25 @@
     const linhas = todos.map((c) => {
       const rec = c.receita.reduce((s, v) => s + v, 0), dir = c.direto.reduce((s, v) => s + v, 0), rat = c.rateio.reduce((s, v) => s + v, 0), nP = c.pecas.reduce((s, v) => s + v, 0);
       const mg = rec - dir - rat;
-      return { cliente_id: c.cliente_id, cliente_nome: c.cliente_nome, receita: reais(rec), custo_direto: reais(dir), custo_equipe: reais(rat), margem: reais(mg),
+      // sem_receita: nenhuma entrada ligada a ele no período. Não é prejuízo: o recebimento dele pode estar entre as entradas
+      // sem cliente (ou sem contrato). A tela diz isso em vez de acusar prejuízo.
+      return { cliente_id: c.cliente_id, cliente_nome: c.cliente_nome, sem_receita: rec === 0, receita: reais(rec), custo_direto: reais(dir), custo_equipe: reais(rat), margem: reais(mg),
         margem_pct: rec > 0 ? Math.round(mg / rec * 1000) / 10 : null, pecas: nP, custo_por_peca: nP ? reais(Math.round((dir + rat) / nP)) : null,
         por_mes: meses.map((m, i) => ({ mes: m, receita: reais(c.receita[i]), custo: reais(c.direto[i] + c.rateio[i]), margem: reais(c.receita[i] - c.direto[i] - c.rateio[i]), pecas: c.pecas[i],
           margem_pct: c.receita[i] > 0 ? Math.round((c.receita[i] - c.direto[i] - c.rateio[i]) / c.receita[i] * 1000) / 10 : null })) };
     }).filter((l) => l.receita || l.custo_direto || l.pecas).sort((a, b) => b.margem - a.margem);
-    return { meses, regra, custo_equipe: equipe.map(reais), linhas, prejuizo: linhas.filter((l) => l.margem < 0).sort((a, b) => a.margem - b.margem) };
+    return { meses, regra, custo_equipe: equipe.map(reais), linhas, prejuizo: linhas.filter((l) => l.margem < 0 && !l.sem_receita).sort((a, b) => a.margem - b.margem),
+      sem_receita: linhas.filter((l) => l.sem_receita) };
   }
 
   // ---------- A receber por idade (aging) ----------
   // porCliente: as linhas de X.porCliente (meses com em_aberto e a_receber); contratos para o dia do vencimento.
   const FAIXAS = Object.freeze([{ id: 'em_dia', nome: 'Em dia', ate: 0 }, { id: 'd30', nome: '1 a 30 dias', ate: 30 }, { id: 'd60', nome: '31 a 60 dias', ate: 60 }, { id: 'd90', nome: '61 a 90 dias', ate: 90 }, { id: 'd90mais', nome: 'Mais de 90 dias', ate: Infinity }]);
-  function aging(porCliente = [], contratos = [], { hoje }) {
+  // A receber só existe com o que é sabido: o contrato (previsto) ou o que foi marcado em aberto. Cliente sem contrato não
+  // ganha vencido inventado (X.porCliente já não prevê nada para ele). semCliente: { 'AAAA-MM': entradas de cliente sem dizer
+  // de quem } — uma mensalidade "vencida" num mês com dinheiro de cliente não identificado pode já ter sido paga: fica
+  // como incerta (fora do vencido, contada à parte) até alguém ligar a entrada ao cliente.
+  function aging(porCliente = [], contratos = [], { hoje, semCliente = null } = {}) {
     const ct = new Map(contratos.map((c) => [String(c.cliente_id), c]));
     const itens = [];
     for (const l of porCliente) for (const m of l.meses || []) {
@@ -202,12 +238,20 @@
       const vence = vencimento(ct.get(String(l.cliente_id)), m.mes);
       const atraso = Math.max(0, diasEntre(vence, hoje));
       const faixa = atraso === 0 ? 'em_dia' : FAIXAS.find((f) => f.id !== 'em_dia' && atraso <= f.ate).id;
-      itens.push({ cliente_id: String(l.cliente_id), cliente_nome: l.cliente_nome, mes: m.mes, vence, atraso_dias: atraso, valor: reais(v), faixa });
+      itens.push({ cliente_id: String(l.cliente_id), cliente_nome: l.cliente_nome, mes: m.mes, vence, atraso_dias: atraso, valor: reais(v), faixa, incerto: false });
+    }
+    if (semCliente) {
+      const pote = new Map(Object.entries(semCliente).map(([k, v]) => [k, centavos(v)]));
+      for (const i of itens.filter((x) => x.atraso_dias > 0).sort((a, b) => a.valor - b.valor)) {
+        const livre = pote.get(i.mes) || 0, v = centavos(i.valor);
+        if (livre >= v) { i.incerto = true; pote.set(i.mes, livre - v); }
+      }
     }
     itens.sort((a, b) => b.atraso_dias - a.atraso_dias || b.valor - a.valor);
     const faixas = FAIXAS.map((f) => { const l = itens.filter((i) => i.faixa === f.id); return { id: f.id, nome: f.nome, total: reais(l.reduce((s, i) => s + centavos(i.valor), 0)), quantos: l.length, itens: l }; });
-    const vencido = itens.filter((i) => i.atraso_dias > 0);
+    const vencido = itens.filter((i) => i.atraso_dias > 0 && !i.incerto), incertos = itens.filter((i) => i.atraso_dias > 0 && i.incerto);
     return { faixas, itens, total: reais(itens.reduce((s, i) => s + centavos(i.valor), 0)), vencido: reais(vencido.reduce((s, i) => s + centavos(i.valor), 0)),
+      vencido_incerto: reais(incertos.reduce((s, i) => s + centavos(i.valor), 0)), incertos: incertos.length,
       atraso_medio_dias: vencido.length ? Math.round(media(vencido.map((i) => i.atraso_dias))) : 0 };
   }
   // Quantos dias depois do vencimento os clientes pagaram (o "atraso médio" do cenário pessimista).
@@ -338,30 +382,112 @@
     });
     return { total, por_categoria: Object.fromEntries([...porCat].map(([k, v]) => [k, reais(Math.round(v / Math.max(1, meses.length)))])) };
   }
-  // As entradas que não vêm de contrato (rendimento, outra entrada, cliente sem contrato), média por mês.
+  // ---------- A receita da base (fin2, 26/11/2026) ----------
+  // O que conta como entrada que se repete: receita (cliente, boleto, outra, rendimento) e o que ainda está "a classificar"
+  // (quase sempre um Pix de cliente). Fora: aporte de sócio, empréstimo recebido, devolução de vale e transferência.
+  const entradaDaReceita = (p) => Number(p.valor) > 0 && (LINHA_DA[p.categoria] === 'receita' || p.categoria === 'a_classificar');
+  const ehDeCliente = (p) => ['receita_cliente', 'receita_boleto', 'a_classificar'].includes(p.categoria);
+  // As entradas que não vêm de contrato (rendimento, outra entrada, cliente sem contrato, cliente não identificado), por mês.
+  // Antes (até a fin2), a entrada de cliente sem dizer de quem era descartada quando havia um contrato cadastrado: com 1
+  // contrato em 15 clientes, a projeção ficava só com o contrato e dava o alarme falso de caixa negativo.
   function entradasForaDeContrato(lista = [], meses = [], contratos = []) {
     const comContrato = new Set(contratos.filter((c) => Number(c.valor_mensal) > 0).map((c) => String(c.cliente_id)));
     return meses.map((mes) => {
       let v = 0;
       for (const t of lista) if (t.banco.data.startsWith(mes)) for (const p of X.pedacos(t)) {
-        if (!(Number(p.valor) > 0)) continue;
-        if (LINHA_DA[p.categoria] !== 'receita') continue;
-        // A mensalidade de quem tem contrato já entra pelo contrato; o resto (rendimento, avulso, cliente sem contrato) é média.
-        if (p.cliente_id && comContrato.has(String(p.cliente_id))) continue;
-        if (!p.cliente_id && ['receita_cliente', 'receita_boleto'].includes(p.categoria) && comContrato.size) continue; // sem dizer de quem: conta como mensalidade
+        if (!entradaDaReceita(p)) continue;
+        if (p.cliente_id && comContrato.has(String(p.cliente_id))) continue; // a mensalidade de quem tem contrato entra pelo contrato
         v += centavos(p.valor);
       }
       return reais(v);
     });
   }
+  // Entradas de cliente sem dizer de quem, pela competência (o a receber usa para não chamar de vencido o que pode estar pago).
+  function semClientePorMes(lista = []) {
+    const out = {};
+    for (const t of lista) for (const p of X.pedacos(t)) {
+      if (!entradaDaReceita(p) || !ehDeCliente(p) || p.cliente_id) continue;
+      const m = ehMes(p.competencia) ? p.competencia : p.data.slice(0, 7);
+      out[m] = reais(centavos(out[m] || 0) + centavos(p.valor));
+    }
+    return out;
+  }
+  // A base da receita projetada, cliente a cliente:
+  //   com contrato           → o contrato (como antes)
+  //   ativo sem contrato     → a média mensal recebida dele nos meses fechados ("estimado pelo extrato")
+  //   cliente que saiu       → nada (motivo explícito: perda_explicita)
+  //   sem cliente / não é de cliente → a média histórica dessas entradas, menos a mensalidade de quem tem contrato e não
+  //                            aparece identificado no extrato (o dinheiro dele provavelmente está aqui: não conta duas vezes)
+  // MRR estimado = contratos + clientes sem contrato que pagaram em 2+ meses da base + a média das entradas de cliente sem
+  // dizer de quem (Pix/boleto de cliente ainda não ligado). Rendimento e outra entrada ficam fora do MRR.
+  // E a cobertura: quantos clientes ativos têm contrato e quanto da receita recente os contratos explicam.
+  // clientes_ativos: [{ cliente_id, cliente_nome }] (null = não se sabe: todo cliente identificado conta como ativo).
+  function receitaDaBase(lista = [], mesesBase = [], contratos = [], { clientes_ativos = null, mes = '' } = {}) {
+    const n = mesesBase.length, base = new Set(mesesBase);
+    const cts = contratos.filter((c) => Number(c.valor_mensal) > 0 && c.ativo !== false);
+    const comContrato = new Map(cts.map((c) => [String(c.cliente_id), c]));
+    const ativos = Array.isArray(clientes_ativos) ? new Map(clientes_ativos.map((c) => [String(c.cliente_id ?? c.id), c.cliente_nome ?? c.nome ?? ''])) : null;
+    const mesRef = ehMes(mes) ? mes : (mesesBase[n - 1] || '');
+    let total = 0, semCli = 0, naoCliente = 0;
+    const porCli = new Map();
+    for (const t of lista) {
+      const m = t.banco.data.slice(0, 7);
+      if (!base.has(m)) continue;
+      for (const p of X.pedacos(t)) {
+        if (!entradaDaReceita(p)) continue;
+        const v = centavos(p.valor); total += v;
+        if (p.cliente_id) {
+          const k = String(p.cliente_id), c = porCli.get(k) || { nome: '', meses: new Map(), dias: [] };
+          c.nome = c.nome || p.cliente_nome || ''; c.meses.set(m, (c.meses.get(m) || 0) + v); c.dias.push(Number(p.data.slice(8, 10)) || 0); porCli.set(k, c);
+        } else if (ehDeCliente(p)) semCli += v; else naoCliente += v;
+      }
+    }
+    const div = Math.max(1, n);
+    const estimados = [];
+    let recebidoContratados = 0, saiu = 0;
+    for (const [id, c] of porCli) {
+      const soma = [...c.meses.values()].reduce((s, v) => s + v, 0);
+      if (comContrato.has(id)) { recebidoContratados += soma; continue; }
+      if (ativos && !ativos.has(id)) { saiu += soma; continue; }
+      const pagos = [...c.meses.values()].filter((v) => v > 0).length;
+      const dias = c.dias.filter(Boolean).sort((a, b) => a - b);
+      estimados.push({ cliente_id: id, cliente_nome: c.nome || ativos?.get(id) || 'Cliente', media: reais(Math.round(soma / div)), meses_pagos: pagos,
+        recorrente: n > 0 && pagos >= Math.min(2, n), dia: dias.length ? dias[Math.floor(dias.length / 2)] : null,
+        por_mes: Object.fromEntries(mesesBase.map((x) => [x, reais(c.meses.get(x) || 0)])) });
+    }
+    estimados.sort((a, b) => b.media - a.media);
+    // Quem tem contrato e não aparece identificado: a mensalidade dele sai da média das entradas sem cliente.
+    const deduzir = cts.filter((c) => !porCli.has(String(c.cliente_id))).reduce((s, c) => s + centavos(valorNoMes(c, mesRef) || c.valor_mensal), 0);
+    const semCliMedia = Math.round(semCli / div), deduzido = Math.min(semCliMedia, deduzir);
+    const outras = semCliMedia - deduzido + Math.round(naoCliente / div);
+    const mrrContrato = cts.reduce((s, c) => s + centavos(valorNoMes(c, mesRef)), 0);
+    const estMedia = estimados.reduce((s, e) => s + centavos(e.media), 0), estRec = estimados.filter((e) => e.recorrente).reduce((s, e) => s + centavos(e.media), 0);
+    const mediaTotal = n ? Math.round(total / n) : 0;
+    // Cobertura: clientes ativos com contrato, e quanto da receita recente os contratos explicam.
+    const nAtivos = ativos ? ativos.size : comContrato.size + estimados.length;
+    const nComContrato = ativos ? [...ativos.keys()].filter((id) => comContrato.has(id)).length : comContrato.size;
+    const pct = mediaTotal > 0 ? Math.min(100, Math.round(mrrContrato / mediaTotal * 100)) : null;
+    const cobertura = { ativos: nAtivos, com_contrato: nComContrato, sem_contrato: Math.max(0, nAtivos - nComContrato), pct_receita: pct,
+      texto: nAtivos ? `${nComContrato} de ${nAtivos} ${nAtivos === 1 ? 'cliente ativo' : 'clientes ativos'} com contrato cadastrado` : 'nenhum cliente ativo' };
+    return { meses: mesesBase.slice(), media_recente: reais(mediaTotal), mrr_contrato: reais(mrrContrato), estimados, recorrentes: estimados.filter((e) => e.recorrente),
+      estimado_media: reais(estMedia), estimado_recorrente: reais(estRec), sem_identificar: reais(semCliMedia - deduzido),
+      mrr_estimado: reais(mrrContrato + estRec + semCliMedia - deduzido), outras: reais(outras), sem_cliente: reais(semCliMedia),
+      nao_cliente: reais(Math.round(naoCliente / div)), deduzido: reais(deduzido), saiu: reais(Math.round(saiu / div)), recebido_contratados: reais(Math.round(recebidoContratados / div)),
+      projetada: reais(mrrContrato + estMedia + outras), cobertura };
+  }
 
   // ---------- Projeção em três cenários ----------
   // p = { hoje, saldo_hoje, lista, meses_base (os meses fechados usados), contratos (ativos, com dia/fim/reajuste),
-  //       fixos, salarios, itensCartao, risco: Set(cliente_id) em risco alto, pipeline: [{ nome, valor_mensal, valor_avulso, chance }],
-  //       horizonte (meses, até 12), cenario (o "E se" por cima do base) }
-  // Dia a dia: a mensalidade entra no dia do vencimento (no pessimista, com o atraso médio); o fixo sai no dia dele; o
-  // salário combinado no dia 5; o variável espalhado pelos dias do mês. Devolve por cenário os meses (saldo no fim do mês,
-  // menor saldo do mês), o primeiro dia negativo e o fôlego (quantos meses até o caixa ficar negativo).
+  //       clientes_ativos: [{ cliente_id, cliente_nome }] (para a receita da base e a cobertura; sem ele, todo cliente
+  //       identificado no extrato conta como ativo), fixos, salarios, itensCartao, risco: Set(cliente_id) em risco alto,
+  //       pipeline: [{ nome, valor_mensal, valor_avulso, chance }], horizonte (meses, até 12), cenario (o "E se" por cima do base) }
+  // Dia a dia: a mensalidade de contrato entra no dia do vencimento (no pessimista, com o atraso médio); o cliente sem
+  // contrato entra pela média dele no extrato, no dia em que costuma pagar; o resto das entradas pela média, espalhado; o
+  // fixo sai no dia dele; o salário combinado no dia 5; o variável espalhado pelos dias do mês. Devolve por cenário os
+  // meses (saldo no fim do mês, menor saldo do mês), o primeiro dia negativo e o fôlego (meses até o caixa ficar negativo).
+  // Regra geral (fin2): sem motivo explícito (contrato que termina ou reduz, cliente que saiu, cliente perdido no "E se",
+  // cliente em risco no pessimista), a receita do mês não fica abaixo de 90% da média real recente: a diferença entra como
+  // "complemento pela média" e aparece nas premissas.
   function projecao3(p = {}) {
     const hoje = ehDia(p.hoje) ? p.hoje : new Date().toISOString().slice(0, 10);
     const H = Math.max(1, Math.min(12, Number(p.horizonte) || 12));
@@ -370,41 +496,52 @@
     const fixos = (p.fixos || []).filter((f) => f.ativo !== false);
     const comb = Object.values(p.salarios || {}).filter((s) => s && !s.fora && Number(s.valor) > 0).map((s) => ({ valor: Number(s.valor), desde: s.desde || '' }));
     const det = variaveisDetalhe(lista, mesesBase, { fixos: p.fixos || [], itensCartao: p.itensCartao || [], salarios: p.salarios || {} }), vars = det.total;
-    const outras = entradasForaDeContrato(lista, mesesBase, contratos);
+    const inicio = somarMeses(hoje.slice(0, 7), 0);
+    const rb = receitaDaBase(lista, mesesBase, contratos, { clientes_ativos: p.clientes_ativos || null, mes: inicio });
     const semContratos = !contratos.length;
-    // Sem contrato cadastrado, a entrada vem da média do que entrou (não dá para saber o dia: entra espalhada).
-    const mediaEntradas = mesesBase.length ? media(mesesBase.map((m) => centavos(X.resumo(lista, { mes: m }).entradas))) : 0;
     const varBase = centavos(media(vars)), varAlto = centavos(vars.length >= 3 ? percentil(vars, 0.8) : media(vars) * 1.15);
-    const outrasMedia = semContratos ? 0 : centavos(media(outras));
+    const outrasMedia = centavos(rb.outras), mediaRecente = centavos(rb.media_recente), saiu = centavos(rb.saiu);
     const atraso = Number.isFinite(p.atraso_medio) ? p.atraso_medio : 10;
     const risco = p.risco instanceof Set ? p.risco : new Set((p.risco || []).map(String));
     const pipe = (p.pipeline || []).filter((o) => Number(o.valor_mensal) > 0 || Number(o.valor_avulso) > 0);
     const c = p.cenario || {};
-    const inicio = somarMeses(hoje.slice(0, 7), 0);
     const meses = Array.from({ length: H }, (_, i) => somarMeses(inicio, i));
-    const maior = contratos.slice().sort((a, b) => Number(b.valor_mensal) - Number(a.valor_mensal))[0] || null;
+    // O maior cliente ("perder o maior"): o maior contrato ou o maior cliente estimado pelo extrato.
+    const maior = [...contratos.map((ct) => ({ cliente_id: String(ct.cliente_id), cliente_nome: ct.cliente_nome || '', valor: Number(valorNoMes(ct, inicio)) || Number(ct.valor_mensal) || 0, estimado: false })),
+      ...rb.estimados.map((e) => ({ cliente_id: e.cliente_id, cliente_nome: e.cliente_nome, valor: e.media, estimado: true }))].sort((a, b) => b.valor - a.valor)[0] || null;
     const passou = (i, a) => i + 1 >= Math.max(1, Number(a) || 1);
+    const sai = (id, i, tipo) => (c.perder_maior && maior && String(id) === maior.cliente_id && passou(i, c.perder_maior_a_partir || 1))
+      || (c.clientes_perdidos || []).some((x) => String(x.cliente_id || '') === String(id) && passou(i, x.a_partir))
+      || (tipo === 'pessimista' && risco.has(String(id)) && i >= 1); // o cliente em risco sai depois do mês que vem
+    const aumento = (id, i, v) => { for (const a of c.aumentar || []) if (String(a.cliente_id) === String(id) && passou(i, a.a_partir)) v = Math.round(v * (1 + (Number(a.pct) || 0) / 100)); return v; };
+    // O piso de cada mês: 90% da média recente, menos o que tem motivo explícito para sair (quem saiu, contrato que acaba ou
+    // reduz). O que faltar para o piso entra como complemento pela média.
+    const estMedia = centavos(rb.estimado_media);
+    const complemento = meses.map((mes) => {
+      let comp = estMedia + outrasMedia, perda = saiu;
+      for (const ct of contratos) { const ref = centavos(valorNoMes(ct, inicio)), v = centavos(valorNoMes(ct, mes)); comp += v; if (ref > v) perda += ref - v; }
+      return Math.max(0, Math.round(mediaRecente * 0.9) - perda - comp);
+    });
 
     function rodar(tipo) {
       let saldo = centavos(p.saldo_hoje || 0);
       let empurrado = []; // mensalidade que o atraso jogou para o mês seguinte: [{ dia, v }]
       let negativo = null, folego = null;
+      const fator = tipo === 'pessimista' ? 0.85 : 1; // o que vem pela média do extrato entra 15% menor no pessimista
       const out = [];
       meses.forEach((mes, i) => {
         const nDias = ultimoDia(mes), dia0 = mes === hoje.slice(0, 7) ? Number(hoje.slice(8, 10)) + 1 : 1;
         const fluxo = new Array(nDias + 1).fill(0); // fluxo[d] = o que entra − o que sai no dia d
-        let entra = 0, sai = 0;
-        const pos = (dia, v) => { const d = Math.max(dia0, Math.min(nDias, dia)); fluxo[d] += v; if (v > 0) entra += v; else sai += -v; };
+        let entra = 0, saiMes = 0;
+        const pos = (dia, v) => { const d = Math.max(dia0, Math.min(nDias, dia)); fluxo[d] += v; if (v > 0) entra += v; else saiMes += -v; };
         const posDia = (dia, v) => { if (dia >= dia0) pos(dia, v); }; // o que já passou neste mês não entra de novo
+        // Espalhado pelos dias, em centavos exatos (a soma do mês fecha com o valor).
+        const espalhar = (v) => { for (let d = 1; d <= nDias; d++) { const q = Math.floor(v * d / nDias) - Math.floor(v * (d - 1) / nDias); if (q) posDia(d, q); } };
         for (const e of empurrado) pos(e.dia, e.v);
         const proximo = [];
-        if (semContratos) for (let d = 1; d <= nDias; d++) posDia(d, Math.round(mediaEntradas * (tipo === 'pessimista' ? 0.85 : 1) / nDias));
         for (const ct of contratos) {
-          if (c.perder_maior && maior && String(ct.cliente_id) === String(maior.cliente_id) && passou(i, c.perder_maior_a_partir || 1)) continue;
-          if ((c.clientes_perdidos || []).some((x) => String(x.cliente_id || '') === String(ct.cliente_id) && passou(i, x.a_partir))) continue;
-          if (tipo === 'pessimista' && risco.has(String(ct.cliente_id)) && i >= 1) continue; // o cliente em risco sai depois do mês que vem
-          let v = centavos(valorNoMes(ct, mes));
-          for (const a of c.aumentar || []) if (String(a.cliente_id) === String(ct.cliente_id) && passou(i, a.a_partir)) v = Math.round(v * (1 + (Number(a.pct) || 0) / 100));
+          if (sai(ct.cliente_id, i, tipo)) continue;
+          const v = aumento(ct.cliente_id, i, centavos(valorNoMes(ct, mes)));
           if (!v) continue;
           const vd = Number(vencimento(ct, mes).slice(8, 10));
           if (vd < dia0) continue; // venceu antes de hoje neste mês: ou já entrou (está no saldo), ou é atraso (A receber)
@@ -413,7 +550,15 @@
           else pos(venc, v);
         }
         empurrado = proximo;
-        for (let d = 1; d <= nDias; d++) posDia(d, Math.round(outrasMedia / nDias));
+        // Cliente ativo sem contrato: a média dele no extrato, no dia em que costuma pagar (sem dia conhecido, espalhada).
+        for (const e of rb.estimados) {
+          if (sai(e.cliente_id, i, tipo)) continue;
+          const v = Math.round(aumento(e.cliente_id, i, centavos(e.media)) * fator);
+          if (!v) continue;
+          if (e.dia) posDia(Math.min(nDias, e.dia), v); else espalhar(v);
+        }
+        // O resto (sem cliente identificado, rendimento, outra entrada) e o complemento até o piso, pela média, espalhados.
+        espalhar(Math.round((outrasMedia + complemento[i]) * fator));
         if (tipo === 'otimista') for (const o of pipe) {
           if (i < 1) continue; // fechar leva um mês
           const ch = Math.max(0, Math.min(1, Number(o.chance) || 0));
@@ -432,7 +577,7 @@
         // Corte por categoria: tira a parte daquela categoria na média do variável.
         const corte = (c.cortes || []).reduce((s, x) => s + Math.round(centavos(det.por_categoria[x.categoria] || 0) * Math.max(0, Math.min(100, Number(x.percentual) || 0)) / 100), 0);
         const vMes = Math.max(0, (tipo === 'pessimista' ? varAlto : varBase) - corte);
-        for (let d = 1; d <= nDias; d++) posDia(d, -Math.round(vMes / nDias));
+        espalhar(-vMes);
         const ajuste = 1 + (Number(c.ajuste_entradas_pct) || 0) / 100;
         let menor = saldo;
         for (let d = dia0; d <= nDias; d++) {
@@ -442,17 +587,21 @@
           if (negativo == null && saldo < 0) negativo = `${mes}-${String(d).padStart(2, '0')}`;
         }
         if (folego == null && saldo < 0) folego = i;
-        out.push({ mes, entradas: reais(Math.round(entra * ajuste)), saidas: reais(sai), resultado: reais(Math.round(entra * ajuste) - sai), saldo: reais(saldo), menor_saldo: reais(menor) });
+        out.push({ mes, entradas: reais(Math.round(entra * ajuste)), saidas: reais(saiMes), resultado: reais(Math.round(entra * ajuste) - saiMes), saldo: reais(saldo), menor_saldo: reais(menor) });
       });
       return { tipo, meses: out, saldo_final: out.length ? out[out.length - 1].saldo : reais(saldo), primeiro_dia_negativo: negativo,
         folego_meses: folego == null ? null : folego, menor_saldo: out.length ? Math.min(...out.map((m) => m.menor_saldo)) : 0 };
     }
     const cen = { pessimista: rodar('pessimista'), base: rodar('base'), otimista: rodar('otimista') };
-    const conf = confianca(mesesBase.length);
-    return { meses, horizonte: H, ...cen, confianca: conf,
+    const conf = confianca(mesesBase.length, { cobertura_pct: rb.cobertura.pct_receita, sem_contrato: rb.cobertura.sem_contrato });
+    const proxIdx = meses.length > 1 ? 1 : 0; // o primeiro mês inteiro
+    return { meses, horizonte: H, ...cen, confianca: conf, receita_base: rb,
       premissas: { variaveis_base: reais(varBase), variaveis_alto: reais(varAlto), outras_entradas: reais(outrasMedia), atraso_medio_dias: atraso, em_risco: [...risco], pipeline: pipe.length,
         pipeline_ponderado: reais(pipe.reduce((s, o) => s + Math.round(centavos(o.valor_mensal) * (Number(o.chance) || 0)), 0)), entradas_pela_media: semContratos,
-        fixos: reais(fixos.filter((f) => X.fixoVigente(f, inicio)).reduce((s, f) => s + centavos(f.valor), 0)), combinados: reais(comb.reduce((s, x) => s + centavos(x.valor), 0)), meses_base: mesesBase } };
+        fixos: reais(fixos.filter((f) => X.fixoVigente(f, inicio)).reduce((s, f) => s + centavos(f.valor), 0)), combinados: reais(comb.reduce((s, x) => s + centavos(x.valor), 0)), meses_base: mesesBase,
+        receita: { media_recente: rb.media_recente, contratos: rb.mrr_contrato, estimados: rb.estimado_media, clientes_estimados: rb.estimados.length, outras: rb.outras, deduzido: rb.deduzido,
+          saiu: rb.saiu, complemento: reais(complemento[proxIdx] || 0), projetada: reais(centavos(rb.projetada) + (complemento[proxIdx] || 0)) },
+        cobertura: rb.cobertura, maior_cliente: maior } };
   }
 
   // ---------- Ponto de equilíbrio ----------
@@ -560,6 +709,15 @@
         impacto: Math.abs(pj.base.menor_saldo), texto: `No cenário base, o caixa fica negativo${pj.base.primeiro_dia_negativo ? ` em ${pj.base.primeiro_dia_negativo.split('-').reverse().join('/')}` : ''}.`,
         fazer: `Cobrir ${rs(pj.base.menor_saldo)} até lá: cobrar o que está vencido, adiar um gasto ou trazer receita nova.`, aba: 'fin_projecao' });
     }
+    // Contratos sem cadastro (fin2): com menos de 70% da receita recente explicada por contrato, a projeção e o MRR vivem da
+    // média do extrato. O impacto é o que entra por mês de quem não tem contrato.
+    const cob = pj?.receita_base?.cobertura || ctx.mrr?.cobertura;
+    if (cob && cob.sem_contrato > 0 && cob.pct_receita != null && cob.pct_receita < 70) {
+      const semValor = reais(Math.max(0, centavos(pj?.receita_base?.media_recente || 0) - centavos(pj?.receita_base?.mrr_contrato || 0)));
+      out.push({ g: 2, id: 'contratos_cobertura', rot: 'Contratos sem cadastro', det: cob.texto, impacto: semValor,
+        texto: `${cob.com_contrato ? `Só ${cob.com_contrato} de ${cob.ativos} clientes ativos ${cob.com_contrato === 1 ? 'tem' : 'têm'}` : `Nenhum dos ${cob.ativos} clientes ativos tem`} contrato cadastrado. A projeção usa a média do extrato para os outros ${cob.sem_contrato}.`,
+        fazer: 'Cadastre o contrato de cada cliente em Clientes: valor por mês, dia do vencimento e início.', aba: 'fin_clientes' });
+    }
     const m = ctx.mrr;
     if (m?.meses?.length >= 2) {
       const a = m.meses[m.meses.length - 1], b = m.meses[Math.max(0, m.meses.length - 3)];
@@ -583,7 +741,7 @@
   }
 
   const api = Object.freeze({ confianca, vigente, valorNoMes, vencimento, LINHAS_DRE, LINHA_DA, dre, recorrente, margemClientes, FAIXAS, aging, atrasoMedioPago, GRUPOS_ORCAMENTO, realPorGrupo,
-    orcadoReal, copiarOrcamento, sugerirOrcamento, checklistFechamento, resumoContabil, historico, variaveisPorMes, variaveisDetalhe, entradasForaDeContrato, projecao3, equilibrio, metas, lote, regraDaConfirmacao,
+    orcadoReal, copiarOrcamento, sugerirOrcamento, checklistFechamento, resumoContabil, historico, variaveisPorMes, variaveisDetalhe, entradasForaDeContrato, semClientePorMes, receitaDaBase, projecao3, equilibrio, metas, lote, regraDaConfirmacao,
     repetidas, extratoParado, achados, mesesEntre, percentil });
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else raiz.VybeFinancasAnalises = api;
