@@ -252,3 +252,46 @@ test('Direção de arte: carga do time, fila do parecer e taxa de alteração', 
   assert.deepEqual(carga, ['Deivid', 'Jady'], 'só o time de design');
   delete C.EQUIPES;
 });
+
+test('Clientes: nota da carteira, piores com motivo, saídas e receita só para dono', async () => {
+  const cart = { sinais: null, clima: null, historico: { meses: [{ mes: '2026-09-01', media: 80, clientes: 4, alto: 0 }, { mes: '2026-10-01', media: 78, clientes: 4, alto: 0 }, { mes: '2026-11-01', media: 70, clientes: 4, alto: 1 }] },
+    clientes: [{ id: '9', nome: 'Velha', entrada: '2025-01-10', saida: '2026-11-12', valor: 3000 }, { id: '10', nome: 'Nova', entrada: '2026-11-03' }], churn: { registros: [{ cliente_id: '9', motivo: 'preco', receita_mensal: 3000 }] } };
+  const api = async (area, p) => (area === 'carteira' && !p ? cart : area === 'carteira' ? { etapas: [{ cliente: 'Nova', etapa: 'Kickoff', pct: 20, diasParada: 9 }] } : null);
+  const r = await gerar('clientes', { api });
+  assert.equal(r.agente.nome, 'Mateus');
+  assert.equal(r.numeros.find((n) => n.rotulo === 'Saídas no período').valor, '1');
+  assert.equal(r.numeros.find((n) => n.rotulo === 'Onboardings parados').valor, '1');
+  assert.ok(r.numeros.find((n) => n.rotulo === 'Receita mensal perdida').valor.includes('3.000'));
+  const lista = r.secoes.find((s) => s.titulo === 'Clientes da nota mais baixa para a mais alta');
+  assert.equal(lista.tabela.linhas.length, 4);
+  assert.ok(Number(lista.tabela.linhas[0][1]) <= Number(lista.tabela.linhas[3][1]), 'da nota mais baixa para a mais alta');
+  assert.equal(r.historico.tabela.linhas.length, 3);
+  // Quem não é dono: sem a receita (número e coluna).
+  const e = json((await C.VybeRelatorio.relatorioDe('clientes', { hoje: HOJE, acesso: EQUIPE, dados: DADOS, api })).rel);
+  assert.ok(!e.numeros.some((n) => n.rotulo === 'Receita mensal perdida'));
+  const mov = e.secoes.find((s) => s.titulo === 'Entradas e saídas');
+  assert.ok(!mov.tabela.colunas.some((c) => (c.rotulo || c) === 'Receita mensal'));
+  assert.ok(!JSON.stringify(e).includes('3.000'), 'nem o valor solto');
+});
+
+test('Mídia: só dono; investimento, sinais do Ícaro, contas sem ligação e rotina', async () => {
+  const fichas = { '1': { estado: 'ok', investido: 2000, investido_anterior: 1000, resultados: 40, conversas: 40, custo_resultado: 50, frequencia: 3.4, sinal: { tom: 'a', motivo: 'Frequência 3,4.' }, campanhas: [{ nome: 'Black', investido: 1500, resultados: 30, custo_resultado: 50 }] },
+    '2': { estado: 'ok', investido: 500, investido_anterior: 900, resultados: 0, conversas: 0, sinal: { tom: 'r', motivo: 'Investiu e não teve resultado no período.' } }, '3': { estado: 'sem_conta' } };
+  const api = async (area, p) => {
+    if (area !== 'midia') return null;
+    if (p.acao === 'carteira') return { clientes: [{ id: '1', nome: 'VOA' }, { id: '2', nome: 'Gonzalez' }, { id: '3', nome: 'Alpha1' }] };
+    if (p.acao === 'cliente') return { meta: fichas[p.cliente_id] };
+    if (p.acao === 'historico') return { semanas: [1, 2, 3, 4].map((k) => ({ de: `2026-10-0${k}`, investido: 100 * k, resultados: k })) };
+    if (p.acao === 'rotina') return { fixos: [{ chave: 'diario_gastos', titulo: 'Conferir o gasto' }, { chave: 'diario_pagamentos', titulo: 'Conferir saldo' }], checks: [{ chave: 'diario_gastos' }], historico: [{ dia: '2026-11-25', feitos: 2, quem: ['Ewerton'] }] };
+    return null;
+  };
+  await assert.rejects(() => C.VybeRelatorio.relatorioDe('midia', { hoje: HOJE, acesso: { dono: true, dinheiro: false }, dados: DADOS, api }), /Sem acesso/);
+  const r = await gerar('midia', { api });
+  assert.equal(r.agente.nome, 'Ícaro');
+  assert.match(r.numeros[0].valor, /2\.500/);
+  assert.equal(r.numeros.find((n) => n.rotulo === 'Contas que pedem ação').valor, '1');
+  assert.equal(r.numeros.find((n) => n.rotulo === 'Sem conta ligada').valor, '1');
+  assert.equal(r.numeros.find((n) => n.rotulo === 'Rotina de hoje').valor, '1 de 2');
+  assert.match(r.recomendacoes.map((x) => x.o_que).join(' '), /Revisar a conta de Gonzalez/);
+  assert.match(r.recomendacoes.map((x) => x.o_que).join(' '), /Trocar o criativo .*VOA/);
+});
