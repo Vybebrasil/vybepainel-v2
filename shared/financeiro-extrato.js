@@ -90,7 +90,7 @@
     { id: 'pix-automatico', quando: { contem: 'pix automatico', sinal: 'saida' }, categoria: 'ferramentas', revisar: true },
   ]);
 
-  // ---------- Leitura do CSV do Banco do Brasil PJ ----------
+  // ---------- Leitura do CSV do extrato da conta PJ (o de 14/11/2026 é do Santander) ----------
   // Formato (export "extrato-pj-*.csv"): já decodificado de Windows-1252 por quem chama (o navegador lê com
   // TextDecoder('windows-1252'); o Node com o mesmo TextDecoder). Separador ';', campos entre aspas, valor com vírgula
   // decimal e ponto de milhar. Primeira linha: AGENCIA;"x";CONTA;"y". Depois o cabeçalho
@@ -121,32 +121,116 @@
     return m ? `${m[3]}-${m[2]}-${m[1]}` : '';
   }
   const SALDO = /^(saldo|s a l d o|saldo anterior|saldo do dia)/i;
+  // O banco da Vybe é o Santander (o extrato importado em 14/11/2026 veio dele: agência, conta e Data;Histórico;
+  // Documento;Valor;Saldo). O nome lerCsvBB ficou do começo e continua por compatibilidade. As colunas saem do
+  // cabeçalho: além do formato acima, aceita "Descrição"/"Lançamento" no lugar de Histórico, "Docto" no de Documento e
+  // Crédito + Débito separados no lugar de Valor. Separador ';' (o do banco) ou ','.
+  function colunasDoCabecalho(f) {
+    const n = f.map((x) => semAcento(x).replace(/\(r\$\)|r\$/g, '').replace(/[^a-z]/g, ''));
+    const ach = (...nomes) => n.findIndex((x) => nomes.some((k) => x === k || x.startsWith(k)));
+    return { data: ach('data'), hist: ach('historico', 'descricao', 'lancamento'), doc: ach('documento', 'docto', 'numerodocumento'), valor: ach('valor'),
+      credito: ach('credito', 'entrada'), debito: ach('debito', 'saida'), saldo: ach('saldo') };
+  }
   function lerCsvBB(texto) {
-    const linhas = String(texto || '').replace(/^﻿/, '').split(/\r?\n/);
-    const out = { agencia: '', conta: '', lancamentos: [], ignorados: [], avisos: [] };
+    const limpo = String(texto || '').replace(/^﻿/, '');
+    const linhas = limpo.split(/\r?\n/);
+    const out = { agencia: '', conta: '', lancamentos: [], ignorados: [], avisos: [], formato: 'csv' };
     let cabecalho = false;
+    let col = { data: 0, hist: 1, doc: 2, valor: 3, credito: -1, debito: -1, saldo: 4 };
     const porDia = new Map();
+    const sep = !limpo.includes(';') && limpo.includes(',') ? ',' : ';';
+    const partir = (l) => (sep === ';' ? campos(l) : campos(l.replace(/"([^"]*)"/g, (m, x) => `"${x.replace(/,/g, '\u0001')}"`).replace(/,/g, ';')).map((x) => x.replace(/\u0001/g, ',')));
     linhas.forEach((bruta, i) => {
       if (!bruta.trim()) return;
-      const f = campos(bruta);
+      const f = partir(bruta);
       if (/^agencia$/i.test(semAcento(f[0]))) { out.agencia = f[1] || ''; out.conta = f[3] || ''; return; }
-      if (/^data$/i.test(f[0])) { cabecalho = true; return; }
-      const data = dataBR(f[0]);
+      if (/^data/i.test(semAcento(f[0]))) {
+        cabecalho = true;
+        const c = colunasDoCabecalho(f);
+        if (c.data >= 0 && c.hist >= 0 && (c.valor >= 0 || (c.credito >= 0 && c.debito >= 0))) col = c;
+        return;
+      }
+      const data = dataBR(f[col.data]);
       if (!data) { out.ignorados.push({ linha: i + 1, motivo: 'sem data' }); return; }
-      const historico = f[1] || '';
+      const historico = f[col.hist] || '';
       if (SALDO.test(semAcento(historico))) { out.ignorados.push({ linha: i + 1, motivo: 'linha de saldo' }); return; }
-      const valor = numeroBR(f[3]);
+      let valor = col.valor >= 0 ? numeroBR(f[col.valor]) : null;
+      if (valor == null && col.credito >= 0) {
+        const cr = numeroBR(f[col.credito]), db = numeroBR(f[col.debito]);
+        valor = cr ? Math.abs(cr) : db ? -Math.abs(db) : null;
+      }
       if (valor == null || valor === 0) { out.ignorados.push({ linha: i + 1, motivo: 'sem valor' }); return; }
-      out.lancamentos.push({ data, historico, documento: f[2] || '', valor, saldo: numeroBR(f[4]) });
+      out.lancamentos.push({ data, historico, documento: col.doc >= 0 ? f[col.doc] || '' : '', valor, saldo: col.saldo >= 0 ? numeroBR(f[col.saldo]) : null });
     });
-    if (!cabecalho) out.avisos.push('Não achei o cabeçalho Data;Histórico;Documento;Valor;Saldo — o arquivo é o extrato PJ do Banco do Brasil?');
-    // O extrato do BB vem do mais novo para o mais antigo (e, no mesmo dia, do último para o primeiro). Guardamos do mais
+    if (!cabecalho) out.avisos.push('Não achei o cabeçalho Data;Histórico;Documento;Valor;Saldo. O arquivo é o extrato da conta PJ (CSV ou OFX)?');
+    // O extrato vem do mais novo para o mais antigo (e, no mesmo dia, do último para o primeiro). Guardamos do mais
     // antigo para o mais novo, com a ordem do dia (`ordem`), para o saldo do último lançamento ser o saldo do dia.
     const L = out.lancamentos;
     if (L.length > 1 && L[0].data > L[L.length - 1].data) L.reverse();
     L.sort((a, b) => a.data.localeCompare(b.data));
     for (const l of L) { const n = (porDia.get(l.data) || 0) + 1; porDia.set(l.data, n); l.ordem = n; }
     return out;
+  }
+  // OFX (o "Money"/OFX que o internet banking PJ do Santander exporta). SGML ou XML, sem pacote: cada <STMTTRN> vira um
+  // lançamento (DTPOSTED, TRNAMT, MEMO/NAME, FITID ou CHECKNUM). O OFX não traz o saldo linha a linha: ele sai do
+  // <LEDGERBAL> (saldo na data DTASOF) andando para trás, para o saldo do último lançamento ser o do banco.
+  function tagOfx(bloco, nome) {
+    const m = new RegExp(`<${nome}>([^<\\r\\n]*)`, 'i').exec(bloco);
+    return m ? m[1].trim().replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>') : '';
+  }
+  const dataOfx = (s) => { const m = /^(\d{4})(\d{2})(\d{2})/.exec(String(s || '')); return m ? `${m[1]}-${m[2]}-${m[3]}` : ''; };
+  const numeroOfx = (s) => { const t = String(s || '').trim().replace(/\s/g, ''); if (!t) return null; const n = Number(/,\d{1,2}$/.test(t) ? t.replace(/\./g, '').replace(',', '.') : t.replace(/,/g, '')); return Number.isFinite(n) ? n : null; };
+  const ehOfx = (texto) => /<OFX>|OFXHEADER:|<STMTTRN>/i.test(String(texto || '').slice(0, 4000)) || /<STMTTRN>/i.test(String(texto || ''));
+  function lerOfx(texto) {
+    const s = String(texto || '').replace(/^﻿/, '');
+    const out = { agencia: tagOfx(s, 'BRANCHID') || tagOfx(s, 'BANKID'), conta: tagOfx(s, 'ACCTID'), lancamentos: [], ignorados: [], avisos: [], formato: 'ofx' };
+    const blocos = s.split(/<STMTTRN>/i).slice(1).map((b) => b.split(/<\/STMTTRN>/i)[0]);
+    blocos.forEach((b, i) => {
+      const data = dataOfx(tagOfx(b, 'DTPOSTED')), valor = numeroOfx(tagOfx(b, 'TRNAMT'));
+      if (!data) { out.ignorados.push({ linha: i + 1, motivo: 'sem data' }); return; }
+      if (valor == null || valor === 0) { out.ignorados.push({ linha: i + 1, motivo: 'sem valor' }); return; }
+      const memo = tagOfx(b, 'MEMO'), nome = tagOfx(b, 'NAME');
+      const historico = (memo && nome && !semAcento(memo).includes(semAcento(nome)) ? `${memo} ${nome}` : memo || nome || tagOfx(b, 'TRNTYPE')).replace(/\s+/g, ' ').trim();
+      out.lancamentos.push({ data, historico, documento: tagOfx(b, 'CHECKNUM') || tagOfx(b, 'FITID'), valor, saldo: null });
+    });
+    if (!blocos.length) out.avisos.push('O arquivo OFX não tem lançamentos (<STMTTRN>).');
+    const L = out.lancamentos;
+    L.forEach((l, i) => { l._i = i; });
+    L.sort((a, b) => a.data.localeCompare(b.data) || a._i - b._i);
+    const porDia = new Map();
+    for (const l of L) { const n = (porDia.get(l.data) || 0) + 1; porDia.set(l.data, n); l.ordem = n; delete l._i; }
+    const bal = /<LEDGERBAL>([\s\S]*?)(<\/LEDGERBAL>|<AVAILBAL>|$)/i.exec(s);
+    const saldoFim = bal ? numeroOfx(tagOfx(bal[1], 'BALAMT')) : null, ate = bal ? dataOfx(tagOfx(bal[1], 'DTASOF')) : '';
+    if (saldoFim != null) {
+      // Saldo no fim de DTASOF; os lançamentos depois dessa data (raro) somam para a frente.
+      let c = Math.round(saldoFim * 100);
+      const ateIdx = L.reduce((k, l, i) => (!ate || l.data <= ate ? i : k), -1);
+      for (let i = ateIdx; i >= 0; i--) { L[i].saldo = c / 100; c -= Math.round(L[i].valor * 100); }
+      c = Math.round(saldoFim * 100);
+      for (let i = ateIdx + 1; i < L.length; i++) { c += Math.round(L[i].valor * 100); L[i].saldo = c / 100; }
+    } else if (L.length) out.avisos.push('O OFX não trouxe o saldo (LEDGERBAL): os lançamentos entram sem o saldo do dia.');
+    return out;
+  }
+  // Qualquer extrato da conta: OFX ou CSV, pelo conteúdo.
+  function lerExtrato(texto) { return ehOfx(texto) ? lerOfx(texto) : lerCsvBB(texto); }
+  // Outro formato do mesmo dia (um OFX depois do CSV): o histórico muda de um para o outro e o id também. O lançamento
+  // novo que tem o mesmo dia e o mesmo valor de um do banco já guardado, vindo de OUTRO formato, conta como repetido.
+  function casarEntreFormatos(guardadas = [], novas = [], formato = 'csv') {
+    const livres = new Map();
+    for (const t of guardadas) {
+      if (t.banco?.saldo == null && t.banco?.formato == null) continue;
+      if ((t.banco.formato || 'csv') === formato) continue;
+      const k = t.banco.data + '|' + centavos(t.banco.valor);
+      livres.set(k, (livres.get(k) || 0) + 1);
+    }
+    const ficam = [];
+    let casadas = 0;
+    for (const t of novas) {
+      const k = t.banco.data + '|' + centavos(t.banco.valor), n = livres.get(k) || 0;
+      if (n > 0) { livres.set(k, n - 1); casadas++; continue; }
+      ficam.push(t);
+    }
+    return { novas: ficam, casadas };
   }
   // Id estável: o mesmo lançamento num CSV baixado de novo dá o mesmo id. Data + valor + histórico + documento, mais a
   // posição entre os lançamentos iguais do mesmo dia (dois Pix iguais no mesmo dia continuam dois).
@@ -236,7 +320,7 @@
   }
   function transacoesDoCsv(lido, regras, clientes = []) {
     const ids = idsDosLancamentos(lido.lancamentos);
-    return lido.lancamentos.map((l, i) => novaTransacao(l, regras, ids[i], clientes));
+    return lido.lancamentos.map((l, i) => { const t = novaTransacao(l, regras, ids[i], clientes); if (lido.formato === 'ofx') t.banco.formato = 'ofx'; return t; });
   }
   const ordemBanco = (a, b) => a.banco.data.localeCompare(b.banco.data) || (a.banco.ordem || 0) - (b.banco.ordem || 0) || a.id.localeCompare(b.id);
   // Reimportar: o que já existe fica como está (o Paulo pode ter reclassificado); só entra o novo.
@@ -673,7 +757,7 @@
     return { ajuste: { id, pessoa_id, mes: a.mes, tipo, valor, nota: String(a.nota || '').slice(0, 160) } };
   }
 
-  const api = Object.freeze({ CAT_PAGO_PESSOA, contaPessoa, normalizarSalario, normalizarAjusteVale, CATEGORIAS, ESTADOS_PROPOSTA, normalizarProposta, candidatosDaProposta, transacaoDaProposta, STATUS, REGRAS_PADRAO, lerCsvBB, numeroBR, dataBR, idsDosLancamentos, sugerir, contraparte, novaTransacao,
+  const api = Object.freeze({ CAT_PAGO_PESSOA, contaPessoa, normalizarSalario, normalizarAjusteVale, CATEGORIAS, ESTADOS_PROPOSTA, normalizarProposta, candidatosDaProposta, transacaoDaProposta, STATUS, REGRAS_PADRAO, lerCsvBB, lerOfx, lerExtrato, ehOfx, casarEntreFormatos, numeroBR, dataBR, idsDosLancamentos, sugerir, contraparte, novaTransacao,
     clienteDoHistorico, FORMAS_LANCAMENTO, formaDoHistorico, formaDe, transacoesDoCsv, mesclar, reaplicarRegras, normalizarRegra, FORMAS, normalizarFixo, fixoVigente, analisarFixos, normalizarItemCartao, partesValidas, aplicarEdicao, pedacos, resumo, mesesDa, porCliente, cartao, pagamentosSemFatura, baseDaProjecao, projetar, somarMeses });
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else raiz.VybeFinanceiroExtrato = api;

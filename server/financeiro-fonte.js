@@ -14,7 +14,7 @@
 //    extrato): os itens da fatura são o detalhe e não entram de novo.
 //  - Previsto a receber = a mensalidade do contrato do Vybe OS (só donos), mês a mês, do primeiro mês do extrato até o
 //    mês atual. O que o extrato não mostrou entrar (por competência) vira a fatura em aberto daquele mês, com vencimento
-//    no último dia do mês (o extrato não traz o dia do vencimento). Antes do primeiro mês do extrato não há como saber.
+//    no dia do contrato (26/11/2026: dia_vencimento; sem ele, o último dia do mês). Antes do primeiro mês do extrato não há como saber.
 //  - A pagar = gastos fixos do mês que ainda não apareceram no extrato (os do cartão saem pela fatura) e o que falta
 //    pagar das faturas do cartão.
 //  - Folha = o que saiu no extrato como salário e pró-labore, por pessoa (o extrato não guarda o salário combinado).
@@ -29,6 +29,8 @@ const centavos = (v) => Math.round((Number(v) || 0) * 100);
 const reais = (c) => Math.round(c) / 100;
 const ehMes = (m) => /^\d{4}-(0[1-9]|1[0-2])$/.test(String(m || ''));
 export const fimDoMes = (mes) => { const d = new Date(Date.UTC(Number(mes.slice(0, 4)), Number(mes.slice(5, 7)), 0)); return d.toISOString().slice(0, 10); };
+// O dia em que a mensalidade do mês vence: o do contrato (31 em mês curto = último dia) ou o último dia do mês.
+export const vencimentoDoMes = (mes, dia) => { const fim = fimDoMes(mes), d = Number(dia) || 0; return d >= 1 && d <= 31 ? `${mes}-${String(Math.min(d, Number(fim.slice(8, 10)))).padStart(2, '0')}` : fim; };
 const idCli = (id) => 'v:' + String(id);
 const deCli = (id) => String(id || '').replace(/^v:/, '');
 
@@ -46,7 +48,7 @@ export function baseDoExtrato(base, clientes = [], { hoje }) {
   const lista = base?.extrato?.transacoes || [];
   const mesHoje = hoje.slice(0, 7);
   const contratos = clientes.filter((c) => c.ativo && Number(c.valor_mensal) > 0)
-    .map((c) => ({ cliente_id: String(c.cliente_id), cliente_nome: c.cliente_nome, valor_mensal: Number(c.valor_mensal), inicio: c.inicio || '', fim: '' }));
+    .map((c) => ({ cliente_id: String(c.cliente_id), cliente_nome: c.cliente_nome, valor_mensal: Number(c.valor_mensal), inicio: c.inicio || '', fim: c.fim || '', dia_vencimento: Number(c.dia_vencimento) || null }));
   const comContrato = new Map(contratos.map((c) => [c.cliente_id, c]));
   const nomes = new Map(clientes.map((c) => [String(c.cliente_id), c.cliente_nome]));
   const transacoes = [];
@@ -71,7 +73,7 @@ export function baseDoExtrato(base, clientes = [], { hoje }) {
       description: ct ? `Mensalidade - ${ct.cliente_nome}` : String(t.real?.descricao || t.banco.historico || c.nome).slice(0, 160),
       amount: reais(v), type, category: c.nome, categoria_id: c.id,
       // Mensalidade: o mês a que ela se refere manda no "previsto"; o dia em que entrou manda no "recebido".
-      date: ct ? fimDoMes(competencia) : p.data, paid_date: status === 'PAID' ? p.data : null, status,
+      date: ct ? vencimentoDoMes(competencia, ct.dia_vencimento) : p.data, paid_date: status === 'PAID' ? p.data : null, status,
       client_id: cliente && type !== 'TRANSFER' ? idCli(cliente) : null, employee_id: null, quem: p.pessoa_nome || p.quem || '', pessoa_id: p.pessoa_id || '',
     });
   }
@@ -87,7 +89,7 @@ export function baseDoExtrato(base, clientes = [], { hoje }) {
         const falta = centavos(l.mensalidade == null ? 0 : (m.em_aberto || 0) + (m.a_receber || 0)) - (marcado.get(ct.cliente_id + '|' + m.mes) || 0);
         if (falta <= 0) continue;
         transacoes.push({ id: `prev:${ct.cliente_id}:${m.mes}`, description: `Mensalidade - ${ct.cliente_nome}`, amount: reais(falta), type: 'INCOME',
-          category: 'Contrato', categoria_id: 'contrato', date: fimDoMes(m.mes), paid_date: null, status: 'PENDING', client_id: idCli(ct.cliente_id), employee_id: null, quem: '' });
+          category: 'Contrato', categoria_id: 'contrato', date: vencimentoDoMes(m.mes, ct.dia_vencimento), paid_date: null, status: 'PENDING', client_id: idCli(ct.cliente_id), employee_id: null, quem: '' });
       }
     }
   }
