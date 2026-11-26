@@ -358,29 +358,87 @@
 
   // ---------- Saídas fixas × variáveis do histórico ----------
   // Fixas = gastos fixos cadastrados + salários combinados; variáveis = o resto do que saiu (sem o que já é fixo: o
-  // lançamento ligado ou achado como pagamento do fixo e o salário/pró-labore de quem tem combinado).
+  // lançamento ligado ou achado como pagamento do fixo e o pagamento identificado de quem tem combinado).
+  // fin3 (26/11/2026): em produção quase nenhum pagamento de salário estava ligado à pessoa (saía como "outra saída" ou
+  // pró-labore sem pessoa), e o combinado somava por cima de um variável que já tinha o salário dentro: R$ 15,5 mil
+  // contados duas vezes. Agora, mês a mês da base:
+  //   combinado com pagamento identificado (pessoa_id, ou o nome/CPF da pessoa no histórico do Pix) → o pagamento sai do variável;
+  //   combinado sem pagamento identificado → considerado já embutido no histórico: o valor dele sai do variável daquele
+  //     mês (não soma duas vezes); combinado com "desde" depois da base é custo novo e soma por cima;
+  //   gasto fixo vigente sem pagamento achado no extrato (ou achado só no cartão, que o pagamento da fatura já leva) → idem.
+  // total = o variável já sem o que é fixo; brutos = antes de tirar o embutido; saidas = tudo o que saiu no mês (com o cartão).
+  // pessoas: [{ id, nome, cpf? }] (o nome também pode vir em salarios[id].nome).
+  const SAIDA_DE_PESSOA = new Set(['salario', 'pro_labore', 'adiantamento', 'freela', 'retirada_socio', 'outra_saida', 'a_classificar']);
+  const PALAVRAS_FORA = new Set(['de', 'da', 'do', 'das', 'dos', 'e']);
+  const palavras = (s) => semAcento(s).replace(/[^a-z0-9]+/g, ' ').trim().split(' ').filter((w) => w && !PALAVRAS_FORA.has(w));
+  const soDigitos = (s) => String(s || '').replace(/\D/g, '');
+  function quemRecebe(combs) {
+    // O primeiro nome só identifica se for único entre as pessoas com combinado (o OFX do Santander traz "PIX ENVIADO VINICIUS").
+    const primeiros = new Map();
+    for (const c of combs) { const w = palavras(c.nome)[0]; if (w) primeiros.set(w, (primeiros.get(w) || 0) + 1); }
+    return (c, p, historico) => {
+      if (p.pessoa_id) return String(p.pessoa_id) === c.id && ['salario', 'pro_labore'].includes(p.categoria);
+      if (!SAIDA_DE_PESSOA.has(p.categoria)) return false;
+      const ws = palavras(c.nome);
+      const cpf = soDigitos(c.cpf);
+      // CPF inteiro no histórico, ou mascarado como o Pix mostra (***.456.789-**: os 6 do meio).
+      if (cpf.length === 11) { const h = String(historico || ''); if (soDigitos(h).includes(cpf) || (/\*/.test(h) && soDigitos(h).includes(cpf.slice(3, 9)))) return true; }
+      if (!ws.length) return false;
+      for (const alvo of [historico, p.quem, p.pessoa_nome]) {
+        const hs = palavras(alvo);
+        if (!hs.length) continue;
+        if (ws.length >= 2 && ws.slice(0, 2).every((w) => hs.includes(w))) return true;
+        if (ws[0].length >= 4 && primeiros.get(ws[0]) === 1 && hs.includes(ws[0])) return true;
+      }
+      return false;
+    };
+  }
   function variaveisPorMes(lista = [], meses = [], opcoes = {}) { return variaveisDetalhe(lista, meses, opcoes).total; }
-  function variaveisDetalhe(lista = [], meses = [], { fixos = [], itensCartao = [], salarios = {} } = {}) {
-    const comComb = new Set(Object.entries(salarios || {}).filter(([, s]) => s && !s.fora && Number(s.valor) > 0).map(([id]) => String(id)));
+  function variaveisDetalhe(lista = [], meses = [], { fixos = [], itensCartao = [], salarios = {}, pessoas = [] } = {}) {
+    const nomeDe = new Map((pessoas || []).map((x) => [String(x.id), x]));
+    const combs = Object.entries(salarios || {}).filter(([, s]) => s && !s.fora && Number(s.valor) > 0)
+      .map(([id, s]) => ({ id: String(id), valor: centavos(s.valor), desde: s.desde || '', nome: nomeDe.get(String(id))?.nome || s.nome || '', cpf: nomeDe.get(String(id))?.cpf || s.cpf || '' }));
+    const ehDe = quemRecebe(combs);
+    const ultimoBase = meses.length ? meses.slice().sort()[meses.length - 1] : '';
+    const sit = new Map(combs.map((c) => [c.id, { vigentes: 0, achados: 0, dias: [] }]));
     const porCat = new Map();
-    const total = meses.map((mes) => {
+    const brutos = [], total = [], saidas = [], embutido = [], fixosEmbutidos = [];
+    for (const mes of meses) {
       const fa = X.analisarFixos(fixos, lista, mes, itensCartao);
       const pagosFixo = new Set(fa.fixos.filter((f) => f.achado?.id).map((f) => f.achado.id));
-      let v = 0;
+      const vig = combs.filter((c) => !c.desde || c.desde <= mes);
+      const pago = new Set();
+      let v = 0, s = 0;
       for (const t of lista) {
-        if (!t.banco.data.startsWith(mes) || pagosFixo.has(t.id) || t.real.fixo_id) continue;
+        if (!t.banco.data.startsWith(mes)) continue;
+        const doFixo = pagosFixo.has(t.id) || Boolean(t.real.fixo_id);
         for (const p of X.pedacos(t)) {
           if (!(Number(p.valor) < 0)) continue;
           const c = CAT.get(p.categoria);
           if (c && c.tipo === 'transferencia' && c.id !== 'cartao_agencia') continue;
-          if (['salario', 'pro_labore'].includes(p.categoria) && comComb.has(String(p.pessoa_id || ''))) continue;
+          s += -centavos(p.valor);
+          if (doFixo) continue;
+          const de = vig.find((x) => ehDe(x, p, t.banco.historico));
+          if (de) { pago.add(de.id); sit.get(de.id).dias.push(Number(t.banco.data.slice(8, 10)) || 0); continue; }
           v += -centavos(p.valor);
           porCat.set(p.categoria, (porCat.get(p.categoria) || 0) - centavos(p.valor));
         }
       }
-      return reais(v);
+      for (const c of vig) { const x = sit.get(c.id); x.vigentes++; if (pago.has(c.id)) x.achados++; }
+      const embComb = vig.filter((c) => !pago.has(c.id)).reduce((a, c) => a + c.valor, 0);
+      const embFixo = fa.fixos.filter((f) => !f.achado || f.achado.onde === 'cartao').reduce((a, f) => a + centavos(f.valor), 0);
+      const tira = Math.min(v, embComb + embFixo);
+      brutos.push(reais(v)); saidas.push(reais(s)); total.push(reais(v - tira));
+      embutido.push(reais(Math.min(v, embComb))); fixosEmbutidos.push(reais(Math.max(0, tira - Math.min(v, embComb))));
+    }
+    const combinados = combs.map((c) => {
+      const x = sit.get(c.id);
+      const situacao = !x.vigentes ? (c.desde && ultimoBase && c.desde > ultimoBase ? 'novo' : 'sem_base') : x.achados === x.vigentes ? 'identificado' : 'embutido';
+      const dias = x.dias.filter(Boolean).sort((a, b) => a - b);
+      return { pessoa_id: c.id, nome: c.nome, valor: reais(c.valor), desde: c.desde, situacao, meses_identificados: x.achados, meses_base: x.vigentes, dia: dias.length ? dias[Math.floor(dias.length / 2)] : null };
     });
-    return { total, por_categoria: Object.fromEntries([...porCat].map(([k, v]) => [k, reais(Math.round(v / Math.max(1, meses.length)))])) };
+    return { total, brutos, saidas, embutido, fixos_embutidos: fixosEmbutidos, combinados,
+      por_categoria: Object.fromEntries([...porCat].map(([k, v]) => [k, reais(Math.round(v / Math.max(1, meses.length)))])) };
   }
   // ---------- A receita da base (fin2, 26/11/2026) ----------
   // O que conta como entrada que se repete: receita (cliente, boleto, outra, rendimento) e o que ainda está "a classificar"
@@ -478,12 +536,14 @@
 
   // ---------- Projeção em três cenários ----------
   // p = { hoje, saldo_hoje, lista, meses_base (os meses fechados usados), contratos (ativos, com dia/fim/reajuste),
+  //       pessoas: [{ id, nome, cpf? }] (fin3: para achar no histórico do Pix o pagamento de quem tem combinado),
   //       clientes_ativos: [{ cliente_id, cliente_nome }] (para a receita da base e a cobertura; sem ele, todo cliente
   //       identificado no extrato conta como ativo), fixos, salarios, itensCartao, risco: Set(cliente_id) em risco alto,
   //       pipeline: [{ nome, valor_mensal, valor_avulso, chance }], horizonte (meses, até 12), cenario (o "E se" por cima do base) }
   // Dia a dia: a mensalidade de contrato entra no dia do vencimento (no pessimista, com o atraso médio); o cliente sem
   // contrato entra pela média dele no extrato, no dia em que costuma pagar; o resto das entradas pela média, espalhado; o
-  // fixo sai no dia dele; o salário combinado no dia 5; o variável espalhado pelos dias do mês. Devolve por cenário os
+  // fixo sai no dia dele; o salário combinado no dia em que o extrato mostra o pagamento (sem pagamento identificado,
+  // espalhado como no histórico; o novo, no dia 5); o variável espalhado pelos dias do mês. Devolve por cenário os
   // meses (saldo no fim do mês, menor saldo do mês), o primeiro dia negativo e o fôlego (meses até o caixa ficar negativo).
   // Regra geral (fin2): sem motivo explícito (contrato que termina ou reduz, cliente que saiu, cliente perdido no "E se",
   // cliente em risco no pessimista), a receita do mês não fica abaixo de 90% da média real recente: a diferença entra como
@@ -494,12 +554,17 @@
     const lista = p.lista || [], mesesBase = p.meses_base || [];
     const contratos = (p.contratos || []).filter((c) => Number(c.valor_mensal) > 0);
     const fixos = (p.fixos || []).filter((f) => f.ativo !== false);
-    const comb = Object.values(p.salarios || {}).filter((s) => s && !s.fora && Number(s.valor) > 0).map((s) => ({ valor: Number(s.valor), desde: s.desde || '' }));
-    const det = variaveisDetalhe(lista, mesesBase, { fixos: p.fixos || [], itensCartao: p.itensCartao || [], salarios: p.salarios || {} }), vars = det.total;
+    const det = variaveisDetalhe(lista, mesesBase, { fixos: p.fixos || [], itensCartao: p.itensCartao || [], salarios: p.salarios || {}, pessoas: p.pessoas || [] }), vars = det.total;
+    // O combinado sai no dia em que o extrato mostra o pagamento dele; o embutido (sem pagamento identificado, o dia não se
+    // sabe) sai espalhado como no histórico; o novo e o sem base, no dia 5.
+    const comb = det.combinados.map((s) => ({ valor: Number(s.valor), desde: s.desde || '', dia: s.dia || 5, espalhado: s.situacao === 'embutido' }));
     const inicio = somarMeses(hoje.slice(0, 7), 0);
     const rb = receitaDaBase(lista, mesesBase, contratos, { clientes_ativos: p.clientes_ativos || null, mes: inicio });
     const semContratos = !contratos.length;
+    // O pessimista: o variável no percentil 80 dos meses da base (com menos de 3 meses, a média + 15%). Sem soma dupla: os
+    // meses já vêm sem o combinado e o fixo embutidos (variaveisDetalhe).
     const varBase = centavos(media(vars)), varAlto = centavos(vars.length >= 3 ? percentil(vars, 0.8) : media(vars) * 1.15);
+    const regraAlto = vars.length >= 3 ? 'o percentil 80 dos meses da base' : 'a média + 15%, com menos de 3 meses de base';
     const outrasMedia = centavos(rb.outras), mediaRecente = centavos(rb.media_recente), saiu = centavos(rb.saiu);
     const atraso = Number.isFinite(p.atraso_medio) ? p.atraso_medio : 10;
     const risco = p.risco instanceof Set ? p.risco : new Set((p.risco || []).map(String));
@@ -571,7 +636,9 @@
           if ((c.economias || []).some((e) => (e.fixo_id ? e.fixo_id === f.id : e.nome === f.nome) && passou(i, e.a_partir))) continue;
           posDia(Number(f.dia) || 1, -centavos(f.valor));
         }
-        for (const s of comb) if (!s.desde || s.desde <= mes) posDia(5, -centavos(s.valor));
+        let combEspalhado = 0;
+        for (const s of comb) if (!s.desde || s.desde <= mes) { if (s.espalhado) combEspalhado += centavos(s.valor); else posDia(s.dia, -centavos(s.valor)); }
+        if (combEspalhado) espalhar(-combEspalhado);
         for (const g of c.contratar || []) if (passou(i, g.a_partir)) posDia(5, -centavos(g.salario));
         for (const g of c.gastos_novos || []) if (passou(i, g.a_partir)) posDia(10, -centavos(g.valor));
         // Corte por categoria: tira a parte daquela categoria na média do variável.
@@ -595,8 +662,17 @@
     const cen = { pessimista: rodar('pessimista'), base: rodar('base'), otimista: rodar('otimista') };
     const conf = confianca(mesesBase.length, { cobertura_pct: rb.cobertura.pct_receita, sem_contrato: rb.cobertura.sem_contrato });
     const proxIdx = meses.length > 1 ? 1 : 0; // o primeiro mês inteiro
+    // A conferência (fin3): o base, sem custo novo, sai perto da média real das saídas dos meses fechados.
+    const conta = (sit) => det.combinados.filter((x) => x.situacao === sit);
+    const histMedia = centavos(media(det.saidas)), projMes = centavos(cen.base.meses[proxIdx]?.saidas || 0);
+    const combinadosPremissa = { identificados: conta('identificado').length, embutidos: conta('embutido').length, novos: conta('novo').length,
+      valor_novos: reais(conta('novo').reduce((s, x) => s + centavos(x.valor), 0)), embutido_media: reais(Math.round(centavos(media(det.embutido)))),
+      fixos_embutidos_media: reais(Math.round(centavos(media(det.fixos_embutidos)))) };
     return { meses, horizonte: H, ...cen, confianca: conf, receita_base: rb,
-      premissas: { variaveis_base: reais(varBase), variaveis_alto: reais(varAlto), outras_entradas: reais(outrasMedia), atraso_medio_dias: atraso, em_risco: [...risco], pipeline: pipe.length,
+      premissas: { variaveis_base: reais(varBase), variaveis_alto: reais(varAlto), variaveis_alto_regra: regraAlto, variaveis_brutas: reais(Math.round(centavos(media(det.brutos)))),
+        saidas_historicas_media: reais(histMedia), saidas_projetadas_base: reais(projMes), saidas_diferenca_pct: histMedia > 0 ? Math.round((projMes - histMedia) / histMedia * 100) : null,
+        saidas_por_mes: Object.fromEntries(mesesBase.map((m, i) => [m, det.saidas[i]])), combinados_detalhe: combinadosPremissa,
+        outras_entradas: reais(outrasMedia), atraso_medio_dias: atraso, em_risco: [...risco], pipeline: pipe.length,
         pipeline_ponderado: reais(pipe.reduce((s, o) => s + Math.round(centavos(o.valor_mensal) * (Number(o.chance) || 0)), 0)), entradas_pela_media: semContratos,
         fixos: reais(fixos.filter((f) => X.fixoVigente(f, inicio)).reduce((s, f) => s + centavos(f.valor), 0)), combinados: reais(comb.reduce((s, x) => s + centavos(x.valor), 0)), meses_base: mesesBase,
         receita: { media_recente: rb.media_recente, contratos: rb.mrr_contrato, estimados: rb.estimado_media, clientes_estimados: rb.estimados.length, outras: rb.outras, deduzido: rb.deduzido,
@@ -718,6 +794,12 @@
         texto: `${cob.com_contrato ? `Só ${cob.com_contrato} de ${cob.ativos} clientes ativos ${cob.com_contrato === 1 ? 'tem' : 'têm'}` : `Nenhum dos ${cob.ativos} clientes ativos tem`} contrato cadastrado. A projeção usa a média do extrato para os outros ${cob.sem_contrato}.`,
         fazer: 'Cadastre o contrato de cada cliente em Clientes: valor por mês, dia do vencimento e início.', aba: 'fin_clientes' });
     }
+    // Salário sem pessoa (fin3): o combinado de quem não tem o pagamento identificado no extrato é considerado embutido no
+    // variável. A projeção não conta duas vezes, mas não separa fixo de variável direito.
+    const cb = pj?.premissas?.combinados_detalhe;
+    if (cb && cb.embutidos > 0) out.push({ g: 1, id: 'salarios_sem_pessoa', rot: 'Salários sem pessoa ligada', det: `${cb.embutidos} de ${cb.embutidos + cb.identificados} combinados sem pagamento identificado`,
+      impacto: cb.embutido_media, texto: `${cb.embutidos === 1 ? 'O pagamento de 1 combinado não aparece' : `Os pagamentos de ${cb.embutidos} combinados não aparecem`} ligados à pessoa no extrato: a projeção considera que já ${cb.embutidos === 1 ? 'está' : 'estão'} dentro do variável.`,
+      fazer: 'Ligue os pagamentos de salário às pessoas para a projeção separar fixo e variável.', aba: 'fin_movimento' });
     const m = ctx.mrr;
     if (m?.meses?.length >= 2) {
       const a = m.meses[m.meses.length - 1], b = m.meses[Math.max(0, m.meses.length - 3)];
