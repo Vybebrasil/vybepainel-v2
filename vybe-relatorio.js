@@ -411,7 +411,7 @@ td.n,th.n{text-align:right;white-space:nowrap}
 
   // ---------- O botão no cabeçalho do módulo ----------
   // Fica logo à direita do título do módulo (o mesmo lugar em todos), só onde há relatório registrado e acesso.
-  const TITULOS = '.d3m-tit, .d3m-c-tit, .d3m-d-tit, .d3m-e-tit, .d3m-a-ap-tit, .rv2-tit, .d3h-ola, .d3s-tit';
+  const TITULOS = '.d3m-tit, .d3m-c-tit, .d3m-d-tit, .d3m-e-tit, .d3m-a-ap-tit, .rv2-tit, .d3h-ola, .d3s-tit, .fe-marca, .d3f-tit';
   const ICONE = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M9 13h6M9 17h4"/></svg>';
   let botao = null, pop = null, telaAtual = '', agendado = false;
   function telaDoDock() {

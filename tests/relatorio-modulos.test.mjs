@@ -213,6 +213,25 @@ test('Impressões e séries: o relatório pede só leitura (o servidor não anda
   assert.ok(deles.length >= 4);
   for (const [a, p] of deles) assert.equal(String(p.leitura), '1', a);
 });
+test('Finanças (frente fin): só para quem vê dinheiro, lê pelo motor e cabe no A4 (tabela de meses virada)', async () => {
+  const reg = C.VybeRelatorio.modulos().find((m) => m.id === 'financas');
+  assert.ok(reg, 'registrado'); assert.equal(reg.acesso, 'dinheiro'); assert.ok(reg.telas.includes('setor:financas') && reg.telas.includes('fin_hoje'));
+  for (const quem of [EQUIPE, { dono: true, dinheiro: false, nome: 'Beatriz' }]) await assert.rejects(C.VybeRelatorio.relatorioDe('financas', { hoje: HOJE, acesso: quem, dados: DADOS, api: async () => null }));
+  const pedidos = [];
+  await C.VybeRelatorio.relatorioDe('financas', { hoje: HOJE, acesso: DONO, dados: DADOS, api: async (a, p) => { pedidos.push([a, p]); return null; } });
+  assert.deepEqual(json(pedidos), [['financeiro', { mes: '2026-11' }]]);
+  const meses = Array.from({ length: 14 }, (_, i) => `mês ${i + 1}`);
+  const m = C.VybeRelatorioFinancas.paraMotor({ titulo: 'Finanças da Vybe · novembro de 2026', resumo: 'Mês em aberto. MRR alto.', fontes: ['Extrato'],
+    numeros: [{ rotulo: 'Resultado do mês', valor: 'R$ 1,00', variacao: -12, porque: 'x' }], recomendacoes: [],
+    secoes: [{ titulo: 'DRE', texto: 't', grafico: { tipo: 'linha_faixa', rotulos: ['novembro de 2026'], series: [{ nome: 'Base', valores: [1] }] },
+      tabela: { colunas: ['Linha', ...meses, 'Período'], linhas: [['Receita', ...meses.map(() => 'R$ 1'), 'R$ 14'], ['Sem categoria', ...meses.map(() => 'R$ 0,00'), 'R$ 0,00'], ['Resultado', ...meses.map(() => 'R$ 0'), 'R$ 0']] } }] });
+  assert.deepEqual(json(m.resumo), ['Mês em aberto.', 'MRR alto.']);
+  assert.deepEqual(json(m.numeros[0].variacao), { texto: '▼ -12% vs mês anterior', bom: false });
+  assert.equal(m.secoes[0].grafico.tipo, 'linha'); assert.deepEqual(json(m.secoes[0].grafico.rotulos), ['nov/26']);
+  assert.deepEqual(json(m.secoes[0].tabela.colunas), ['Mês', 'Receita', 'Resultado']); assert.equal(m.secoes[0].tabela.linhas.length, 15);
+  assert.ok(m.secoes.every((x) => x.dinheiro) && m.numeros.every((x) => x.dinheiro) && m.recomendacoes.length === 1);
+  assert.equal(m.fontes[0].nome, 'Extrato');
+});
 test('registros: todos geram sem dado nenhum e sem servidor', async () => {
   const vazio = { pecas: () => [], equipe: () => [], demandas: () => [], clientes: () => [] };
   for (const m of C.VybeRelatorio.modulos().map((x) => x.id)) {
