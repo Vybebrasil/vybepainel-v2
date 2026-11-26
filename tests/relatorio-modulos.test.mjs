@@ -157,6 +157,20 @@ test('registro: módulo de dinheiro não gera para quem não é dono', async () 
   assert.equal(c2.VybeRelatorio.abrir(), 'mensal'); assert.equal(typeof c2.VybeRelatorio.registrar, 'function');
 });
 
+test('relatório mensal do cliente (vybe-mundo-relatorio.js) continua igual: o motor só acrescenta ao mesmo objeto', () => {
+  const c3 = vm.createContext({ console, Intl, Date, URLSearchParams, setTimeout, clearTimeout }); c3.window = c3;
+  vm.runInContext(ler('vybe-mundo-relatorio.js'), c3, { filename: 'vybe-mundo-relatorio.js' });
+  const mensal = c3.VybeRelatorio;
+  assert.deepEqual(Object.keys(mensal).sort(), ['aberto', 'abrir', 'fechar']);
+  vm.runInContext(ler('vybe-relatorio.js'), c3, { filename: 'vybe-relatorio.js' });
+  const R3 = c3.VybeRelatorio;
+  for (const k of ['abrir', 'fechar', 'aberto']) assert.equal(R3[k], mensal[k], `${k} é a mesma função do relatório do cliente`);
+  assert.equal(R3.aberto(), false);
+  for (const k of ['registrar', 'gerar', 'documento', 'modulos']) assert.equal(typeof R3[k], 'function', k);
+  // No index.html o relatório do cliente carrega antes do motor (senão o objeto dele trocaria o do motor).
+  const html = ler('index.html');
+  assert.ok(html.indexOf('src="/vybe-mundo-relatorio.js"') > 0 && html.indexOf('src="/vybe-mundo-relatorio.js"') < html.indexOf('src="/vybe-relatorio.js"'));
+});
 // ---------- Registros ----------
 const gerar = (modulo, extra = {}) => C.VybeRelatorio.relatorioDe(modulo, { hoje: HOJE, acesso: DONO, dados: DADOS, api: async () => null, ...extra }).then((r) => json(r.rel));
 

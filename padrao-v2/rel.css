@@ -25,3 +25,5 @@
 .vrel-gerar:disabled{opacity:.7;cursor:progress}
 .vrel-impressao{position:fixed;right:0;bottom:0;width:0;height:0;border:0}
 @media (max-width:640px){.vrel-botao span{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}.vrel-botao{width:34px;padding:0;justify-content:center}}
+/* Aprovação no celular: o topo vira grade de 3 colunas; o botão fica na linha do título, à direita, sem abrir linha nova. */
+@media (max-width:760px){#vv-conteudo .d3m-a-ap-topo > .vrel-botao{grid-column:1;grid-row:1;justify-self:end;width:34px;margin:0;padding:0;justify-content:center}#vv-conteudo .d3m-a-ap-topo > .vrel-botao span{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}#vv-conteudo .d3m-a-ap-topo > .d3m-a-ap-tit{padding-right:42px}}
