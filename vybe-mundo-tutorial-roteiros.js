@@ -549,10 +549,19 @@
         ['.fe-lista', 'direita', 'Cada assinatura', 'Toque numa para mudar valor, dia, forma de pagar ou parar, {nome}.'],
         ['.fe-lado', 'esquerda', 'Parece assinatura', 'O que saiu em Ferramentas e assinaturas e ainda não está cadastrado. Um toque e vira assinatura.'],
       ] },
-      { id: 'fin-analise', aba: 'fin_analise', nome: 'Finanças · Análise', resumo: 'Fôlego, concentração, resultado por grupo e cenários.', passos: [
-        ['.fe-nums', 'baixo', 'Os indicadores', 'Fôlego é quantos dias o saldo aguenta sem entrar nada. Do lado, quanto do que entra já está comprometido e o peso dos maiores clientes.'],
-        ['.fe-dre', 'direita', 'Resultado por grupo', 'Os últimos quatro meses, grupo por grupo. Tocou num grupo, o Movimento abre só com ele.'],
-        ['.fe-ese', 'cima', 'E se…', 'Aqui você testa um corte ou um cliente novo antes de fazer, {nome}. É só simulação, não lança nada.'],
+      { id: 'fin-analise', aba: 'fin_analise', nome: 'Finanças · Análise', resumo: 'DRE, recorrente, margem, a receber, orçamento e histórico.', passos: [
+        ['.fe-nums', 'baixo', 'Os indicadores', 'Fôlego, MRR, margem, o vencido e o churn. Cada um abre a análise dele.'],
+        ['.fe-subs', 'baixo', 'As análises', 'DRE, Recorrente, Margem, A receber, Orçamento e Histórico. Do lado, quantos meses de extrato a conta usou e a confiança, {nome}.'],
+        ['.fe-dre', 'direita', 'A DRE', 'Linha por linha, mês a mês. Toque numa linha para abrir as categorias e, nelas, os lançamentos.'],
+      ] },
+      { id: 'fin-projecao', aba: 'fin_projecao', nome: 'Finanças · Projeção', resumo: 'Três cenários para 12 meses, fôlego, E se e metas.', passos: [
+        ['.fe-cen3', 'baixo', 'Os três cenários', 'Pessimista, base e otimista: o saldo no fim, o primeiro dia negativo e o fôlego.'],
+        ['.fe-prem', 'cima', 'De onde vem a conta', 'As premissas de cada cenário e quantos meses de histórico foram usados.'],
+        ['.fe-ese2', 'cima', 'E se…', 'Contratar alguém, aumentar o preço de um cliente ou perder o maior. É só simulação, {nome}.'],
+      ] },
+      { id: 'fin-fechamento', aba: 'fin_fechamento', nome: 'Finanças · Fechamento', resumo: 'O checklist do mês e o resumo para a contabilidade.', passos: [
+        ['.fe-lista', 'direita', 'O checklist', 'Extrato até o fim do mês, tudo conferido, cartão conciliado e o a receber revisado. Cada item leva aonde resolver.'],
+        ['.fe-lado', 'esquerda', 'Os meses', 'Fechado fica verde e não aceita edição até reabrir, {nome}.'],
       ] },
     ].map(({ id, aba, nome, resumo, passos }) => {
       const s = `#vv-comercial .fe[data-tela="fe-${aba}"]`;

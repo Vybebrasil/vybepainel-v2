@@ -151,6 +151,8 @@ test('telas: Extrato com "Para quem" e "Gasto fixo", a pergunta do Pix ao Viníc
   const ctx = vm.createContext({ console, Intl, Date, Map, Set, Promise, setTimeout, clearTimeout, CSS: { escape: (s) => s } }); ctx.window = ctx;
   vm.runInContext(D3 + ';globalThis.d3AcaoHtml=d3AcaoHtml;globalThis.d3NumHtml=d3NumHtml;globalThis.d3LinhaSvg=d3LinhaSvg;', ctx);
   vm.runInContext(readFileSync('shared/financeiro-extrato.js', 'utf8'), ctx);
+  vm.runInContext(readFileSync('shared/financeiro-analises.js', 'utf8'), ctx);
+  vm.runInContext(readFileSync('vybe-graficos.js', 'utf8'), ctx);
   vm.runInContext(readFileSync('vybe-mundo-financeiro.js', 'utf8'), ctx);
   const V = ctx.VybeFinanceiro;
   const transacoes = X.transacoesDoCsv(X.lerCsvBB(csv(LINHAS)), []);
@@ -208,6 +210,8 @@ test('Finanças em 5 telas: Hoje, Movimento, Clientes, Pessoas e Análise pintam
   const ctx = vm.createContext({ console, Intl, Date, Map, Set, Promise, setTimeout, clearTimeout, CSS: { escape: (s) => s } }); ctx.window = ctx;
   vm.runInContext(D3 + ';globalThis.d3AcaoHtml=d3AcaoHtml;globalThis.d3NumHtml=d3NumHtml;globalThis.d3LinhaSvg=d3LinhaSvg;', ctx);
   vm.runInContext(readFileSync('shared/financeiro-extrato.js', 'utf8'), ctx);
+  vm.runInContext(readFileSync('shared/financeiro-analises.js', 'utf8'), ctx);
+  vm.runInContext(readFileSync('vybe-graficos.js', 'utf8'), ctx);
   vm.runInContext(readFileSync('vybe-mundo-financeiro.js', 'utf8'), ctx);
   const V = ctx.VybeFinanceiro;
   const transacoes = X.transacoesDoCsv(X.lerCsvBB(csv(LINHAS)), []);
@@ -216,7 +220,7 @@ test('Finanças em 5 telas: Hoje, Movimento, Clientes, Pessoas e Análise pintam
     vales: [{ id: 'vl-1', pessoa_id: '7', mes: '2026-12', tipo: 'descontar', valor: 300, nota: 'desconto do vale no salário' }] };
   const d = montar(base, [], { hoje: HOJE, pessoas: [{ id: '7', nome: 'Ana Ficticia' }] });
   const ctxTela = { d, filtro: {} };
-  const abas = ['fin_hoje', 'fin_movimento', 'fin_clientes', 'fin_pessoas', 'fin_assinaturas', 'fin_analise'];
+  const abas = ['fin_hoje', 'fin_movimento', 'fin_clientes', 'fin_pessoas', 'fin_assinaturas', 'fin_analise', 'fin_projecao', 'fin_fechamento'];
   for (const aba of abas) {
     const html = V.telas[aba](ctxTela);
     assert.match(html, new RegExp(`class="fx fv2 d3f fe d3-tema" data-tela="fe-${aba}"`), aba);
@@ -227,7 +231,9 @@ test('Finanças em 5 telas: Hoje, Movimento, Clientes, Pessoas e Análise pintam
   }
   // Um laranja só por tela, e é o do Vorcaro no Hoje.
   assert.equal((V.telas.fin_hoje(ctxTela).match(/class="fe-lar"/g) || []).length, 1);
-  for (const aba of abas.slice(1)) assert.doesNotMatch(V.telas[aba](ctxTela), /class="fe-lar"/, aba);
+  // A Projeção tem o laranja dela (o fôlego); as outras, nenhum.
+  for (const aba of abas.slice(1).filter((a) => a !== 'fin_projecao')) assert.doesNotMatch(V.telas[aba](ctxTela), /class="fe-lar"/, aba);
+  assert.equal((V.telas.fin_projecao(ctxTela).match(/class="fe-lar"/g) || []).length, 1);
   // Pessoas: a ficha mostra o salário seguinte já descontado.
   V._teste.ui.fe.pes.sel = '7';
   const pes = V.telas.fin_pessoas(ctxTela);
@@ -237,7 +243,7 @@ test('Finanças em 5 telas: Hoje, Movimento, Clientes, Pessoas e Análise pintam
   assert.match(V.telas.fin_pessoas(ctxTela), /data-fx-form="ajuste"><input type="hidden" name="tipo" value="descontar">[\s\S]*data-fx="pessoa-ajuste" data-valor="7"/);
   // As telas de antes viram um lugar das cinco, com o filtro.
   const { FE_DE, feDe } = V._teste;
-  for (const [antes, nova] of Object.entries({ vorcaro: 'fin_hoje', extrato: 'fin_movimento', cartao: 'fin_movimento', fixos: 'fin_movimento', clientes_mes: 'fin_clientes', vales: 'fin_pessoas', projecao: 'fin_analise', financas: 'fin_clientes', recebimentos: 'fin_movimento', contas: 'fin_movimento', inadimplencia: 'fin_clientes' })) assert.equal(FE_DE[antes], nova, antes);
+  for (const [antes, nova] of Object.entries({ vorcaro: 'fin_hoje', extrato: 'fin_movimento', cartao: 'fin_movimento', fixos: 'fin_movimento', clientes_mes: 'fin_clientes', vales: 'fin_pessoas', projecao: 'fin_projecao', financas: 'fin_clientes', recebimentos: 'fin_movimento', contas: 'fin_movimento', inadimplencia: 'fin_clientes' })) assert.equal(FE_DE[antes], nova, antes);
   assert.equal(feDe('cartao'), 'fin_movimento'); assert.equal(V._teste.ui.fe.chip, 'cartao');
   assert.equal(feDe('extrato', { chip: 'conferir' }), 'fin_movimento'); assert.equal(V._teste.ui.fe.chip, 'conferir');
   assert.equal(feDe('funil'), '', 'o que não é de Finanças segue o caminho de sempre');
@@ -260,6 +266,8 @@ test('Clientes: todo cliente ativo aparece, mesmo sem mensalidade nem entrada li
   const ctx = vm.createContext({ console, Intl, Date, Map, Set, Promise, setTimeout, clearTimeout, CSS: { escape: (s) => s } }); ctx.window = ctx;
   vm.runInContext(D3 + ';globalThis.d3AcaoHtml=d3AcaoHtml;globalThis.d3NumHtml=d3NumHtml;globalThis.d3LinhaSvg=d3LinhaSvg;', ctx);
   vm.runInContext(readFileSync('shared/financeiro-extrato.js', 'utf8'), ctx);
+  vm.runInContext(readFileSync('shared/financeiro-analises.js', 'utf8'), ctx);
+  vm.runInContext(readFileSync('vybe-graficos.js', 'utf8'), ctx);
   vm.runInContext(readFileSync('vybe-mundo-financeiro.js', 'utf8'), ctx);
   const V = ctx.VybeFinanceiro;
   const transacoes = X.transacoesDoCsv(X.lerCsvBB(csv(LINHAS)), []);
@@ -284,6 +292,8 @@ test('Hoje: falta entrar e falta pagar; Assinaturas; combinado editável e gente
   const ctx = vm.createContext({ console, Intl, Date, Map, Set, Promise, setTimeout, clearTimeout, CSS: { escape: (s) => s } }); ctx.window = ctx;
   vm.runInContext(D3 + ';globalThis.d3AcaoHtml=d3AcaoHtml;globalThis.d3NumHtml=d3NumHtml;globalThis.d3LinhaSvg=d3LinhaSvg;', ctx);
   vm.runInContext(readFileSync('shared/financeiro-extrato.js', 'utf8'), ctx);
+  vm.runInContext(readFileSync('shared/financeiro-analises.js', 'utf8'), ctx);
+  vm.runInContext(readFileSync('vybe-graficos.js', 'utf8'), ctx);
   vm.runInContext(readFileSync('vybe-mundo-financeiro.js', 'utf8'), ctx);
   const V = ctx.VybeFinanceiro;
   const transacoes = X.transacoesDoCsv(X.lerCsvBB(csv(LINHAS)), []);

@@ -20,8 +20,10 @@
     ['vorcaro', 'Vorcaro', 1], ['extrato', 'Extrato', 1], ['clientes_mes', 'Clientes mês a mês', 1], ['cartao', 'Cartão', 1], ['fixos', 'Gastos fixos', 1], ['projecao', 'Projeção', 1], ['vales', 'Pessoas e vales', 1],
     // Finanças em 5 telas (Paulo, 23/11/2026): Hoje, Movimento, Clientes, Pessoas e Análise; as de cima abrem nelas.
     ['fin_hoje', 'Hoje', 1], ['fin_movimento', 'Movimento', 1], ['fin_clientes', 'Clientes', 1], ['fin_pessoas', 'Pessoas', 1], ['fin_assinaturas', 'Assinaturas', 1], ['fin_analise', 'Análise', 1],
+    // Finanças completo (26/11/2026): a projeção em três cenários e o fechamento do mês.
+    ['fin_projecao', 'Projeção', 1], ['fin_fechamento', 'Fechamento', 1],
   ];
-  const ABAS_FINANCEIRO = new Set(['vorcaro', 'extrato', 'clientes_mes', 'cartao', 'fixos', 'projecao', 'vales', 'fin_hoje', 'fin_movimento', 'fin_clientes', 'fin_pessoas', 'fin_assinaturas', 'fin_analise']);
+  const ABAS_FINANCEIRO = new Set(['vorcaro', 'extrato', 'clientes_mes', 'cartao', 'fixos', 'projecao', 'vales', 'fin_hoje', 'fin_movimento', 'fin_clientes', 'fin_pessoas', 'fin_assinaturas', 'fin_analise', 'fin_projecao', 'fin_fechamento']);
   // Frase do cabeçalho quando a janela abre num item só do dock (auditoria 09/11: Fornecedores e Creators mostravam o texto do Comercial).
   const FRASE = {
     funil: 'Oportunidades por etapa, metas do mês e a corrida comercial', pacotes: 'Os produtos da Vybe, com preço, entregas e carga do time',
@@ -32,7 +34,8 @@
     vorcaro: 'A Tesouraria: o que pede atenção no financeiro e o que chegou pelo WhatsApp', extrato: 'O extrato do banco e para onde foi cada lançamento de verdade', clientes_mes: 'Cada cliente, mês a mês: pago ou em aberto',
     cartao: 'As faturas do cartão da agência, item por item', fixos: 'Programas, assinaturas, aluguel e o que sai todo mês', projecao: 'Fluxo de caixa realizado e projetado, com cenários', vales: 'O combinado de cada pessoa, o que ela recebeu e o vale',
     fin_hoje: 'O Vorcaro, o saldo, o que entrou e saiu e o que pede atenção', fin_movimento: 'Extrato, cartão, fixos e previsto, com a fila de conferir',
-    fin_clientes: 'Cada cliente mês a mês, com a margem real', fin_pessoas: 'Combinado, o que cada pessoa recebeu, o vale e o desconto no salário', fin_assinaturas: 'Programas e softwares: quanto custam, se já foram pagos e o que cobrou diferente', fin_analise: 'Fôlego, concentração, resultado por grupo e cenários',
+    fin_clientes: 'Cada cliente mês a mês, com a margem real', fin_pessoas: 'Combinado, o que cada pessoa recebeu, o vale e o desconto no salário', fin_assinaturas: 'Programas e softwares: quanto custam, se já foram pagos e o que cobrou diferente', fin_analise: 'DRE, receita recorrente, margem por cliente, a receber, orçamento e histórico',
+    fin_projecao: 'Pessimista, base e otimista para 12 meses, fôlego, equilíbrio, E se e metas', fin_fechamento: 'O checklist do mês, fechar e reabrir, e o resumo para a contabilidade',
   };
   // Título da janela aberta por um item do dock: o nome do item (quadros 19 e 58: "CRM e funil", não "Funil").
   const TITULO = { funil: 'CRM e funil', pacotes: 'Produtos e pacotes', financas: 'Finanças por cliente' };
@@ -48,7 +51,7 @@
     fornecedores: 'Só donos e administração. Cadastro por categoria, com BV (% de bonificação de volume) e contato.',
     creators: 'Influenciadores locais de Irecê e região: @, seguidores, engajamento, nicho, cidade e contato. Filtre por nicho e cidade.',
     vorcaro: 'Só os quatro donos. O Vorcaro olha o setor inteiro (extrato, clientes, cartão, fixos e projeção), lista o que pede atenção e recebe o que vocês mandam no grupo Vybe Financeiro. Nada é lançado sem um dono confirmar.',
-    extrato: 'Só os quatro donos. Importe o CSV do extrato do Banco do Brasil: a prévia mostra o que entra antes de gravar. Cada lançamento tem o lado do banco e o lado real (categoria, cliente, dividido em partes, pago, não pago ou em aberto).',
+    extrato: 'Só os quatro donos. Importe o extrato da conta PJ do Santander (OFX ou CSV): a prévia mostra o que entra antes de gravar. Cada lançamento tem o lado do banco e o lado real (categoria, cliente, dividido em partes, pago, não pago ou em aberto).',
     clientes_mes: 'Só os quatro donos. Mensalidade do contrato contra as entradas ligadas a cada cliente no Extrato, pelo mês a que se referem.',
     cartao: 'Só os quatro donos. Os itens de cada fatura, com categoria e situação; o pagamento da fatura vem do Extrato.',
     fixos: 'Só os quatro donos. O que sai todo mês, com o dia e a forma de pagar; mostra se já saiu no extrato ou na fatura do mês.',
@@ -58,7 +61,9 @@
     fin_clientes: 'Só os quatro donos. Mensalidade do contrato contra o que entrou de cada cliente, mês a mês. Margem real = o que entrou do cliente menos as saídas ligadas a ele. Toque num cliente para a ficha.',
     fin_pessoas: 'Só os quatro donos. Combinado × o que cada pessoa recebeu. O que passa do combinado vira vale; na ficha, "Jogar o vale" desconta no salário do mês (ou do seguinte) e mostra quanto a pessoa vai receber.',
     fin_assinaturas: 'Só os quatro donos. Cada assinatura é um gasto fixo em Ferramentas e assinaturas: paga quando aparece no extrato ou na fatura do cartão do mês. Toque numa para mudar valor, dia ou parar; "Parece assinatura" sugere o que ainda não está cadastrado.',
-    fin_analise: 'Só os quatro donos. Fôlego = quantos dias o saldo aguenta sem entrar nada (saldo ÷ a média que sai por dia). Resultado por grupo dos últimos 4 meses e, no E se…, o caixa projetado com os cortes e clientes que você simular.',
+    fin_analise: 'Só os quatro donos. DRE por competência ou de caixa, MRR com a cascata (novo, expansão, contração, perdido), churn e LTV, margem real por cliente (com a regra do rateio explicada), a receber por idade com o Cobrar (só avisa os donos), orçamento × realizado e o histórico. Cada conta diz quantos meses de extrato usou e a confiança.',
+    fin_projecao: 'Só os quatro donos. Três cenários dia a dia para 12 meses: base (contratos no dia do vencimento, fixos e a média do variável), pessimista (atraso médio, clientes em risco saindo, variável alto) e otimista (funil do Comercial pela chance). Fôlego, equilíbrio, E se (contratar, aumentar preço, perder o maior), cenários lado a lado e metas.',
+    fin_fechamento: 'Só os quatro donos. Para fechar um mês: extrato até o último dia, tudo conferido, cartão conciliado e o a receber revisado. Mês fechado não aceita edição até reabrir; o resumo vai para a contabilidade.',
   };
   const st = { aberto: false, aba: 'funil', dados: {}, erro: {}, carregando: {}, folha: null, ajuda: false, periodo: { tipo: 'mensal', mes: '' }, verFalta: false,
     fase: '', filtro: {}, msg: '', ocupado: false, etapasEdit: null };
