@@ -72,7 +72,8 @@ async function andarComAArte(sql) {
 
 async function ler(sql, pessoa, query = {}) {
   const hoje = hojeBahia(), gestao = ehGestao(pessoa), todas = String(query.todas || '') === '1';
-  await andarComAArte(sql);
+  // ?leitura=1 (relatório técnico, Paulo 26/11/2026): só lê; a arte concluída anda para Orçamento quando a tela abre.
+  if (String(query.leitura || '') !== '1') await andarComAArte(sql);
   const linhas = await sql`SELECT i.id::text, i.titulo, i.cliente_id::text, cl.nome AS cliente_nome, i.projeto_id::text, pj.nome AS projeto_nome,
       i.conteudo_id::text, s.rotulo AS demanda_status, COALESCE(s.final, false) AS demanda_final,
       i.fornecedor_id::text, f.nome AS fornecedor_nome, i.material, i.quantidade, i.especificacao, i.arquivo_url, i.etapa,

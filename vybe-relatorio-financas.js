@@ -87,9 +87,55 @@
     return true;
   }
 
-  const api = Object.freeze({ montar, gerar, imprimir });
+  const api = Object.freeze({ montar, gerar, imprimir, paraMotor });
   raiz.VybeRelatorioFinancas = api;
   // O motor de relatórios (rel), quando existir com registrar: o Finanças entra como 'financas'.
   const R = raiz.VybeRelatorio;
-  if (R && typeof R.registrar === 'function') { try { R.registrar('financas', async (ctx = {}) => { const r = await gerar({ mes: ctx.mes || ctx.periodo || '' }); if (r.erro) throw new Error(r.erro); return r; }); } catch { /* o motor recusou: o relatório continua por VybeFinancas.relatorio() */ } }
+  // Contrato do motor (vybe-relatorio.js, rel 26/11/2026): resumo em frases, variação em texto com o lado bom, gráficos
+  // nos tipos do motor (vybe-relatorio-graficos.js, legíveis em preto e branco), tabela larga (mês nas colunas) virada
+  // para caber no A4, fontes como { nome } e o botão só para os quatro donos (acesso 'dinheiro').
+  const mesCurto = (r) => String(r).replace(/^([a-zç]{3})[a-zç]* de \d{2}(\d{2})$/i, '$1/$2');
+  const brlCurto = (n) => `${n < 0 ? '−' : ''}R$ ${Math.round(Math.abs(n)).toLocaleString('pt-BR')}`;
+  function graficoDoMotor(g) {
+    const series = (g?.series || []).filter((x) => Array.isArray(x?.valores));
+    if (!series.length) return null;
+    if (g.tipo === 'barras_horizontais') return { tipo: 'ranking', itens: (g.rotulos || []).map((r, i) => ({ rotulo: r, valor: series[0].valores[i], tom: series[0].valores[i] < 0 ? 'ruim' : '' })).filter((x) => Number.isFinite(x.valor)).sort((a, b) => b.valor - a.valor).slice(0, 12), formato: brlCurto };
+    return { tipo: g.tipo === 'linha_faixa' || g.tipo === 'linha' ? 'linha' : 'barras', rotulos: (g.rotulos || []).map(mesCurto), series: series.map((x) => ({ nome: x.nome, valores: x.valores })), formato: brlCurto };
+  }
+  function tabelaDoMotor(t) {
+    if (!t?.colunas?.length) return null;
+    if (t.colunas.length <= 7) return { colunas: t.colunas, linhas: t.linhas };
+    // Muitas colunas (um mês em cada): vira, com um mês por linha.
+    const curto = { 'Custo de equipe': 'Equipe', 'Ferramentas e assinaturas': 'Ferramentas', 'Despesas gerais': 'Despesas', 'Sem categoria': 'Sem categ.' };
+    // Linha toda zerada (ex.: Sem categoria) não ganha coluna: a tabela virada precisa caber nos 180 mm.
+    const vazio = (v) => v == null || v === '—' || /^[−-]?R\$ 0,00$/.test(String(v));
+    t = { ...t, linhas: t.linhas.filter((l) => !l.slice(1).every(vazio)) };
+    return { colunas: [t.colunas[0] === 'Linha' ? 'Mês' : t.colunas[0], ...t.linhas.map((l) => curto[l[0]] || l[0])], linhas: t.colunas.slice(1).map((c, j) => [mesCurto(c), ...t.linhas.map((l) => l[j + 1])]) };
+  }
+  function paraMotor(r) {
+    const pctTexto = (v) => (v == null ? null : { texto: `${v > 0 ? '▲ +' : v < 0 ? '▼ ' : '= '}${v}% vs mês anterior`, bom: v > 0 ? true : v < 0 ? false : null });
+    return {
+      titulo: r.titulo, subtitulo: 'Resultado, recorrência, margem, a receber e projeção, pelo extrato da conta PJ',
+      resumo: String(r.resumo || '').split(/(?<=\.)\s+/).filter(Boolean),
+      numeros: (r.numeros || []).map((n) => ({ ...n, variacao: pctTexto(n.variacao), dinheiro: true })),
+      secoes: (r.secoes || []).map((x) => ({ titulo: x.titulo, texto: x.texto, grafico: graficoDoMotor(x.grafico), tabela: tabelaDoMotor(x.tabela), dinheiro: true })),
+      recomendacoes: (r.recomendacoes || []).length ? r.recomendacoes.map((x) => ({ ...x, dinheiro: true }))
+        : [(r.secoes || []).length ? { o_que: 'Conferir e fechar o mês no Finanças.', por_que: 'Nenhum achado pede ação agora.', impacto: 'Números fechados no próximo relatório.', prioridade: 'baixa', dinheiro: true }
+          : { o_que: 'Importar o extrato da conta PJ no Finanças.', por_que: 'Sem extrato não há resultado, recorrência nem projeção.', impacto: 'Relatório com números.', prioridade: 'alta', dinheiro: true }],
+      metodologia: ['Números do extrato da conta PJ, com o lado real conferido no Vybe OS. O DRE e a recorrência mostram todos os meses do extrato; os números do mês são do último mês do período escolhido.'],
+      fontes: (r.fontes || []).map((x) => (typeof x === 'string' ? { nome: x, detalhe: 'leitura do Financeiro (só donos)' } : x)),
+    };
+  }
+  const TELAS = ['setor:financas', 'fin_hoje', 'fin_movimento', 'fin_clientes', 'fin_pessoas', 'fin_assinaturas', 'fin_analise', 'fin_projecao', 'fin_fechamento', 'financas', 'recebimentos', 'contas', 'inadimplencia', 'vorcaro', 'extrato', 'clientes_mes', 'cartao', 'fixos', 'projecao', 'vales'];
+  async function doMotor(ctx = {}) {
+    const mes = typeof ctx.periodo === 'object' && ctx.periodo ? String(ctx.periodo.fim || '').slice(0, 7) : String(ctx.mes || ctx.periodo || '');
+    // Pelo ctx.api do motor (só leitura, entra nas fontes); sem o motor, o gerar() de sempre.
+    if (typeof ctx.api === 'function') {
+      const d = await ctx.api('financeiro', mes ? { mes } : {});
+      if (!d) return { ...paraMotor(montar({}, { mes })), resumo: ['O Financeiro não respondeu agora: o relatório saiu sem números. Tente de novo em instantes.'] };
+      return paraMotor(montar(d, { mes }));
+    }
+    const r = await gerar({ mes }); if (r.erro) throw new Error(r.erro); return r;
+  }
+  if (R && typeof R.registrar === 'function') { try { R.registrar('financas', doMotor, { nome: 'Finanças', telas: TELAS, agente: { nome: 'Vorcaro', papel: 'Tesouraria' }, acesso: 'dinheiro' }); } catch { /* o motor recusou: o relatório continua por VybeFinancas.relatorio() */ } }
 })(typeof globalThis !== 'undefined' ? globalThis : this);

@@ -137,6 +137,16 @@ test('pronta = só Finalizado também no score: a peça Agendada não conta como
   assert.equal(j.entregues, 1, 'antes: 2 (a Agendada contava pelo vybe_status.final)');
 });
 
+test('leitura=1 (relatório técnico) só lê: o GET não grava o dia em vybe_serie_diaria', async (t) => {
+  const { db, sql } = await banco(t);
+  const linhas = async () => (await db.query(`SELECT count(*)::int AS n FROM vybe_serie_diaria`)).rows[0].n;
+  const r = resposta(); await areaSeries({ method: 'GET', query: { para: 'setor', leitura: '1' } }, r, paulo, sql);
+  assert.equal(r.codigo, 200, JSON.stringify(r.body));
+  const antes = await linhas();
+  assert.equal(antes, 0, 'nada gravado (a tabela existe: a migração de esquema rodou)');
+  const tela = resposta(); await areaSeries({ method: 'GET', query: { para: 'setor' } }, tela, paulo, sql);
+  assert.ok(await linhas() > antes, 'a tela continua gravando o dia quando o cron não gravou');
+});
 test('liga 5, 7, M6 e B4: limite por dia, séries da gestão, acerto só de dono e um leitor da meta', async (t) => {
   const { sql } = await banco(t);
   await gravarSeriesDoDia(sql, { origem: 'cron', reconstruir: false });

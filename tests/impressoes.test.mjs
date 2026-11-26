@@ -54,6 +54,18 @@ test('migração traz as impressas abertas das Solicitações uma vez só, na et
   assert.equal((await chamar(sql, { tipo: 'servico' })).codigo, 403);
 });
 
+test('leitura=1 (relatório técnico) só lê: a arte concluída não anda para Orçamento nem grava evento', async (t) => {
+  const { db, sql } = await banco(t);
+  await db.exec(`UPDATE vybe_conteudos SET status_chave = 'feito' WHERE id = 500`);
+  const eventos = async () => (await db.query(`SELECT count(*)::int AS n FROM vybe_impressao_eventos WHERE nota = 'Arte concluída na esteira'`)).rows[0].n;
+  const r = await chamar(sql, paulo, null, { todas: '1', leitura: '1' });
+  assert.equal(r.codigo, 200, JSON.stringify(r.body));
+  assert.equal(r.body.impressoes.find((i) => i.conteudo_id === '500').etapa, 'arte', 'o relatório não move');
+  assert.equal(await eventos(), 0, 'nem grava evento');
+  const tela = await chamar(sql, paulo);
+  assert.equal(tela.body.impressoes.find((i) => i.conteudo_id === '500').etapa, 'orcamento', 'a tela continua andando a arte');
+  assert.equal(await eventos(), 1);
+});
 test('impressão nova abre a arte na esteira; etapas pedem fornecedor e datam pedido e entrega; valor só da gestão', async (t) => {
   const { db, sql } = await banco(t);
   const pedidos = [];

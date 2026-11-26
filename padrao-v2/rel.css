@@ -1,0 +1,31 @@
+/* Relatório técnico do módulo (vybe-relatorio.js, Paulo 26/11/2026): o botão "Gerar relatório" logo à direita do título
+   de cada módulo e a escolha rápida do período. O documento A4 tem o CSS dele dentro do próprio iframe (impressão).
+   Só tokens --d3-*; o cabeçalho dos módulos é o vidro fumê, então o botão usa o par fumê (texto e véu) dos três temas. */
+.vrel-botao{display:inline-flex;align-items:center;gap:6px;flex:none;align-self:center;height:34px;padding:0 12px;margin:0 4px 0 8px;border-radius:var(--d3-r-botao,8px);border:1px solid var(--d3-fume-borda);background:var(--d3-fume-veu);color:var(--d3-fume-texto);font:500 var(--d3-fs-texto,13px)/1 Inter,system-ui,sans-serif;white-space:nowrap;cursor:pointer;transition:background .15s ease,border-color .15s ease}
+.vrel-botao svg{flex:none}
+.vrel-botao:hover,.vrel-botao[aria-expanded="true"]{background:var(--d3-fume-veu-forte)}
+.vrel-botao:focus-visible{outline:2px solid var(--d3-acao-claro);outline-offset:2px}
+.vrel-pop{position:fixed;z-index:2147483000;display:flex;flex-direction:column;gap:10px;padding:14px;border-radius:var(--d3-r-caixa,10px);background:var(--d3-fume-painel);border:1px solid var(--d3-fume-borda);color:var(--d3-fume-texto);box-shadow:0 18px 40px -18px rgba(0,0,0,.55);font:400 var(--d3-fs-texto,13px)/1.4 Inter,system-ui,sans-serif}
+.vrel-pop-tit{margin:0;display:flex;flex-direction:column;gap:2px}
+.vrel-pop-tit b{font-weight:600;font-size:var(--d3-fs-destaque,15px)}
+.vrel-pop-tit small,.vrel-pop-msg{color:var(--d3-fume-apagado);font-size:var(--d3-fs-apoio,12px)}
+.vrel-pop-lista{display:flex;flex-direction:column;gap:2px}
+.vrel-op{display:flex;align-items:center;gap:8px;min-height:32px;padding:0 10px;border:0;border-radius:var(--d3-r-botao,8px);background:transparent;color:var(--d3-fume-texto);font:inherit;text-align:left;cursor:pointer}
+.vrel-op::before{content:"";width:12px;height:12px;flex:none;border-radius:50%;border:1.5px solid var(--d3-fume-apagado)}
+.vrel-op[aria-checked="true"]{background:var(--d3-fume-veu)}
+.vrel-op[aria-checked="true"]::before{border-color:var(--d3-acao-claro);background:var(--d3-acao-claro);box-shadow:inset 0 0 0 2px var(--d3-fume-painel)}
+.vrel-op:hover{background:var(--d3-fume-veu)}
+.vrel-op:focus-visible,.vrel-gerar:focus-visible,.vrel-pop-datas input:focus-visible{outline:2px solid var(--d3-acao-claro);outline-offset:1px}
+.vrel-pop-datas{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.vrel-pop-datas[hidden]{display:none}
+.vrel-pop-datas label{display:flex;flex-direction:column;gap:4px;font-size:var(--d3-fs-apoio,12px);color:var(--d3-fume-apagado)}
+.vrel-pop-datas input{height:32px;padding:0 8px;border-radius:var(--d3-r-botao,8px);border:1px solid var(--d3-fume-borda);background:var(--d3-fume-veu);color:var(--d3-fume-texto);font:inherit;color-scheme:light dark}
+.vrel-pop-pe{display:flex;align-items:center;gap:10px}
+.vrel-gerar{height:34px;padding:0 14px;border:0;border-radius:var(--d3-r-botao,8px);background:var(--d3-acao);color:var(--d3-escuro-texto);font:600 var(--d3-fs-texto,13px)/1 Inter,system-ui,sans-serif;cursor:pointer}
+.vrel-gerar:disabled{opacity:.7;cursor:progress}
+.vrel-impressao{position:fixed;right:0;bottom:0;width:0;height:0;border:0}
+@media (max-width:640px){.vrel-botao span{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}.vrel-botao{width:34px;padding:0;justify-content:center}}
+/* Aprovação no celular: o topo vira grade de 3 colunas; o botão fica na linha do título, à direita, sem abrir linha nova. */
+@media (max-width:760px){#vv-conteudo .d3m-a-ap-topo > .vrel-botao{grid-column:1;grid-row:1;justify-self:end;width:34px;margin:0;padding:0;justify-content:center}#vv-conteudo .d3m-a-ap-topo > .vrel-botao span{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}#vv-conteudo .d3m-a-ap-topo > .d3m-a-ap-tit{padding-right:42px}}
+/* Finanças: a folha é clara mesmo no tema fume; o botão segue a letra da própria tela. */
+.fe-marca + .vrel-botao,.d3f-tit + .vrel-botao{color:inherit;background:transparent;border-color:currentColor}

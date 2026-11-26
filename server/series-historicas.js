@@ -595,7 +595,8 @@ export async function areaSeries(req, res, quem, sql) {
     await garantirMigracoesHistorico(sql);
     if (req.method === 'GET') {
       // Se o cron ainda não gravou o dia, a primeira leitura grava (falha aqui não derruba a leitura).
-      await garantirGravacaoDoDia(sql).catch((e) => console.error('[series] gravação do dia na leitura:', e?.message || e));
+      // ?leitura=1 (relatório técnico, Paulo 26/11/2026): só lê, não grava o dia.
+      if (String(req.query?.leitura || '') !== '1') await garantirGravacaoDoDia(sql).catch((e) => console.error('[series] gravação do dia na leitura:', e?.message || e));
       return res.status(200).json(await lerSeries(sql, quem, req.query || {}));
     }
     if (req.method === 'POST') return res.status(200).json(await escreverSeries(sql, quem, req.body || {}));
