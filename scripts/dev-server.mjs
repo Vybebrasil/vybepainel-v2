@@ -6,6 +6,7 @@ import { demoApi } from './fixtures.mjs';
 import { lerCerebroDaCentral, lerAgentesDaCentral } from '../server/vybes.js';
 import { ETAPAS_LEITURA, lerEtapa } from '../server/vybes-agentes.js';
 import { paginaD3Html } from '../server/pagina-d3.js';
+import { baldearCss } from './css-baldes.mjs';
 
 const PROJECT = resolve(fileURLToPath(new URL('..', import.meta.url)));
 const ROOT = process.env.VYBE_DEV_BUILD === '1' || process.argv.includes('--build') ? resolve(PROJECT, 'dist') : PROJECT;
@@ -114,6 +115,8 @@ export function createDevServer() {
         || (ROOT !== PROJECT && /^assets\/mundo\/mundo-(3d|leve|retratos|parte)-[A-Z0-9]{8}\.js$/.test(file));
       if ((!publicFiles.has(file) && !daArte && !doMundo) || !['GET','HEAD'].includes(req.method)) { naoEncontrado(res); return; }
       let data=await readFile(resolve(ROOT,file));
+      // As folhas saem como no build: regras com :is() à direita ganham balde (scripts/css-baldes.mjs).
+      if (ROOT === PROJECT && extname(file) === '.css') data = Buffer.from(baldearCss(data.toString()).css);
       if(file==='index.html') data=Buffer.from(data.toString().replace('</body>',
         '<div style="position:fixed;bottom:0;left:0;right:0;z-index:999999;background:#493700;color:white;text-align:center;font:12px sans-serif;padding:5px">AMBIENTE LOCAL · '+(upstream?'Proxy de inspeção':'Dados fictícios · senha: demo-local')+'</div></body>'));
       res.writeHead(200,{'Content-Type':TYPES[extname(file)] || 'application/octet-stream'});
