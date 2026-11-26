@@ -2,6 +2,7 @@ import { readFile, mkdir, writeFile, readdir, unlink } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import { transform, build } from 'esbuild';
 import { gerarArtesLocais } from './artes-locais.mjs';
+import { baldearCss } from './css-baldes.mjs';
 
 // Peças com a arte no repositório (mundo/artes-locais.json): o mundo voxel não pede a arte das outras.
 await gerarArtesLocais();
@@ -60,7 +61,9 @@ const modulos = await Promise.all(fontes.map(async (fonte) => ({ fonte,
     minifySyntax:true, minifyIdentifiers:false, target:'es2022', legalComments:'none' })) })));
 for (const m of modulos) if (/"\/assets\/mundo\/(mundo-3d\.js|mundo-leve\.js|mundo-retratos\.js|irece\.json|crm-irece\.json)"/.test(m.code))
   throw new Error(`Build: ${m.fonte} ainda pede um arquivo do mundo sem hash (daria 404 em produção).`);
-const css = await transform(comArtes(await readFile('vybe-styles.css', 'utf8')), { loader: 'css', minify: true });
+// Toda folha passa por baldearCss (scripts/css-baldes.mjs): as regras com :is() à direita ganham balde no navegador.
+const lerCss = async (f) => baldearCss(await readFile(f, 'utf8')).css;
+const css = await transform(comArtes(await lerCss('vybe-styles.css')), { loader: 'css', minify: true });
 await mkdir('dist/assets', { recursive: true });
 for (const f of await readdir('dist/assets')) if (/^[\w-]+-[a-f0-9]{12}\.(js|css)$/.test(f)) await unlink(`dist/assets/${f}`);
 const asset = async (code, ext, prefixo='painel') => {
@@ -69,9 +72,9 @@ const asset = async (code, ext, prefixo='painel') => {
   return `/assets/${nome}`;
 };
 const estilo = await asset(css.code, 'css');
-const appearance = await transform(await readFile('vybe-appearance.css','utf8'), { loader: 'css', minify: true });
+const appearance = await transform(await lerCss('vybe-appearance.css'), { loader: 'css', minify: true });
 const appearancePath = await asset(appearance.code, 'css', 'appearance');
-const padrao = await transform(await readFile('vybe-padrao.css','utf8'), { loader: 'css', minify: true });
+const padrao = await transform(await lerCss('vybe-padrao.css'), { loader: 'css', minify: true });
 // A arte da Vybelândia (cartão do Escritório na tela de módulos) vai com hash;
 // o CSS do padrão aponta para ela, então troca o caminho lá também (sem isto a
 // foto sumia em produção: /assets/vybelandia.webp não existe no dist).
@@ -79,16 +82,16 @@ const vybelandia = await asset(await readFile('assets/vybelandia.webp'), 'webp',
 // O mesmo para o ser do VYBES (cartão do VYBES na tela de módulos).
 const vybesSer = await asset(await readFile('assets/vybes-ser.webp'), 'webp', 'vybes-ser');
 // Sinuca com cara de boteco (vybe-sinuca.css): folha própria, depois do vybe-styles.css.
-const sinucaCss = await transform(comArtes(await readFile('vybe-sinuca.css','utf8')), { loader: 'css', minify: true });
+const sinucaCss = await transform(comArtes(await lerCss('vybe-sinuca.css')), { loader: 'css', minify: true });
 const sinucaCssPath = await asset(sinucaCss.code, 'css', 'sinuca');
-const mundoCss = await transform(await readFile('vybe-mundo.css','utf8'), { loader: 'css', minify: true });
+const mundoCss = await transform(await lerCss('vybe-mundo.css'), { loader: 'css', minify: true });
 const mundoCssPath = await asset(mundoCss.code, 'css', 'mundo');
 // Folhas próprias das janelas do Irecity (vybe-mundo-*.css, ex.: vybe-mundo-conversa.css) ligadas no
 // index.html: cada uma com hash, como as outras. Sem isto o <link> ficaria apontando para um arquivo
 // que não vai para o dist (404 em produção).
 const folhasMundo = [];
 for (const [, f] of html.matchAll(/href="\/(vybe-mundo-[\w-]+\.css)"/g)) {
-  const folha = await transform(await readFile(f, 'utf8'), { loader: 'css', minify: true });
+  const folha = await transform(await lerCss(f), { loader: 'css', minify: true });
   folhasMundo.push([`/${f}`, await asset(folha.code, 'css', f.replace(/^vybe-/, '').replace(/\.css$/, ''))]);
 }
 const padraoPath = await asset(padrao.code.replaceAll('/assets/vybelandia.webp', vybelandia).replaceAll('/assets/vybes-ser.webp', vybesSer), 'css', 'padrao');
