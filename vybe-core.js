@@ -1719,7 +1719,9 @@ if (typeof globalThis !== 'undefined') Object.assign(globalThis, { d3AcaoHtml, d
 //    máquina já vêm buscados. A troca espera até 180 ms pelos dados que ela mesma pediu, e a tela nova entra já cheia.
 // 3) Intervalos que dormem (vbIntervalo): com a aba escondida, param; o "quando" de cada um diz se a tela dele está à vista.
 const VB_SEL_TELA = '.vv-trilho [data-trilho], .vv-trilho [data-submodulo], .vv-trilho [data-visao-setor], .vv-setor [data-submodulo]';
-const VB_SEL_ABA = '.vb-abas [role="tab"], #pv2-vistas [data-vista], [data-visao-hoje], .fe-aba[data-fx="ir-aba"]';
+// As vistas do Painel de trabalho (#pv2-vistas: Semana, Mês, Feed…) ficam de fora: o Mês redesenha o calendário inteiro e,
+// medido, a transição deixava a troca 600 ms mais lenta (o navegador pinta a tela duas vezes a mais). Lá a troca segue direta.
+const VB_SEL_ABA = '.vb-abas [role="tab"], [data-visao-hoje], .fe-aba[data-fx="ir-aba"]';
 // Cartão que vira ficha: o que foi clicado, o cartão em volta (o que cresce) e o destino (o que ele vira).
 const VB_VIRA_FICHA = [
   { clique: '[onclick*="abrirClienteDetalhe("]', cartao: '.v2f-linha, .cv2c, .client-card, [data-cliente]', destino: '#panel-cliente-detalhe' },
@@ -1733,7 +1735,9 @@ function vbAtivoDoTrilho() {
   const l = [...document.querySelectorAll('.vv-trilho [aria-current]')].filter((el) => el.getClientRects().length);
   return l[l.length - 1] || null;
 }
-// Pedidos ao painel em andamento: a troca espera os que ela mesma disparou (até VB_ESPERA_MS) antes de mostrar a tela nova.
+// A troca só espera dado que já estava a caminho: o pedido da tela nova que pegou carona numa pré-busca ainda no ar
+// (até VB_ESPERA_MS). Pedido novo, sem pré-busca, não segura nada: a troca acontece na hora e a tela se completa sozinha
+// (enquanto a transição espera, o navegador não desenha, então esperar à toa custaria quadros).
 const VB_PENDENTES = new Set();
 const VB_ESPERA_MS = 180;
 function vbAgora() { return typeof performance !== 'undefined' ? performance.now() : Date.now(); }
@@ -1743,7 +1747,7 @@ function vbEsperarDados(desde) {
   const dorme = (ms) => new Promise((r) => setTimeout(r, ms));
   return Promise.race([Promise.allSettled(meus).then(() => dorme(30)), dorme(VB_ESPERA_MS)]);
 }
-function vbTrocarTela(atualizar, { tipo = 'tela', cartao = null, destino = '' } = {}) {
+function vbTrocarTela(atualizar, { tipo = 'tela' } = {}) {
   if (!vbPodeVoar()) { atualizar(); return Promise.resolve(false); }
   const postos = new Map();
   const por = (el, nome) => { if (!el || postos.has(el) || [...postos.values()].includes(nome)) return; el.style.viewTransitionName = nome; postos.set(el, nome); };
@@ -1751,7 +1755,6 @@ function vbTrocarTela(atualizar, { tipo = 'tela', cartao = null, destino = '' } 
   const marcar = (depois) => {
     const trilho = document.querySelector('.vv-trilho');
     if (tipo === 'tela' && trilho) { por(trilho, 'vb-trilho'); por(vbAtivoDoTrilho(), 'vb-trilho-ativo'); }
-    if (tipo === 'ficha') por(depois ? document.querySelector(destino) : cartao, 'vb-cartao');
   };
   marcar(false);
   vbVoando = true; document.documentElement.dataset.vbVoo = tipo;
@@ -1766,12 +1769,37 @@ function vbTrocarTela(atualizar, { tipo = 'tela', cartao = null, destino = '' } 
   t.finished.then(fim, fim);
   return t.updateCallbackDone.then(() => true, () => true);
 }
+// Cartão que vira ficha: sem View Transition (medido, a captura da tela custava ~50 ms num clique que levava ~190). O
+// clique segue direto; antes do primeiro quadro com a ficha aberta, a ficha parte do tamanho e do lugar do cartão e cresce
+// até o dela (só transform, na placa de vídeo). Sem suporte, com menos movimento ou com a aba escondida: abre como sempre.
+function vbTempoDoToken(nome, padrao) {
+  try { const v = getComputedStyle(document.documentElement).getPropertyValue(nome).trim(); const n = parseFloat(v); if (n) return /ms$/.test(v) ? n : n * 1000; } catch { /* sem folha */ }
+  return padrao;
+}
+function vbCrescerCartao({ cartao, destino }) {
+  if (typeof document === 'undefined' || document.hidden || !cartao?.getBoundingClientRect || typeof requestAnimationFrame !== 'function') return false;
+  if (typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches) return false;
+  const de = cartao.getBoundingClientRect();
+  if (!de.width || !de.height) return false;
+  requestAnimationFrame(() => {
+    const el = document.querySelector(destino);
+    if (!el || typeof el.animate !== 'function') return;
+    const para = el.getBoundingClientRect();
+    if (!para.width || !para.height) return;
+    const ida = `translate(${Math.round(de.left - para.left)}px, ${Math.round(de.top - para.top)}px) scale(${(de.width / para.width).toFixed(3)}, ${(de.height / para.height).toFixed(3)})`;
+    el.animate([{ transformOrigin: '0 0', transform: ida }, { transformOrigin: '0 0', transform: 'none' }],
+      { duration: vbTempoDoToken('--d3-mov-medio', 280), easing: getComputedStyle(document.documentElement).getPropertyValue('--d3-curva').trim() || 'ease-out' });
+  });
+  return true;
+}
 let vbRepassando = false;
 function vbOperacaoDoClique(alvo) {
   if (!alvo?.closest) return null;
   const tela = alvo.closest(VB_SEL_TELA);
   // Com o menu estreito, o ícone do setor só abre a listinha dele (que já tem a própria entrada): não é troca de tela.
   if (tela && tela.matches('[data-trilho^="setor:"]') && !document.body?.classList?.contains('trilho-largo')) return null;
+  // A volta ao Hoje já é instantânea (a tela dele fica montada por baixo): a transição só custaria um quadro.
+  if (tela && tela.matches('[data-trilho="hoje"]')) return null;
   if (tela) return { tipo: 'tela', el: tela };
   const aba = alvo.closest(VB_SEL_ABA); if (aba) return { tipo: 'aba', el: aba };
   for (const r of VB_VIRA_FICHA) { const el = alvo.closest(r.clique); if (el) return { tipo: 'ficha', el, cartao: el.closest(r.cartao) || el, destino: r.destino }; }
@@ -1782,6 +1810,7 @@ function vbInterceptarClique(e) {
   if (vbRepassando || !e.isTrusted || e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
   const alvo = e.target, op = vbOperacaoDoClique(alvo);
   if (op?.tipo === 'tela') vbAnotarTela(op.el);
+  if (op?.tipo === 'ficha') { vbCrescerCartao(op); return; }
   if (!op || !vbPodeVoar() || op.el.matches('a[href], [disabled], [aria-disabled="true"], .trancado') || op.el.closest('a[href]')) return;
   // A aba que já está aberta não troca nada: o clique segue direto.
   if (op.tipo === 'aba' && op.el.matches('[aria-selected="true"], [aria-checked="true"], [aria-current="true"], [aria-pressed="true"]')) return;
@@ -1794,20 +1823,23 @@ function vbInterceptarClique(e) {
 const VB_PRE_MS = 20000;
 const VB_GUARDADO = new Map(); // chave -> { t, p }: resposta pedida antes, usada uma vez
 const VB_NO_AR = new Map();    // chave -> promessa do pedido GET igual em andamento
-// O que cada item do menu pede ao abrir (medido na demo, 27/11/2026). O que a pessoa abre e não está aqui é aprendido na hora.
+// O que cada item do menu pede na primeira vez que abre (medido na demo, 27/11/2026). Só o que a página ainda não pediu
+// nenhuma vez é pré-buscado: módulo já aberto guarda os próprios dados e não pede de novo, e a pré-busca seria pedido a mais.
 const VB_DADOS_DE = {
-  'visao:setor:producao': ['/api/painel?area=vybes'], clientes: ['/api/painel?area=clientes'],
+  // Produção fica de fora: os dados dela (area=vybes) já chegam com o Hoje, e pré-buscar de novo era pedido pesado a mais.
+  clientes: ['/api/painel?area=clientes'],
   carteira: ['/api/painel?area=carteira'], midia: ['/api/painel?area=midia&acao=carteira'],
   funil: ['/api/painel?area=comercial'], planejamentos: ['/api/painel?area=planejamentos'],
   // O ícone do setor (menu estreito) abre a listinha: quem passa o mouse nele já ganha o módulo mais aberto do setor.
-  'setor:producao': ['/api/painel?area=vybes'], 'setor:clientes': ['/api/painel?area=clientes'],
+  'setor:clientes': ['/api/painel?area=clientes'],
   'setor:midia': ['/api/painel?area=midia&acao=carteira'], 'setor:financas': ['/api/painel?area=financeiro'],
 };
 for (const f of ['fin_hoje', 'fin_movimento', 'fin_clientes', 'fin_pessoas', 'fin_assinaturas', 'fin_analise', 'fin_projecao', 'fin_fechamento']) VB_DADOS_DE[f] = ['/api/painel?area=financeiro'];
 // Cada quem lê a própria cópia da resposta (quem não tem clone, como um dublê de teste, recebe a mesma).
 const vbCopia = (r) => (r && typeof r.clone === 'function' ? r.clone() : r);
-const VB_APRENDIDO = new Map(); // id do menu -> Set de pedidos vistos logo depois de abrir
-let vbUltimaTela = { id: '', t: 0 };
+const VB_VISTO = new Set();     // pedidos que a própria página já fez (não a pré-busca)
+const VB_PRE_NO_AR = new Set(); // promessas no ar que são pré-busca
+let vbPrebuscando = false;
 function vbChaveDoPedido(url) {
   try {
     const aqui = typeof location !== 'undefined' ? location.href : 'http://localhost/';
@@ -1825,7 +1857,6 @@ function vbIdDoItem(el) {
 }
 function vbAnotarTela(el) {
   const id = vbIdDoItem(el); if (!id) return;
-  vbUltimaTela = { id, t: Date.now() };
   try { const u = JSON.parse(localStorage.getItem('vybe.fluido.usos') || '{}'); u[id] = (u[id] || 0) + 1; localStorage.setItem('vybe.fluido.usos', JSON.stringify(u)); } catch { /* sem armazenamento: só não conta */ }
 }
 function vbEmbrulharFetch(original) {
@@ -1835,28 +1866,28 @@ function vbEmbrulharFetch(original) {
     if (!chave) return original(rec, op);
     const metodo = String(op?.method || (typeof rec === 'object' && rec?.method) || 'GET').toUpperCase();
     if (metodo !== 'GET') { const area = vbAreaDe(chave); for (const k of [...VB_GUARDADO.keys()]) if (vbAreaDe(k) === area) VB_GUARDADO.delete(k); return original(rec, op); }
-    if (vbUltimaTela.id && Date.now() - vbUltimaTela.t < 2500) {
-      if (!VB_APRENDIDO.has(vbUltimaTela.id)) VB_APRENDIDO.set(vbUltimaTela.id, new Set());
-      const s = VB_APRENDIDO.get(vbUltimaTela.id); if (s.size < 4) s.add(chave);
-    }
-    const g = VB_GUARDADO.get(chave);
-    if (g) { VB_GUARDADO.delete(chave); if (Date.now() - g.t < VB_PRE_MS) return g.p.then(vbCopia); }
+    const daPagina = !vbPrebuscando;
+    if (daPagina) VB_VISTO.add(chave);
+    // Carona numa pré-busca ainda no ar: é o dado que a troca pode esperar um pouco.
+    const carona = (pr) => { if (daPagina && VB_PRE_NO_AR.has(pr)) { const x = { t: vbAgora(), p: pr }; VB_PENDENTES.add(x); const s = () => VB_PENDENTES.delete(x); pr.then(s, s); } return pr.then(vbCopia); };
+    const g = daPagina && VB_GUARDADO.get(chave);
+    if (g) { VB_GUARDADO.delete(chave); if (Date.now() - g.t < VB_PRE_MS) return carona(g.p); }
     const voando = VB_NO_AR.get(chave);
-    if (voando) return voando.then(vbCopia);
+    if (voando) return carona(voando);
     const p = original(rec, op);
-    const x = { t: vbAgora(), p };
-    VB_NO_AR.set(chave, p); VB_PENDENTES.add(x);
-    const solta = () => { if (VB_NO_AR.get(chave) === p) VB_NO_AR.delete(chave); VB_PENDENTES.delete(x); };
+    VB_NO_AR.set(chave, p); if (!daPagina) VB_PRE_NO_AR.add(p);
+    const solta = () => { if (VB_NO_AR.get(chave) === p) VB_NO_AR.delete(chave); VB_PRE_NO_AR.delete(p); };
     p.then(solta, solta);
     return p.then(vbCopia);
   };
 }
-// Pede antes; não pede de novo o que já está guardado ou no ar. Só GET, com o mesmo crachá dos pedidos de sempre.
+// Pede antes; não pede o que a página já pediu alguma vez, nem o que está guardado ou no ar. Só GET, com o mesmo crachá.
 function vbPreBuscar(url, buscar = typeof window !== 'undefined' ? window.fetch : null) {
   const chave = vbChaveDoPedido(url);
-  if (!chave || !buscar || VB_NO_AR.has(chave)) return false;
+  if (!chave || !buscar || VB_NO_AR.has(chave) || VB_VISTO.has(chave)) return false;
   const g = VB_GUARDADO.get(chave); if (g && Date.now() - g.t < VB_PRE_MS) return false;
-  const p = buscar(chave, { credentials: 'same-origin', cache: 'no-store' });
+  let p; vbPrebuscando = true;
+  try { p = buscar(chave, { credentials: 'same-origin', cache: 'no-store' }); } finally { vbPrebuscando = false; }
   const orig = VB_NO_AR.get(chave) || p;
   VB_GUARDADO.set(chave, { t: Date.now(), p: orig });
   // Pedido que falhou não fica guardado.
@@ -1865,7 +1896,7 @@ function vbPreBuscar(url, buscar = typeof window !== 'undefined' ? window.fetch 
 }
 function vbPreBuscarItem(el) {
   if (!el || el.classList?.contains('trancado')) return 0;
-  const id = vbIdDoItem(el), lista = new Set([...(VB_DADOS_DE[id] || []), ...(VB_APRENDIDO.get(id) || [])]);
+  const id = vbIdDoItem(el), lista = VB_DADOS_DE[id] || [];
   let n = 0; for (const u of lista) if (vbPreBuscar(u)) n++;
   return n;
 }
@@ -1901,4 +1932,4 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined' && typeof w
   const folga = (f) => (typeof requestIdleCallback === 'function' ? requestIdleCallback(f, { timeout: 8000 }) : setTimeout(f, 3000));
   window.addEventListener('load', () => setTimeout(() => folga(() => { try { vbPreBuscarMaisUsados(3); } catch { /* segue */ } }), 4000), { once: true });
 }
-if (typeof globalThis !== 'undefined') Object.assign(globalThis, { vbTrocarTela, vbPodeVoar, vbOperacaoDoClique, vbInterceptarClique, vbEmbrulharFetch, vbChaveDoPedido, vbPreBuscar, vbPreBuscarItem, vbPreBuscarMaisUsados, vbIntervalo, vbAcordarIntervalos, VB_DADOS_DE });
+if (typeof globalThis !== 'undefined') Object.assign(globalThis, { vbTrocarTela, vbPodeVoar, vbOperacaoDoClique, vbCrescerCartao, vbInterceptarClique, vbEmbrulharFetch, vbChaveDoPedido, vbPreBuscar, vbPreBuscarItem, vbPreBuscarMaisUsados, vbIntervalo, vbAcordarIntervalos, VB_DADOS_DE, vbEsperaveis: () => VB_PENDENTES.size });

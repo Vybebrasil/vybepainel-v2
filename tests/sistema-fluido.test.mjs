@@ -75,6 +75,36 @@ test('com "menos movimento" (prefers-reduced-motion) não há transição; com s
   let k = 0; await atras.c.vbTrocarTela(() => { k++; }); assert.equal(k, 1); assert.equal(atras.chamadas.vt, 0);
 });
 
+test('a volta ao Hoje não passa pela transição (a tela dele já está montada)', () => {
+  const { c } = ambiente();
+  const hoje = { dataset: { trilho: 'hoje' }, matches: (s) => s.includes('[data-trilho="hoje"]'), closest: (s) => (s.includes('[data-trilho]') ? hoje : null) };
+  assert.equal(c.vbOperacaoDoClique(hoje), null);
+  const e = clique(hoje); c.vbInterceptarClique(e);
+  assert.ok(!e.defaultPrevented, 'o clique segue direto');
+});
+
+test('cartão que vira ficha: o clique segue direto e a ficha cresce do lugar do cartão, sem View Transition', () => {
+  const { c, document, chamadas } = ambiente();
+  const quadros = []; c.requestAnimationFrame = (f) => quadros.push(f);
+  c.getComputedStyle = () => ({ getPropertyValue: (n) => (n === '--d3-mov-medio' ? '.28s' : n === '--d3-curva' ? 'cubic-bezier(.32,.72,0,1)' : '') });
+  const animou = [];
+  const ficha = { getBoundingClientRect: () => ({ left: 300, top: 40, width: 1000, height: 600 }), animate: (k, o) => animou.push([k, o]) };
+  document.querySelector = (s) => (s === '#panel-cliente-detalhe' ? ficha : null);
+  const cartao = { getBoundingClientRect: () => ({ left: 400, top: 200, width: 200, height: 60 }) };
+  const botao = { matches: () => false, closest: (s) => (s.includes('abrirClienteDetalhe') ? botao : s.includes('.v2f-linha') ? cartao : null) };
+  const e = clique(botao); c.vbInterceptarClique(e);
+  assert.ok(!e.defaultPrevented && !e.parou, 'o clique chega na hora a quem abre a ficha');
+  assert.equal(chamadas.vt, 0, 'sem captura de tela');
+  quadros.forEach((f) => f());
+  assert.equal(animou.length, 1);
+  assert.equal(animou[0][0][0].transform, 'translate(100px, 160px) scale(0.200, 0.100)');
+  assert.equal(animou[0][1].duration, 280);
+  // Com menos movimento, nada anima.
+  const quieto = ambiente({ menosMovimento: true }); const q2 = []; quieto.c.requestAnimationFrame = (f) => q2.push(f);
+  assert.equal(quieto.c.vbCrescerCartao({ cartao, destino: '#panel-cliente-detalhe' }), false);
+  assert.equal(q2.length, 0);
+});
+
 test('o clique feito pelo código (.click() de atalho ou voz) não é segurado; o de gente é repassado dentro da troca', () => {
   const { c } = ambiente();
   const el = itemDoTrilho({ trilho: 'midia' }); itemDoTrilho.atual = el;
@@ -98,6 +128,19 @@ test('a pré-busca não duplica chamada: pedido igual no ar vira um, e o guardad
   assert.equal(pedidos.length, 1, 'o módulo abriu com o que a pré-busca trouxe');
   await buscar('/api/painel?area=clientes');
   assert.equal(pedidos.length, 2, 'o guardado vale uma vez; depois pede de novo');
+  assert.equal(c.vbPreBuscar('/api/painel?area=clientes', buscar), false, 'o que a página já pediu não é pré-buscado (o módulo já tem)');
+  assert.equal(pedidos.length, 2);
+  // A troca só espera a carona numa pré-busca ainda no ar; pedido novo da tela não segura a troca.
+  let soltaPre; const devagar = (url) => { pedidos.push(String(url)); return new Promise((ok) => { soltaPre = () => ok(resposta()); }); };
+  const b3 = c.vbEmbrulharFetch(devagar);
+  const novo = b3('/api/painel?area=planejamentos');
+  assert.equal(c.vbEsperaveis(), 0, 'pedido sem pré-busca: nada a esperar');
+  soltaPre(); await novo;
+  assert.equal(c.vbPreBuscar('/api/painel?area=comercial', b3), true);
+  const carona = b3('/api/painel?area=comercial');
+  assert.equal(c.vbEsperaveis(), 1, 'pegou carona na pré-busca no ar: a troca pode esperar um pouco');
+  soltaPre(); await carona; await new Promise((ok) => setImmediate(ok));
+  assert.equal(c.vbEsperaveis(), 0);
   // Dois pedidos iguais ao mesmo tempo viram um.
   let solta; const lento = (url) => { pedidos.push(String(url)); return new Promise((ok) => { solta = () => ok(resposta()); }); };
   const b2 = c.vbEmbrulharFetch(lento);

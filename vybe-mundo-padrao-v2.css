@@ -8214,7 +8214,7 @@ html[data-vb-voo="chip"]::view-transition-new(*):only-child{animation:vb-vt-entr
 html[data-vb-voo="chip"]::view-transition-old(*):only-child{animation:vb-vt-sai var(--d3-mov-rapido) ease-in both}
 /* Sistema fluido (27/11/2026, vbTrocarTela em vybe-core.js). Troca de módulo: o menu lateral fica parado (sem esmaecer),
    a marca do item ativo desliza do item de antes para o novo, a tela de antes some rápido e a nova sobe 8px já cheia.
-   Aba interna: o mesmo, mais curto. Cartão que vira ficha: o cartão cresce até o lugar da ficha. */
+   Aba interna: o mesmo, mais curto. O cartão que vira ficha cresce por vbCrescerCartao (Web Animations, sem captura). */
 @keyframes vb-tela-sai{to{opacity:0}}
 @keyframes vb-tela-entra{from{transform:translateY(8px)}}
 /* A tela nova nunca começa transparente (regra do mundo): ela já está inteira por baixo e sobe 8px; a de antes fica por
@@ -8227,8 +8227,7 @@ html[data-vb-voo="aba"]::view-transition-new(root){animation:vb-tela-entra var(-
 ::view-transition-old(vb-trilho){animation:none;opacity:0}
 ::view-transition-new(vb-trilho){animation:none}
 ::view-transition-group(vb-trilho){animation:none}
-::view-transition-group(vb-trilho-ativo),::view-transition-group(vb-cartao){animation-duration:var(--d3-mov-medio);animation-timing-function:var(--d3-curva)}
-::view-transition-old(vb-cartao),::view-transition-new(vb-cartao){height:100%;object-fit:cover;overflow:clip}
+::view-transition-group(vb-trilho-ativo){animation-duration:var(--d3-mov-medio);animation-timing-function:var(--d3-curva)}
 @media (prefers-reduced-motion:reduce){::view-transition-group(*),::view-transition-old(*),::view-transition-new(*){animation:none}}
 
 /* 5 · Edita no lugar: o campo de data ocupa o lugar do texto, na mesma pílula. */
