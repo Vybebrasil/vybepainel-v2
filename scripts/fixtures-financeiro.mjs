@@ -12,6 +12,9 @@
 //                               o extrato do banco de 17/08 a hoje, setembro e outubro cheios (R$ 45,7 mil e R$ 28,7 mil de
 //                               entrada, ~R$ 30 mil de saída), 6 combinados (R$ 15.500) pagos por Pix sem pessoa ligada
 //                               (2 com outro nome no Pix), pró-labore sem pessoa e 1 contrato de R$ 1.200. Tudo fictício.
+//   DEMO_FIN_PESSOAS=1          finpes (27/11/2026): saídas para o time que Pessoas não mostrava. Pix da equipe como "outra
+//                               saída" sem pessoa, um apelido, "Pago a" com espaço no fim, duas pessoas duplicadas, um sócio
+//                               com pró-labore de agosto a novembro (parte sem conferir) e um cliente no "Pago a". Fictício.
 // Finanças completo (26/11/2026): contratos com dia de vencimento, fim e reajuste; um cliente que saiu e um novo; peças
 // da produção (rateio), clientes em risco (pessimista), funil do Comercial (otimista), cartão com itens, orçamento,
 // um mês fechado, metas e um cenário guardado.
@@ -148,6 +151,47 @@ async function montarProducao(db, sql, ir, hoje) {
   }
 }
 
+// ---------- DEMO_FIN_PESSOAS=1: os casos de Pessoas (finpes) ----------
+// [id, nome, combinado]
+const TIME_PES = [[21, 'Rita Exemplo Lima', 2500], [22, 'Ademar Ficticio Santos', 2000], [23, 'Otavio Teste Ramos', 1800], [24, 'Caio Modelo Souza Prado', 0], [31, 'Caio Prado', 0],
+  [25, 'Davi Socio Exemplo', 0], [26, 'Tito Freela Exemplo', 0]];
+async function montarPessoas(db, sql, ir, hoje) {
+  for (const [id, nome] of TIME_PES) await db.query('INSERT INTO vybe_pessoas VALUES ($1,$2)', [id, nome]);
+  await db.query("INSERT INTO vybe_clientes (id,nome) VALUES (1,'Loja Exemplo Modas'),(2,'Cliente Dois Exemplo')");
+  const ls = [];
+  const add = (d, h, v) => { if (d <= hoje) ls.push([d, h, v]); };
+  for (const M of ['2026-08', '2026-09', '2026-10', '2026-11']) {
+    add(M + '-02', 'Pix Recebido Cliente Dois Exemplo', 12000);
+    add(M + '-05', 'Pix Enviado Rita Exemplo Lima', -2500);
+    add(M + '-05', 'Pix Enviado Zezinho Ficticio', -1500); add(M + '-18', 'Pix Enviado Zezinho Ficticio', -500); add(M + '-12', 'Pix Enviado Zezinho Ficticio', -120);
+    add(M + '-06', 'Pix Enviado Conta Conjunta Exemplo', -1800);
+    add(M + '-20', 'Pix Enviado Davi Socio', -1500);
+    add(M + '-21', 'Pix Enviado Caio', -1200);
+    add(M + '-25', 'Pix Enviado Rita Exemplo Lima', -340);
+  }
+  add('2026-10-28', 'Pix Enviado Tito Freela Exemplo', -900); add('2026-11-10', 'Pix Enviado Tito Freela Exemplo', -700);
+  ls.sort((x, y) => x[0].localeCompare(y[0]));
+  let saldo = 8000;
+  const linhas = ls.map(([d, h, v]) => { saldo = Math.round((saldo + v) * 100) / 100; return [d, h, v, saldo]; });
+  await ir({ acao: 'importar', csv: ['AGENCIA;"0001";CONTA;"99999"', '', 'Data;Histórico;Documento;Valor (R$);Saldo (R$)', ...linhas.reverse().map(([d, h, v, s]) => `"${br(d)}";"${h}";"";"${brl(v)}";"${brl(s)}"`)].join('\r\n') });
+  for (const [id, , v] of TIME_PES) if (v) await ir({ acao: 'salario_salvar', pessoa_id: String(id), valor: v, desde: '2026-08' });
+  await ir({ acao: 'pessoa_apelidos_salvar', pessoa_id: '22', apelidos: 'Zezinho' });
+  const { lerTudo } = await import('../server/financeiro.js');
+  let k = 0;
+  for (const tr of (await lerTudo(sql)).extrato.transacoes) {
+    const h = tr.banco.historico.toLowerCase(), mes = tr.banco.data.slice(0, 7), conferido = mes < hoje.slice(0, 7);
+    let mudanca = null;
+    if (h.includes('rita') && tr.banco.valor === -2500) mudanca = { categoria: 'outra_saida', conferido };                 // equipe como "outra saída"
+    else if (h.includes('rita')) mudanca = { categoria: 'producao', quem: 'Loja Exemplo Modas', conferido };              // cliente no "Pago a"
+    else if (h.includes('zezinho')) mudanca = { categoria: tr.banco.valor === -120 ? 'combustivel' : k++ % 2 ? 'salario' : 'outra_saida', conferido }; // apelido
+    else if (h.includes('conta conjunta')) mudanca = { categoria: 'salario', quem: 'Otavio ', conferido };              // "Pago a" com espaço
+    else if (h.includes('davi')) mudanca = { categoria: 'pro_labore', quem: 'Davi', conferido: mes >= '2026-10' };        // sócio, parte sem conferir
+    else if (h.includes('pix enviado caio')) mudanca = { categoria: 'pro_labore', quem: 'Caio ', conferido };             // duplicado
+    else if (h.includes('tito')) mudanca = { categoria: 'freela', conferido };
+    else if (h.includes('cliente dois')) mudanca = { categoria: 'receita_cliente', cliente_id: '2', cliente_nome: 'Cliente Dois Exemplo', conferido };
+    if (mudanca) await ir({ acao: 'editar', id: tr.id, mudanca });
+  }
+}
 let pronto = null;
 const TOKEN_DEMO = 'demo-local-so-para-a-demonstracao-do-financeiro-0000'; // fictício, só neste processo
 async function banco() {
@@ -168,6 +212,7 @@ async function banco() {
     const quem = { tipo: 'sessao', pessoa: { id: 1, nome: 'Operador de teste', dono: true } };
     const ir = (b) => escreverFinanceiro(sql, quem, b);
     if (prodLigada()) { await montarProducao(db, sql, ir, hoje); return { sql, quem }; }
+    if (process.env.DEMO_FIN_PESSOAS === '1') { await montarPessoas(db, sql, ir, hoje); return { sql, quem }; }
     // No caso da produção só a Hebravet (R$ 1.200) tem contrato: os outros 14 clientes ativos não têm mensalidade cadastrada.
     const comContrato = (nome) => !umContrato() || nome === 'Hebravet';
     for (const [i, [nome, valor]] of CLIENTES.entries()) {

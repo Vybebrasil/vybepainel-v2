@@ -106,8 +106,19 @@
   const opcoesCliente = (d, sel) => `<option value="">sem cliente</option>${(d.clientes || []).filter((c) => c.ativo !== false || String(c.id) === String(sel)).map((c) => `<option value="${esc(c.id)}"${String(c.id) === String(sel) ? ' selected' : ''}>${esc(c.nome)}</option>`).join('')}`;
   const nomeCliente = (d, id) => (d.clientes || []).find((c) => String(c.id) === String(id))?.nome || '';
   // Para quem foi (14/11/2026): a pessoa do time, sócio incluído (Pix para Lusolimar → Paulo).
-  const opcoesPessoa = (d, sel) => `<option value="">ninguém do time</option>${(d.pessoas || []).map((p) => `<option value="${esc(p.id)}"${String(p.id) === String(sel) ? ' selected' : ''}>${esc(p.nome)}</option>`).join('')}`;
+  // 27/11/2026: "pela regra" deixa a regra única ligar (o "Pago a" ou o nome no extrato); "não é do time" desliga de vez.
+  const opcoesPessoa = (d, sel) => `<option value="">${d.ligacoes_pessoas ? 'pela regra (Pago a ou extrato)' : 'ninguém do time'}</option>${d.ligacoes_pessoas ? `<option value="${X().NAO_PESSOA || '_ninguem'}"${sel === (X().NAO_PESSOA || '_ninguem') ? ' selected' : ''}>não é ninguém do time</option>` : ''}${(d.pessoas || []).map((p) => `<option value="${esc(p.id)}"${String(p.id) === String(sel) ? ' selected' : ''}>${esc(p.nome)}</option>`).join('')}`;
   const nomePessoa = (d, id) => (d.pessoas || []).find((p) => String(p.id) === String(id))?.nome || '';
+  // Em Pessoas (27/11/2026): de quem a regra única diz que é este lançamento, de onde veio a ligação e como conta.
+  const ORIGEM_LIGA = { manual: 'escolhida à mão', quem: 'pelo "Pago a"', extrato: 'pelo nome no extrato', apelido: 'pelo apelido' };
+  const TIPO_LIGA = { salario: 'salário', pro_labore: 'pró-labore', vale: 'vale', freela: 'freela', reembolso: 'reembolso', devolucao: 'devolução de vale', nao_classificado: 'não classificado: confira a categoria' };
+  function ligacaoHtml(d, t) {
+    if (!d.ligacoes_pessoas || t.banco.valor > 0 && t.real.categoria !== 'devolucao_vale') return '';
+    const ls = (d.ligacoes_pessoas[t.id] || []).filter((l) => l.tipo);
+    const txt = ls.length ? ls.map((l) => `<b>${esc(l.pessoa_nome || nomePessoa(d, l.pessoa_id) || 'Pessoa')}</b> · ${esc(TIPO_LIGA[l.tipo] || l.tipo)} <small>(${esc(ORIGEM_LIGA[l.origem] || l.origem)})</small>`).join('<br>')
+      : t.real.pessoa_id === (X().NAO_PESSOA || '_ninguem') ? 'Fora de Pessoas (marcado "não é ninguém do time").' : 'Não entra em Pessoas: nenhum nome do time no "Pago a" nem no extrato.';
+    return `<span class="fx-campo largo fx-liga"><span>Em Pessoas</span><span class="fe-sub">${txt}</span></span>`;
+  }
   // Ligar a um gasto fixo: o lançamento conta como o pagamento daquele fixo no mês a que se refere.
   const opcoesFixo = (d, sel) => `<option value="">nenhum</option>${(d.fixos || []).filter((f) => f.ativo !== false || f.id === sel).map((f) => `<option value="${esc(f.id)}"${f.id === sel ? ' selected' : ''}>${esc(f.nome)} · ${esc(rs(f.valor))}</option>`).join('')}`;
   const campo = (rot, html, cls = '') => `<label class="fx-campo${cls ? ' ' + cls : ''}"><span>${esc(rot)}</span>${html}</label>`;
@@ -216,6 +227,7 @@
         ${campo(entrada ? 'Recebido de' : 'Pago a', `<input name="quem" class="fx-in" value="${esc(t.real.quem)}" placeholder="${esc(contra || (entrada ? 'quem mandou o dinheiro' : 'posto, gráfica, Adobe'))}">`)}
         ${campo('Como', `<select name="forma" class="fx-sel">${opcoesForma(X().formaDe(t))}</select>`)}
         ${campo('Pessoa do time', `<select name="pessoa_id" class="fx-sel" title="Se foi salário, pró-labore ou vale de alguém da Vybe">${opcoesPessoa(d, t.real.pessoa_id)}</select>`)}
+        ${ligacaoHtml(d, t)}
         ${entrada ? '' : campo('Gasto fixo', `<select name="fixo_id" class="fx-sel">${opcoesFixo(d, t.real.fixo_id)}</select>`)}
         ${campo('Referente a', `<input name="competencia" type="month" class="fx-in" value="${esc(t.real.competencia)}">`)}
         ${campo('Observação', `<input name="descricao" class="fx-in" value="${esc(t.real.descricao)}" placeholder="o que foi">`, 'largo')}
@@ -1154,6 +1166,19 @@
         if (r) { ui.vales.ajuste = ''; ui.fe.pes.desconto = ''; repintar(); } else voltou(b); return;
       }
       case 'pessoa-ajuste-tirar': await gravar({ acao: 'vale_ajuste_remover', id: valor }, 'Ajuste desfeito.'); return;
+      case 'pessoa-apelidos': {
+        const f = b.closest('[data-fx-form="apelidos"]'); if (!f) return;
+        const v = valoresDe(f); indo(b);
+        const r = await gravar({ acao: 'pessoa_apelidos_salvar', pessoa_id: valor, apelidos: String(v.apelidos || '') }, 'Apelidos salvos.');
+        if (!r) voltou(b); return;
+      }
+      case 'fe-pes-juntar-abrir': ui.fe.pes.juntar = valor; return repintar();
+      case 'fe-pes-juntar': {
+        indo(b);
+        const r = await gravar({ acao: 'pessoa_juntar', de: b.dataset.de, para: valor }, 'Pessoas juntadas.');
+        if (r) { ui.fe.pes.juntar = ''; ui.fe.pes.sel = valor; repintar(); } else voltou(b); return;
+      }
+      case 'fe-pes-separar': await gravar({ acao: 'pessoa_separar', de: valor }, 'Junção desfeita.'); return;
       case 'regra-salvar': {
         const ed = b.closest('[data-fx-editor]'); if (!ed) return;
         const v = valoresDe(ed);
@@ -1790,7 +1815,9 @@
     if (!t) return `<section class="fe-card fe-ficha"><p class="fe-vazio">${total ? `Você pulou os ${n0(total)} que faltam.` : 'Tudo conferido.'}</p>${ui.fe.pular.length ? feBtn('Voltar os pulados', 'data-fx="fe-pular" data-valor=""') : ''}</section>${fila2}`;
     const contra = t.banco.contraparte ? t.banco.contraparte.split(' ').slice(0, 2).join(' ') : '';
     const sabe = t.real.categoria !== 'a_classificar';
-    const quem = t.real.cliente_nome || t.real.pessoa_nome || t.real.quem || '';
+    // A pessoa que a regra única achou pela contraparte (27/11/2026): o Vorcaro sugere, o dono confirma.
+    const ligada = (d.ligacoes_pessoas?.[t.id] || []).find((l) => l.tipo)?.pessoa_nome || '';
+    const quem = t.real.cliente_nome || t.real.pessoa_nome || ligada || t.real.quem || '';
     const pos = total - fila.length + 1;
     return `<div class="fe-lado-cab"><span class="fe-rot">Conferir · ${n0(pos)} de ${n0(total)}</span></div>
       <div class="fe-baralho"><span class="fe-carta-atras" aria-hidden="true"></span><span class="fe-carta-atras b" aria-hidden="true"></span>
@@ -1923,7 +1950,10 @@
   function fePessoas(ctx) {
     const d = feIniciar(ctx), u = ui.fe.pes, contas = d.contas_pessoas || [], mes = ui.fe.mes;
     const doMes = (c) => c.meses.find((m) => m.mes === mes) || { pago: 0, combinado: c.salario?.valor || 0 };
-    const socio = (c) => !c.salario?.valor && c.itens.length && c.itens.every((i) => SOCIO_CATS.includes(i.categoria));
+    // Sócio: sem combinado e tudo que recebeu é pró-labore ou retirada (27/11/2026: pelo tipo da ligação; o não classificado
+    // de um sócio não tira ele dos sócios).
+    const ehRet = (i) => (i.tipo ? i.tipo === 'pro_labore' : SOCIO_CATS.includes(i.categoria));
+    const socio = (c) => !c.salario?.valor && c.itens.some(ehRet) && c.itens.every((i) => ehRet(i) || i.tipo === 'nao_classificado');
     const equipe = contas.filter((c) => !socio(c)), socios = contas.filter(socio);
     const combinado = equipe.reduce((s, c) => s + (doMes(c).combinado || 0), 0), pago = equipe.reduce((s, c) => s + (doMes(c).pago || 0), 0), vale = contas.reduce((s, c) => s + c.vale, 0);
     // Gente que não é fixa (Paulo, 24/11/2026): freela e prestador do mês, na mesma aba, para ter controle do variável.
@@ -1940,11 +1970,16 @@
       + feBtn('Lançar gasto variável', 'data-fx="fe-var-novo"', 'k'), { cls: 'fe-var', dir: variaveis.length ? esc(rs(totalVar)) : '' });
     const linha = (c, ehSocio) => {
       const m = doMes(c), comb = m.combinado || 0, pg = m.pago || 0, sel = u.sel === c.pessoa_id;
+      // Recebeu = o que conta contra o combinado + freela e reembolso do mês (27/11/2026: "pago 0" de quem só tinha Pix sem pessoa).
+      const rec = pg + (m.freela || 0) + (m.reembolso || 0), falta = m.aberto ? m.falta_pagar || 0 : m.a_pagar || 0;
+      const avisos = [(c.duplicados || []).length ? `<small class="a">possível duplicado de ${esc(c.duplicados.map((x) => x.nome).join(', '))}</small>` : '',
+        m.pago_nao_classificado ? `<small class="a">${esc(rs(m.pago_nao_classificado))} sem categoria de pessoa: confira</small>` : '',
+        falta ? `<small>falta pagar ${esc(rs(falta))}</small>` : ''].join('');
       const topo = Math.max(comb, pg, 1) * 1.15, w = pc(Math.min(pg, comb || pg), topo), over = comb && pg > comb ? pc(pg - comb, topo) : 0;
       const prox = c.proximo && c.proximo.desconto ? `<small class="v">${esc(soMes(c.proximo.mes))}: recebe ${esc(rs(c.proximo.a_receber))}</small>` : m.desconto ? `<small class="v">recebe ${esc(rs(m.a_receber))} este mês</small>` : '';
-      return `<div class="fe-p${sel ? ' sel' : ''}"><button type="button" class="fe-p-nome" data-fx="fe-pes" data-valor="${esc(c.pessoa_id)}" aria-pressed="${sel}"><span class="fe-av ${ehSocio ? 's' : 'c' + ([...String(c.nome)].reduce((s, ch) => s + ch.charCodeAt(0), 0) % 4)}" aria-hidden="true">${esc(iniciais(c.nome))}</span><span><b>${esc(c.nome)}</b>${prox}</span></button>
+      return `<div class="fe-p${sel ? ' sel' : ''}"><button type="button" class="fe-p-nome" data-fx="fe-pes" data-valor="${esc(c.pessoa_id)}" aria-pressed="${sel}"><span class="fe-av ${ehSocio ? 's' : 'c' + ([...String(c.nome)].reduce((s, ch) => s + ch.charCodeAt(0), 0) % 4)}" aria-hidden="true">${esc(iniciais(c.nome))}</span><span><b>${esc(c.nome)}</b>${prox}${avisos}</span></button>
         ${ehSocio ? `<span class="fe-sub">${quantos(c.itens.filter((i) => i.mes === mes).length, 'retirada', 'retiradas')} em ${esc(soMes(mes))}</span>` : `<span class="fe-trilho" aria-hidden="true"><i style="--v:${w}%"></i>${over ? `<i class="v" style="--l:${w}%;--v:${over}%"></i>` : ''}${comb ? `<em style="--l:${pc(comb, topo)}%"></em>` : ''}</span>`}
-        <span class="rt">${comb ? esc(rs(comb)) : '—'}</span><button type="button" class="rt fe-p-num" data-fx="fe-pes" data-valor="${esc(c.pessoa_id)}" aria-label="De onde vem o que ${esc(c.nome)} recebeu em ${esc(soMes(mes))}">${esc(rs(pg))}</button><button type="button" class="rt fe-p-num${c.vale ? ' v' : ''}" data-fx="fe-pes" data-valor="${esc(c.pessoa_id)}" aria-label="De onde vem o vale de ${esc(c.nome)}">${c.vale ? esc(rs(c.vale)) : '—'}</button></div>`;
+        <span class="rt">${comb ? esc(rs(comb)) : '—'}</span><button type="button" class="rt fe-p-num" data-fx="fe-pes" data-valor="${esc(c.pessoa_id)}" aria-label="De onde vem o que ${esc(c.nome)} recebeu em ${esc(soMes(mes))}">${esc(rs(rec))}</button><button type="button" class="rt fe-p-num${c.vale ? ' v' : ''}" data-fx="fe-pes" data-valor="${esc(c.pessoa_id)}" aria-label="De onde vem o vale de ${esc(c.nome)}">${c.vale ? esc(rs(c.vale)) : '—'}</button></div>`;
     };
     const cab = '<div class="fe-p fe-p-cab" aria-hidden="true"><span>Pessoa</span><span>Recebeu × combinado</span><span class="rt">Combinado</span><span class="rt">Recebeu</span><span class="rt">Vale</span></div>';
     const corpo = contas.length ? cab + equipe.map((c) => linha(c, false)).join('') + (socios.length ? `<p class="fe-dia">Sócios · pró-labore e retiradas</p>${socios.map((c) => linha(c, true)).join('')}` : '')
@@ -1960,15 +1995,19 @@
       const foraLista = (d.pessoas || []).filter((p) => foraIds.has(String(p.id)));
       lado = feCard('Informar o combinado', (semConta.length ? semConta.map((p) => `<div class="fx-mini fe-comb" data-fx-form="salario"><span>${esc(p.nome)}</span><input name="valor" class="fx-in fx-num" inputmode="decimal" placeholder="combinado" aria-label="Combinado de ${esc(p.nome)}">${selMes('desde', '', d, { vazio: 'desde sempre', rotulo: `Desde quando, ${p.nome}` })}<button type="button" class="fe-btn s v2-estado" data-fx="pessoa-salario" data-valor="${esc(p.id)}">Salvar</button><button type="button" class="fe-ico" data-fx="fe-pes-fora" data-valor="${esc(p.id)}" aria-label="Tirar ${esc(p.nome)} de Pessoas" title="Não recebe da Vybe: tirar da lista">${IC_FECHAR}</button></div>`).join('')
         : '<p class="fe-sub">Todo mundo do time já tem conta aqui. Toque numa pessoa para abrir a ficha.</p>')
+        + (Object.keys(d.pessoas_extra?.juntadas || {}).length ? `<details class="fe-det"><summary>Pessoas juntadas · ${n0(Object.keys(d.pessoas_extra.juntadas).length)}</summary>${Object.entries(d.pessoas_extra.juntadas).map(([id, j]) => `<div class="fe-kv"><span>${esc(j.nome || id)} → ${esc(j.para_nome || j.para)}</span><b><button type="button" class="fv2-link" data-fx="fe-pes-separar" data-valor="${esc(id)}">desfazer</button></b></div>`).join('')}</details>` : '')
         + (foraLista.length ? `<details class="fe-det"><summary>Fora de Pessoas · ${n0(foraLista.length)}</summary>${foraLista.map((p) => `<div class="fe-kv"><span>${esc(p.nome)}</span><b><button type="button" class="fv2-link" data-fx="fe-pes-volta" data-valor="${esc(p.id)}">trazer de volta</button></b></div>`).join('')}</details>` : ''), { cls: 'fe-ficha' });
     }
     return feCasca('fin_pessoas', d, `${nums}<div class="fe-duas">${feCard('', corpo, { cls: 'fe-lista' })}<aside class="fe-lado" aria-label="Ficha">${lado}</aside></div>${varCard}`);
   }
   // A ficha da pessoa: o vale mês a mês, o próximo salário já descontado e o "Descontar no salário" (Paulo, 23/11/2026).
   // De onde vem cada número da linha (Paulo, 24/11/2026: "se eu clicar não devia mostrar o que vem de cada valor?").
+  // 27/11/2026: cada lançamento diz o tipo (salário, pró-labore, vale, freela, reembolso, não classificado) e de onde veio a
+  // ligação (à mão, "Pago a", nome no extrato, apelido); freela e reembolso aparecem mas não contam contra o combinado.
   function origemRecebido(c) {
     const mes = ui.fe.mes, its = c.itens.filter((i) => i.mes === mes && i.valor < 0), tot = its.reduce((s, i) => s - i.valor, 0);
-    const lin = its.map((i) => `<div class="fe-kv fe-orig"><span>${esc(dataCurta(i.data))} · ${esc(i.historico)} <small>${esc(i.nome)}${i.data.slice(0, 7) !== i.mes ? ` · pago em ${esc(soMes(i.data.slice(0, 7)))}` : ''}</small></span><b>${esc(rs(-i.valor))} <button type="button" class="fv2-link" data-fx="ir-lanc" data-valor="${esc(i.id)}" data-mes="${esc(i.data.slice(0, 7))}">abrir</button></b></div>`).join('');
+    const tag = (i) => [i.tipo ? feTag(TIPO_LIGA[i.tipo] ? (i.tipo === 'nao_classificado' ? 'não classificado' : TIPO_LIGA[i.tipo]) : i.tipo, i.tipo === 'nao_classificado' ? 'a' : i.conta === false ? '' : 'v') : '', i.origem ? `<small>${esc(ORIGEM_LIGA[i.origem] || i.origem)}</small>` : ''].join(' ');
+    const lin = its.map((i) => `<div class="fe-kv fe-orig"><span>${esc(dataCurta(i.data))} · ${esc(i.historico)} <small>${esc(i.nome)}${i.data.slice(0, 7) !== i.mes ? ` · pago em ${esc(soMes(i.data.slice(0, 7)))}` : ''}${i.conta === false ? ' · fora do combinado' : ''}</small> ${tag(i)}</span><b>${esc(rs(-i.valor))} <button type="button" class="fv2-link" data-fx="ir-lanc" data-valor="${esc(i.id)}" data-mes="${esc(i.data.slice(0, 7))}">abrir</button></b></div>`).join('');
     return `<div class="fe-conta"><span class="fe-rot">Recebeu em ${esc(soMes(mes))}</span>${lin || '<p class="fe-sub">Nada atribuído a esta pessoa neste mês.</p>'}${its.length ? `<div class="fe-kv fe-tot"><span>Total do mês</span><b>${esc(rs(tot))}</b></div>` : ''}</div>`;
   }
   function origemVale(c, dentro = false) {
@@ -1993,6 +2032,27 @@
   // A ficha da pessoa, em seções na ordem em que se usa (Paulo, 24/11/2026: "mal diagramado"): o combinado (mudar, tirar),
   // os números, o que recebeu no mês, o salário do mês e o próximo, o vale (de onde vem e jogar para o salário) e, no fim,
   // o histórico e "Tirar de Pessoas".
+  // Possível duplicado (27/11/2026): o aviso e o botão de juntar, que só grava quando um dono confirma. Quem fica é a de mais
+  // dados (acesso ao painel, combinado, vales, lançamentos); o servidor confere de novo e recusa a direção errada.
+  function duplicadoHtml(d, c) {
+    const pares = (d.pessoas_duplicadas || []).filter((x) => x.ids.includes(c.pessoa_id));
+    if (!pares.length) return '';
+    const u = ui.fe.pes;
+    return pares.map((x) => {
+      const chave = x.sai + '>' + x.fica, conf = u.juntar === chave, dd = x.dados || {};
+      const resumo = (id) => { const z = dd[id] || {}; return [z.tem_login ? 'entra no painel' : '', z.salario ? 'tem combinado' : '', z.vales ? quantos(z.vales, 'vale', 'vales') : '', z.lancamentos ? quantos(z.lancamentos, 'lançamento ligado', 'lançamentos ligados') : ''].filter(Boolean).join(', ') || 'sem dados'; };
+      return `<div class="fe-conta fe-dup"><span class="fe-rot">Possível duplicado</span><p class="fe-sub">${esc(x.nomes[0])} e ${esc(x.nomes[1])} parecem a mesma pessoa. Nada foi juntado.</p>
+        <div class="fe-kv"><span>Fica <b>${esc(x.fica_nome)}</b> <small>${esc(resumo(x.fica))}</small></span></div><div class="fe-kv"><span>Sai <b>${esc(x.sai_nome)}</b> <small>${esc(resumo(x.sai))}</small></span></div>
+        ${x.bloqueio ? `<p class="fe-sub">${esc(x.bloqueio)}</p>` : conf
+          ? `<p class="fe-sub">Os lançamentos, o combinado, os vales e os apelidos de ${esc(x.sai_nome)} passam para ${esc(x.fica_nome)}; ${esc(x.sai_nome)} fica marcada como juntada (não é apagada) e dá para desfazer.</p><div class="fe-bts">${feBtn('Confirmar junção', `data-fx="fe-pes-juntar" data-de="${esc(x.sai)}" data-valor="${esc(x.fica)}"`, 'k v2-estado')}${feBtn('Cancelar', 'data-fx="fe-pes-juntar-abrir" data-valor=""', 'q')}</div>`
+          : `<div class="fe-bts">${feBtn(`Juntar em ${x.fica_nome}`, `data-fx="fe-pes-juntar-abrir" data-valor="${esc(chave)}"`, 's')}</div>`}</div>`;
+    }).join('');
+  }
+  // Apelidos (27/11/2026: o Pix sai com o apelido, não com o nome): o Pix ou o "Pago a" com o apelido entra na conta da pessoa.
+  function apelidosHtml(c) {
+    return `<div class="fe-conta" data-fx-form="apelidos"><span class="fe-rot">Apelidos</span><label class="fx-campo"><span>Como aparece no Pix ou no "Pago a"</span><input name="apelidos" class="fx-in" value="${esc((c.apelidos || []).join(', '))}" placeholder="separe por vírgula"></label>
+      <div class="fe-bts">${feBtn('Salvar apelidos', `data-fx="pessoa-apelidos" data-valor="${esc(c.pessoa_id)}"`, 's v2-estado')}</div></div>`;
+  }
   function feFichaPessoa(d, c) {
     const u = ui.fe.pes, aberto = c.meses.find((m) => m.aberto), prox = c.proximo;
     const serie = c.meses.slice(-6).map((m) => ({ mes: m.mes, v: m.vale_acumulado }));
@@ -2021,9 +2081,11 @@
     return feCard('', `<div class="fe-lado-cab"><div><span class="fe-rot">Ficha da pessoa</span><h3 class="fe-nome">${esc(c.nome)}</h3><span class="fe-sub">${tem ? `Combinado ${esc(rs(c.salario.valor))} por mês${c.salario.desde ? ` desde ${esc(soMes(c.salario.desde))}` : ''}` : 'Sem combinado informado'}</span></div><button type="button" class="fe-ico" data-fx="fe-pes" data-valor="${esc(c.pessoa_id)}" aria-label="Fechar ficha">${IC_FECHAR}</button></div>
       <div class="fe-mini3"><div class="${c.vale ? 'vv' : ''}"><small>Vale agora</small><b>${esc(rs(c.vale))}</b></div><div><small>A pagar</small><b>${esc(rs(c.a_pagar))}</b></div><div><small>Depois do desconto</small><b>${esc(rs(prox ? prox.vale_depois : c.vale))}</b></div></div>
       ${combinado}
+      ${duplicadoHtml(d, c)}
       ${origemRecebido(c)}
       ${contaMes(aberto, `Salário de ${soMes(aberto?.mes)}`)}${prox?.desconto ? contaMes(prox, `Salário de ${soMes(prox.mes)}`) : ''}
       ${vale}
+      ${apelidosHtml(c)}
       <details class="fe-det"><summary>Histórico: mês a mês, Pix e ajustes à mão</summary>${cartaoPessoa(d, c, { semCombinado: true })}</details>
       <div class="fe-bts fe-fim-ficha">${feBtn('Tirar de Pessoas', `data-fx="fe-pes-fora" data-valor="${esc(c.pessoa_id)}"`, 'q')}<span class="fe-sub">some da lista e do "Falta pagar"; os Pix continuam no Movimento.</span></div>`, { cls: 'fe-ficha' });
   }

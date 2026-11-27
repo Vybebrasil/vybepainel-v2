@@ -372,10 +372,16 @@
   const PALAVRAS_FORA = new Set(['de', 'da', 'do', 'das', 'dos', 'e']);
   const palavras = (s) => semAcento(s).replace(/[^a-z0-9]+/g, ' ').trim().split(' ').filter((w) => w && !PALAVRAS_FORA.has(w));
   const soDigitos = (s) => String(s || '').replace(/\D/g, '');
-  function quemRecebe(combs) {
+  function quemRecebe(combs, ligar = null) {
     // O primeiro nome só identifica se for único entre as pessoas com combinado (o OFX do Santander traz "PIX ENVIADO VINICIUS").
     const primeiros = new Map();
     for (const c of combs) { const w = palavras(c.nome)[0]; if (w) primeiros.set(w, (primeiros.get(w) || 0) + 1); }
+    const cpfBate = (c, historico) => { const cpf = soDigitos(c.cpf); if (cpf.length !== 11) return false; const h = String(historico || ''); return soDigitos(h).includes(cpf) || (h.includes('*') && soDigitos(h).includes(cpf.slice(3, 9))); };
+    if (typeof ligar === 'function') return (c, p, historico, t) => {
+      const l = ligar(t || { banco: { historico } }, p);
+      if (l) return String(l.pessoa_id) === c.id && X.TIPOS_PAGO.includes(l.tipo);
+      return !p.pessoa_id && SAIDA_DE_PESSOA.has(p.categoria) && cpfBate(c, historico);
+    };
     return (c, p, historico) => {
       if (p.pessoa_id) return String(p.pessoa_id) === c.id && ['salario', 'pro_labore'].includes(p.categoria);
       if (!SAIDA_DE_PESSOA.has(p.categoria)) return false;
@@ -394,11 +400,14 @@
     };
   }
   function variaveisPorMes(lista = [], meses = [], opcoes = {}) { return variaveisDetalhe(lista, meses, opcoes).total; }
-  function variaveisDetalhe(lista = [], meses = [], { fixos = [], itensCartao = [], salarios = {}, pessoas = [] } = {}) {
+  // 27/11/2026: com ligar (X.ligadorPessoas, o mesmo de Pessoas), o pagamento identificado é o que Pessoas conta como pago
+  // daquela pessoa (salário, pró-labore, vale ou não classificado): a projeção e Pessoas não divergem, e o que Pessoas mostra
+  // como pago sai do variável em vez de somar com o combinado. O CPF no histórico continua valendo por cima.
+  function variaveisDetalhe(lista = [], meses = [], { fixos = [], itensCartao = [], salarios = {}, pessoas = [], ligar = null } = {}) {
     const nomeDe = new Map((pessoas || []).map((x) => [String(x.id), x]));
     const combs = Object.entries(salarios || {}).filter(([, s]) => s && !s.fora && Number(s.valor) > 0)
       .map(([id, s]) => ({ id: String(id), valor: centavos(s.valor), desde: s.desde || '', nome: nomeDe.get(String(id))?.nome || s.nome || '', cpf: nomeDe.get(String(id))?.cpf || s.cpf || '' }));
-    const ehDe = quemRecebe(combs);
+    const ehDe = quemRecebe(combs, ligar);
     const ultimoBase = meses.length ? meses.slice().sort()[meses.length - 1] : '';
     const sit = new Map(combs.map((c) => [c.id, { vigentes: 0, achados: 0, dias: [] }]));
     const porCat = new Map();
@@ -418,7 +427,7 @@
           if (c && c.tipo === 'transferencia' && c.id !== 'cartao_agencia') continue;
           s += -centavos(p.valor);
           if (doFixo) continue;
-          const de = vig.find((x) => ehDe(x, p, t.banco.historico));
+          const de = vig.find((x) => ehDe(x, p, t.banco.historico, t));
           if (de) { pago.add(de.id); sit.get(de.id).dias.push(Number(t.banco.data.slice(8, 10)) || 0); continue; }
           v += -centavos(p.valor);
           porCat.set(p.categoria, (porCat.get(p.categoria) || 0) - centavos(p.valor));
@@ -554,7 +563,7 @@
     const lista = p.lista || [], mesesBase = p.meses_base || [];
     const contratos = (p.contratos || []).filter((c) => Number(c.valor_mensal) > 0);
     const fixos = (p.fixos || []).filter((f) => f.ativo !== false);
-    const det = variaveisDetalhe(lista, mesesBase, { fixos: p.fixos || [], itensCartao: p.itensCartao || [], salarios: p.salarios || {}, pessoas: p.pessoas || [] }), vars = det.total;
+    const det = variaveisDetalhe(lista, mesesBase, { fixos: p.fixos || [], itensCartao: p.itensCartao || [], salarios: p.salarios || {}, pessoas: p.pessoas || [], ligar: p.ligar || null }), vars = det.total;
     // O combinado sai no dia em que o extrato mostra o pagamento dele; o embutido (sem pagamento identificado, o dia não se
     // sabe) sai espalhado como no histórico; o novo e o sem base, no dia 5.
     const comb = det.combinados.map((s) => ({ valor: Number(s.valor), desde: s.desde || '', dia: s.dia || 5, espalhado: s.situacao === 'embutido' }));
@@ -700,7 +709,20 @@
   // Para cada lançamento sem conferir: a regra que bateu (quando não pede revisão), senão o que foi decidido nos
   // lançamentos conferidos da MESMA contraparte (o mais comum), senão nada. A confiança diz quantos iguais viu.
   const chaveContra = (t) => semAcento(t.banco.contraparte || String(t.banco.historico || '').replace(/[\d/.,-]+/g, ' ')).replace(/\s+/g, ' ').trim().split(' ').slice(0, 3).join(' ');
-  function lote(lista = []) {
+  // 27/11/2026: com ligar (a regra única de saída → pessoa), a sugestão traz a pessoa achada pela contraparte quando ninguém
+  // escolheu (o Vorcaro sugere "Pago a Fulano" e o dono confirma).
+  function lote(lista = [], { ligar = null } = {}) {
+    const itens = loteSemPessoa(lista);
+    if (typeof ligar !== 'function') return itens;
+    const por = new Map(lista.map((t) => [t.id, t]));
+    return itens.map((it) => {
+      const t = por.get(it.id);
+      if (!t || it.sugestao.pessoa_id || t.real.partes?.length) return it;
+      const l = ligar(t, { ...X.pedacos(t)[0], categoria: it.sugestao.categoria || t.real.categoria, quem: it.sugestao.quem || '', pessoa_id: '' });
+      return l && l.origem !== 'manual' ? { ...it, sugestao: { ...it.sugestao, pessoa_id: l.pessoa_id, pessoa_nome: l.pessoa_nome }, pessoa_por: l.origem } : it;
+    });
+  }
+  function loteSemPessoa(lista = []) {
     const hist = new Map();
     for (const t of lista) {
       if (!t.real.conferido || t.real.partes?.length || t.real.categoria === 'a_classificar') continue;

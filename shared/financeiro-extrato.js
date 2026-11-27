@@ -795,6 +795,136 @@
         status: p.status || 'pago', competencia: p.data.slice(0, 7), conferido: true, conferido_por: quem, conferido_em: new Date().toISOString() } };
   }
 
+  // ---------- Saída → pessoa: a regra única de ligação (Paulo, 27/11/2026) ----------
+  // "No Movimento tem várias saídas já ligadas às pessoas e em Pessoas não consta." Até aqui Pessoas só contava o pedaço
+  // com real.pessoa_id (o campo "Pessoa do time"); o "Pago a" (real.quem), a categoria e o nome no Pix não ligavam nada.
+  // Agora, pedaço a pedaço, calculado na leitura (nada é regravado):
+  //   1. manual: real.pessoa_id (ou o da parte) manda; '_ninguem' diz "não é do time" e desliga as regras abaixo;
+  //   2. "Pago a": real.quem, sem espaço nas pontas, acento e caixa, casa com o nome ou o apelido da pessoa (nome de
+  //      cliente não vira pessoa; um nome que não é de ninguém do time também não liga pelo extrato);
+  //   3. extrato: a contraparte do Pix (ou o histórico) casa com o nome completo, o primeiro + o último nome, os dois
+  //      primeiros, um apelido cadastrado ou, se o banco só mostrou um nome, o primeiro nome quando ele é único no time.
+  // A categoria decide só o TIPO (salário, pró-labore, vale, freela, reembolso, devolução) e nunca SE é da pessoa: uma
+  // saída da pessoa em "Outra saída" entra como "não classificado", para conferir. Transferência (pagar o cartão) não entra.
+  // Duas pessoas que parecem a mesma (o mesmo primeiro e último nome, ou um nome dentro do outro) são "possível duplicado":
+  // um nome que bate nas duas vai para a principal (a que tem combinado, depois a de mais lançamentos ligados à mão) até
+  // um dono juntar. juntadas = { id_que_saiu: { para: id_que_fica } } leva tudo para quem fica.
+  const NAO_PESSOA = '_ninguem';
+  const TIPO_DA_CATEGORIA = Object.freeze({ salario: 'salario', pro_labore: 'pro_labore', retirada_socio: 'pro_labore', adiantamento: 'vale', freela: 'freela',
+    devolucao_vale: 'devolucao', combustivel: 'reembolso', alimentacao: 'reembolso', viagem: 'reembolso', producao: 'reembolso' });
+  const TIPOS_PESSOA = Object.freeze({ salario: 'Salário', pro_labore: 'Pró-labore', vale: 'Vale / adiantamento', freela: 'Freela', reembolso: 'Reembolso', devolucao: 'Devolução de vale', nao_classificado: 'Não classificado' });
+  // O que conta como "pago" contra o combinado: salário, pró-labore, vale e o não classificado (que pede conferência).
+  const TIPOS_PAGO = Object.freeze(['salario', 'pro_labore', 'vale', 'nao_classificado']);
+  const ORIGENS_LIGACAO = Object.freeze({ manual: 'escolhida à mão', quem: 'pelo "Pago a"', extrato: 'pelo nome no extrato', apelido: 'pelo apelido' });
+  function tipoPessoaDe(categoria) {
+    if (TIPO_DA_CATEGORIA[categoria]) return TIPO_DA_CATEGORIA[categoria];
+    const c = CAT.get(categoria);
+    return c && (c.tipo === 'transferencia' || c.tipo === 'entrada') ? '' : 'nao_classificado';
+  }
+  const PALAVRAS_FORA = new Set(['de', 'da', 'do', 'das', 'dos', 'e']);
+  // O que o banco escreve antes do nome ("Pix Enviado", "TED", "Transf"), para sobrar só quem recebeu.
+  const PALAVRAS_BANCO = new Set(['pix', 'enviado', 'enviada', 'recebido', 'recebida', 'automatico', 'ted', 'doc', 'transf', 'transferencia', 'pagamento', 'pagto', 'pag', 'para', 'p', 'conta', 'cc', 'cpf', 'cnpj']);
+  const palavrasNome = (s) => semAcento(s).replace(/[^a-z0-9]+/g, ' ').trim().split(' ').filter((w) => w && !PALAVRAS_FORA.has(w));
+  const normalizarNome = (s) => palavrasNome(s).join(' ');
+  // Como um texto casa com um nome: 'nome' (inteiro, primeiro + último ou os dois primeiros), 'primeiro' (o texto é só o
+  // primeiro nome) ou ''.
+  function casaNome(alvo, nome) {
+    const ws = Array.isArray(nome) ? nome : palavrasNome(nome), hs = Array.isArray(alvo) ? alvo : palavrasNome(alvo);
+    if (!ws.length || !hs.length) return '';
+    if (ws.length >= 2 && ws.every((w) => hs.includes(w))) return 'nome';
+    if (ws.length >= 2 && hs.length >= 2 && hs[0] === ws[0] && (hs.includes(ws[ws.length - 1]) || hs[1] === ws[1])) return 'nome';
+    if (hs.length === 1 && hs[0] === ws[0] && ws[0].length >= 3) return 'primeiro';
+    return '';
+  }
+  // Possíveis duplicados: [{ ids: [a, b], nomes: [..] }] entre as pessoas ainda não juntadas.
+  function pessoasDuplicadas(pessoas = [], { juntadas = {} } = {}) {
+    const vivas = (pessoas || []).filter((p) => p && p.id != null && !(juntadas || {})[String(p.id)]).map((p) => ({ id: String(p.id), nome: p.nome || '', ws: palavrasNome(p.nome) }));
+    const out = [];
+    for (let i = 0; i < vivas.length; i++) for (let j = i + 1; j < vivas.length; j++) {
+      const a = vivas[i], b = vivas[j];
+      if (!a.ws.length || !b.ws.length || a.ws[0] !== b.ws[0]) continue;
+      const curto = a.ws.length <= b.ws.length ? a : b, longo = curto === a ? b : a;
+      const igual = a.ws.join(' ') === b.ws.join(' ');
+      const mesmoUltimo = a.ws.length >= 2 && b.ws.length >= 2 && a.ws[a.ws.length - 1] === b.ws[b.ws.length - 1];
+      const dentro = curto.ws.length >= 2 && curto.ws.every((w) => longo.ws.includes(w));
+      if (igual || mesmoUltimo || dentro) out.push({ ids: [a.id, b.id], nomes: [a.nome, b.nome] });
+    }
+    return out;
+  }
+  function destinoJuntada(juntadas, id) { let x = String(id || ''), n = 0; while (juntadas && juntadas[x] && n++ < 5) x = String(juntadas[x].para ?? juntadas[x]); return x; }
+  // ligadorPessoas(pessoas, { apelidos: { id: ['Apelido'] }, juntadas, clientes: [{ id, nome }], salarios, lista })
+  //   → ligar(t, pedaco) = { pessoa_id, pessoa_nome, origem: manual|quem|extrato|apelido, tipo } ou null
+  function ligadorPessoas(pessoas = [], { apelidos = {}, juntadas = {}, clientes = [], salarios = {}, lista = [] } = {}) {
+    const juntas = juntadas || {};
+    const idx = (pessoas || []).filter((p) => p && p.id != null).map((p) => ({ id: String(p.id), nome: p.nome || '', ws: palavrasNome(p.nome),
+      apelidos: [...(Array.isArray(p.apelidos) ? p.apelidos : []), ...(((apelidos || {})[String(p.id)]) || [])].map(palavrasNome).filter((a) => a.length && a.join('').length >= 3) }));
+    const nomeDe = new Map(idx.map((p) => [p.id, p.nome]));
+    const primeiros = new Map();
+    for (const p of idx) if (!juntas[p.id] && p.ws[0]) primeiros.set(p.ws[0], (primeiros.get(p.ws[0]) || 0) + 1);
+    const parDe = new Map();
+    for (const d of pessoasDuplicadas(pessoas, { juntadas: juntas })) for (const id of d.ids) parDe.set(id, new Set([...(parDe.get(id) || []), ...d.ids]));
+    // A principal de um grupo de duplicados: quem tem combinado, depois quem tem mais lançamentos ligados à mão.
+    const manuais = new Map();
+    for (const t of lista || []) for (const p of pedacos(t)) if (p.pessoa_id && p.pessoa_id !== NAO_PESSOA) manuais.set(String(p.pessoa_id), (manuais.get(String(p.pessoa_id)) || 0) + 1);
+    const peso = (id) => [salarios?.[id] && !salarios[id].fora && Number(salarios[id].valor) > 0 ? 1 : 0, manuais.get(id) || 0, (nomeDe.get(id) || '').length, -Number(id) || 0];
+    const melhor = (ids) => ids.slice().sort((a, b) => { const x = peso(a), y = peso(b); for (let i = 0; i < x.length; i++) if (x[i] !== y[i]) return y[i] - x[i]; return 0; })[0];
+    const escolher = (cands) => {
+      const ids = [...new Set(cands.map((c) => destinoJuntada(juntas, c)))];
+      if (ids.length === 1) return ids[0];
+      // Mais de uma: só decide se todas são possíveis duplicados umas das outras (senão é ambíguo e não chuta).
+      if (ids.length > 1 && ids.every((a) => ids.every((b) => a === b || parDe.get(a)?.has(b)))) return melhor(ids);
+      return '';
+    };
+    const cliNomes = (clientes || []).map((c) => normalizarNome(c.nome || c.cliente_nome)).filter((n) => n.replace(/\s/g, '').length >= 4);
+    const ehCliente = (txt) => { const n = normalizarNome(txt); return Boolean(n) && cliNomes.some((c) => c === n || (n.length >= 5 && (c.includes(n) || n.includes(c)))); };
+    const achar = (texto) => {
+      const hs = palavrasNome(texto).filter((w) => !PALAVRAS_BANCO.has(w) && !/^\d+$/.test(w));
+      if (!hs.length) return null;
+      const fortes = [], porApelido = [], fracos = [];
+      for (const p of idx) {
+        const c = casaNome(hs, p.ws);
+        if (c === 'nome') fortes.push(p.id);
+        else if (p.apelidos.some((a) => a.every((w) => hs.includes(w)))) porApelido.push(p.id);
+        else if (c === 'primeiro' && (primeiros.get(p.ws[0]) === 1 || parDe.has(p.id) || juntas[p.id])) fracos.push(p.id);
+      }
+      for (const [ids, como] of [[fortes, 'nome'], [porApelido, 'apelido'], [fracos, 'nome']]) {
+        if (!ids.length) continue;
+        const id = escolher(ids);
+        return id ? { id, como } : null;
+      }
+      return null;
+    };
+    return function ligar(t, p) {
+      const tipo = tipoPessoaDe(p.categoria);
+      const manual = String(p.pessoa_id || '');
+      if (manual === NAO_PESSOA) return null;
+      const com = (id, origem) => (id ? { pessoa_id: id, pessoa_nome: nomeDe.get(id) || p.pessoa_nome || '', origem, tipo } : null);
+      if (manual) return com(destinoJuntada(juntas, manual), 'manual');
+      if (!tipo) return null;
+      // Entrada só liga quando é devolução de vale.
+      if (!(Number(p.valor) < 0) && tipo !== 'devolucao') return null;
+      const quem = String(p.quem || '').trim();
+      if (quem) {
+        if (ehCliente(quem)) return null;
+        const a = achar(quem);
+        return a ? com(a.id, a.como === 'apelido' ? 'apelido' : 'quem') : null;
+      }
+      const texto = t?.banco?.contraparte || contraparte(t?.banco?.historico) || t?.banco?.historico || '';
+      if (!texto || p.cliente_id || ehCliente(texto)) return null;
+      const a = achar(texto);
+      return a ? com(a.id, a.como === 'apelido' ? 'apelido' : 'extrato') : null;
+    };
+  }
+  // Todas as ligações de uma lista: { [transacao_id]: [{ parte, pessoa_id, pessoa_nome, origem, tipo }] }.
+  function ligacoesPessoas(lista = [], ligar) {
+    const out = {};
+    if (typeof ligar !== 'function') return out;
+    for (const t of lista) for (const p of pedacos(t)) { const l = ligar(t, p); if (l) (out[t.id] = out[t.id] || []).push({ parte: p.parte, ...l }); }
+    return out;
+  }
+  // Só o que foi escolhido à mão (o comportamento de antes, para quem chama sem as pessoas).
+  const ligarSoManual = (t, p) => { const id = String(p.pessoa_id || ''); return id && id !== NAO_PESSOA ? { pessoa_id: id, pessoa_nome: p.pessoa_nome || '', origem: 'manual', tipo: tipoPessoaDe(p.categoria) } : null; };
+
   // ---------- Conta da pessoa: salário combinado × pago × vale (Paulo, 14/11/2026) ----------
   // "Na ficha da pessoa ficar o que passou do salário do mês dela; o excedente fica como vale (o que a pessoa deve à Vybe
   // porque pegou mais do que o salário)."
@@ -808,17 +938,26 @@
   //   aberto) nada é abatido: a diferença é "falta pagar".
   //   devolução e ajustes tiram do vale acumulado (nunca abaixo de zero).
   const CAT_PAGO_PESSOA = Object.freeze(['salario', 'pro_labore', 'adiantamento']);
-  function contaPessoa(lista = [], pessoaId, { salario = null, ajustes = [], ate = '', desde = '' } = {}) {
+  // 27/11/2026: a pessoa de cada pedaço vem de `ligar` (ligadorPessoas: manual, "Pago a", extrato ou apelido); sem ele, só
+  // o escolhido à mão. Pago = salário, pró-labore, vale e o não classificado; freela e reembolso aparecem nos itens mas
+  // não contam contra o combinado. Cada item diz de onde veio a ligação (origem) e o tipo.
+  function contaPessoa(lista = [], pessoaId, { salario = null, ajustes = [], ate = '', desde = '', ligar = null } = {}) {
     const pid = String(pessoaId || '');
-    const pago = new Map(), devolvido = new Map(), itens = [];
+    const liga = typeof ligar === 'function' ? ligar : ligarSoManual;
+    const pago = new Map(), devolvido = new Map(), naoClass = new Map(), fora = new Map(), itens = [];
     for (const t of lista) for (const p of pedacos(t)) {
-      if (String(p.pessoa_id || '') !== pid || !pid) continue;
+      if (!pid) continue;
+      const l = liga(t, p);
+      if (!l || String(l.pessoa_id) !== pid || !l.tipo) continue;
       const m = ehMes(p.competencia) ? p.competencia : p.data.slice(0, 7);
       const v = Math.abs(centavos(p.valor));
-      if (CAT_PAGO_PESSOA.includes(p.categoria) && p.valor < 0 && p.status === 'pago') pago.set(m, (pago.get(m) || 0) + v);
-      else if (p.categoria === 'devolucao_vale' && p.valor > 0 && p.status === 'pago') devolvido.set(m, (devolvido.get(m) || 0) + v);
+      if (p.status !== 'pago') continue;
+      if (TIPOS_PAGO.includes(l.tipo) && p.valor < 0) { pago.set(m, (pago.get(m) || 0) + v); if (l.tipo === 'nao_classificado') naoClass.set(m, (naoClass.get(m) || 0) + v); }
+      else if (l.tipo === 'devolucao' && p.valor > 0) devolvido.set(m, (devolvido.get(m) || 0) + v);
+      else if ((l.tipo === 'freela' || l.tipo === 'reembolso') && p.valor < 0) { const f = fora.get(m) || { freela: 0, reembolso: 0 }; f[l.tipo] += v; fora.set(m, f); }
       else continue;
-      itens.push({ id: t.id, data: t.banco.data, historico: t.banco.historico, mes: m, categoria: p.categoria, nome: CAT.get(p.categoria)?.nome || p.categoria, valor: reais(p.valor < 0 ? -v : v) });
+      itens.push({ id: t.id, parte: p.parte, data: t.banco.data, historico: t.banco.historico, mes: m, categoria: p.categoria, nome: CAT.get(p.categoria)?.nome || p.categoria, valor: reais(p.valor < 0 ? -v : v),
+        tipo: l.tipo, tipo_nome: TIPOS_PESSOA[l.tipo] || l.tipo, origem: l.origem, conta: TIPOS_PAGO.includes(l.tipo) || l.tipo === 'devolucao', conferir: l.tipo === 'nao_classificado' || !t.real.conferido });
     }
     // "Descontar no salário" (Paulo, 23/11/2026: jogar o que passou do salário para o mês seguinte e mostrar quanto a pessoa
     // vai receber): é um plano, não dinheiro. Não entra no devolvido; diz quanto do vale sai do combinado daquele mês.
@@ -851,7 +990,9 @@
       const devolveu = Math.min(dev, vale); vale -= devolveu;
       meses.push({ mes: m, combinado: reais(comb), pago: reais(pg), vale_do_mes: reais(valeMes), abatido: reais(abatido), devolvido: reais(devolveu),
         a_pagar: reais(aPagar), falta_pagar: reais(faltaPagar), vale_acumulado: reais(vale), aberto,
-        desconto: reais(desc), a_receber: reais(Math.max(0, comb - desc)) });
+        desconto: reais(desc), a_receber: reais(Math.max(0, comb - desc)),
+        // 27/11/2026 (só acrescenta): quanto do pago é "não classificado" e o que saiu como freela e reembolso (fora do pago).
+        pago_nao_classificado: reais(naoClass.get(m) || 0), freela: reais(fora.get(m)?.freela || 0), reembolso: reais(fora.get(m)?.reembolso || 0) });
     }
     // O próximo salário: o mês seguinte ao último, com o desconto planejado para ele (limitado ao vale e ao combinado).
     const prox = fim ? somarMeses(fim, 1) : '';
@@ -877,7 +1018,7 @@
     return { ajuste: { id, pessoa_id, mes: a.mes, tipo, valor, nota: String(a.nota || '').slice(0, 160) } };
   }
 
-  const api = Object.freeze({ CAT_PAGO_PESSOA, contaPessoa, normalizarSalario, normalizarAjusteVale, CATEGORIAS, ESTADOS_PROPOSTA, normalizarProposta, candidatosDaProposta, transacaoDaProposta, STATUS, REGRAS_PADRAO, lerCsvBB, lerOfx, lerExtrato, ehOfx, textoDoExtrato, xlsxParaCsv, tabelaParaCsv, casarEntreFormatos, numeroBR, dataBR, idsDosLancamentos, sugerir, contraparte, novaTransacao,
+  const api = Object.freeze({ CAT_PAGO_PESSOA, contaPessoa, NAO_PESSOA, TIPOS_PESSOA, TIPOS_PAGO, ORIGENS_LIGACAO, tipoPessoaDe, palavrasNome, normalizarNome, casaNome, pessoasDuplicadas, destinoJuntada, ligadorPessoas, ligacoesPessoas, normalizarSalario, normalizarAjusteVale, CATEGORIAS, ESTADOS_PROPOSTA, normalizarProposta, candidatosDaProposta, transacaoDaProposta, STATUS, REGRAS_PADRAO, lerCsvBB, lerOfx, lerExtrato, ehOfx, textoDoExtrato, xlsxParaCsv, tabelaParaCsv, casarEntreFormatos, numeroBR, dataBR, idsDosLancamentos, sugerir, contraparte, novaTransacao,
     clienteDoHistorico, FORMAS_LANCAMENTO, formaDoHistorico, formaDe, transacoesDoCsv, mesclar, reaplicarRegras, normalizarRegra, FORMAS, normalizarFixo, fixoVigente, analisarFixos, normalizarItemCartao, partesValidas, aplicarEdicao, pedacos, resumo, mesesDa, porCliente, cartao, pagamentosSemFatura, baseDaProjecao, projetar, somarMeses });
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else raiz.VybeFinanceiroExtrato = api;

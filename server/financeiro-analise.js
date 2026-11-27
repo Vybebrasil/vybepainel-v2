@@ -112,7 +112,7 @@ export function mesesDaBase(lista, hoje) {
 
 // Tudo o que as abas Análise, Projeção e Fechamento mostram, a partir do que montar() já tem.
 // clientes_ativos: [{ cliente_id, cliente_nome }] (vybe_clientes ativos): a receita da base e a cobertura de contratos (fin2).
-export function montarAnalise(base, extras, { hoje, saldo_hoje = 0, fixos_analise = null, cartao = null, por_cliente = null, serie = [], clientes_ativos = null, pessoas = null }) {
+export function montarAnalise(base, extras, { hoje, saldo_hoje = 0, fixos_analise = null, cartao = null, por_cliente = null, serie = [], clientes_ativos = null, pessoas = null, ligar = null }) {
   const lista = base.extrato.transacoes;
   const todosMeses = X.mesesDa(lista);
   const { meses: mesesBase, completos, parciais } = mesesDaBase(lista, hoje);
@@ -122,7 +122,7 @@ export function montarAnalise(base, extras, { hoje, saldo_hoje = 0, fixos_analis
   // A projeção primeiro (fin2): a receita da base dela (contrato, senão a média do extrato) alimenta o MRR estimado, a
   // cobertura, a confiança e o equilíbrio. Sem contrato cadastrado nada vira "perdido" nem zero.
   const atraso = A.atrasoMedioPago(lista, ativos);
-  const projecao = A.projecao3({ hoje, saldo_hoje, lista, meses_base: mesesBase, contratos: ativos, clientes_ativos, fixos: base.fixos, salarios: base.salarios, pessoas: pessoas || [], itensCartao: base.cartao, risco: extras.risco || [],
+  const projecao = A.projecao3({ hoje, saldo_hoje, lista, meses_base: mesesBase, contratos: ativos, clientes_ativos, fixos: base.fixos, salarios: base.salarios, pessoas: pessoas || [], ligar, itensCartao: base.cartao, risco: extras.risco || [],
     pipeline: extras.pipeline || [], atraso_medio: atraso ?? 10, horizonte: 12 });
   const conf = projecao.confianca;
   const mesesAnalise = todosMeses.length ? A.mesesEntre(todosMeses[0], hoje.slice(0, 7) > todosMeses[todosMeses.length - 1] ? todosMeses[todosMeses.length - 1] : hoje.slice(0, 7)) : [];
@@ -163,7 +163,7 @@ export function montarAnalise(base, extras, { hoje, saldo_hoje = 0, fixos_analis
     orcamento: { atual: orc, meses: orcMeses, guardado: orcamento, sugestao: A.sugerirOrcamento(lista, mesesBase.slice(-3)), grupos: A.GRUPOS_ORCAMENTO },
     fechamento: { meses: checklists, fechados: [...fechados] }, historico: hist, projecao, equilibrio: eq, metas, metas_guardadas: base.metas || {},
     atraso_medio_dias: atraso, pipeline: extras.pipeline || [], risco: extras.risco || [], cobrancas: (extras.avisos?.lista || []).slice(0, 30),
-    lote: A.lote(lista), repetidas: A.repetidas(lista, base.fixos), achados,
+    lote: A.lote(lista, { ligar }), repetidas: A.repetidas(lista, base.fixos), achados,
     fixos_mes: fixos_analise ? fixos_analise.total_previsto ?? null : null,
   };
 }
