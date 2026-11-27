@@ -229,8 +229,8 @@ test('Finanças em 5 telas: Hoje, Movimento, Clientes, Pessoas e Análise pintam
     assert.match(html, /data-fx="fe-mes"/, `${aba}: o mês do topo`);
     assert.doesNotMatch(html, /undefined|NaN/, aba);
   }
-  // Um laranja só por tela, e é o do Vorcaro no Hoje.
-  assert.equal((V.telas.fin_hoje(ctxTela).match(/class="fe-lar"/g) || []).length, 1);
+  // Um laranja só por tela, e é o do Vorcaro no Hoje (desde 27/11/2026, numa faixa compacta).
+  assert.equal((V.telas.fin_hoje(ctxTela).match(/class="fe-lar[ "]/g) || []).length, 1);
   // A Projeção tem o laranja dela (o fôlego); as outras, nenhum.
   for (const aba of abas.slice(1).filter((a) => a !== 'fin_projecao')) assert.doesNotMatch(V.telas[aba](ctxTela), /class="fe-lar"/, aba);
   assert.equal((V.telas.fin_projecao(ctxTela).match(/class="fe-lar"/g) || []).length, 1);
@@ -315,8 +315,9 @@ test('Hoje: falta entrar e falta pagar; Assinaturas; combinado editável e gente
   const d = montar(base, clientes, { hoje: HOJE, pessoas: [{ id: '7', nome: 'Ana Ficticia' }, { id: '9', nome: 'Pessoa Nova' }] });
   const hoje = V.telas.fin_hoje({ d, filtro: {} });
   assert.match(hoje, /Já entrou[\s\S]*Já pagou[\s\S]*Fecha o mês com/);
-  assert.match(hoje, /Falta entrar[\s\S]*Cliente Devendo/);
-  assert.match(hoje, /Falta pagar[\s\S]*Salários[\s\S]*Ana Ficticia[\s\S]*Pessoa Nova[\s\S]*Programas e assinaturas[\s\S]*Adobe[\s\S]*Contas fixas[\s\S]*Aluguel/);
+  // Desde 27/11/2026 (finhoje): Entradas e Saídas lado a lado, e o que falta "para quando", por data.
+  assert.match(hoje, /Vai entrar[\s\S]*Para quando[\s\S]*Cliente Devendo/);
+  assert.match(hoje, /Vai pagar[\s\S]*Para quando[\s\S]*Ana Ficticia[\s\S]*Pessoa Nova[\s\S]*Aluguel[\s\S]*Adobe/);
   assert.match(hoje, /data-valor="fin_pessoas" data-pes="9"/, 'o salário abre a ficha da pessoa');
   assert.doesNotMatch(hoje, /undefined|NaN/);
   const ass = V.telas.fin_assinaturas({ d, filtro: {} });

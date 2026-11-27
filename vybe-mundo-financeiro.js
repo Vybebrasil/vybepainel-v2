@@ -1389,7 +1389,7 @@
   const FE_DE = { vorcaro: 'fin_hoje', extrato: 'fin_movimento', cartao: 'fin_movimento', fixos: 'fin_movimento', recebimentos: 'fin_movimento', contas: 'fin_movimento',
     clientes_mes: 'fin_clientes', financas: 'fin_clientes', inadimplencia: 'fin_clientes', vales: 'fin_pessoas', projecao: 'fin_projecao' };
   const FE_CHIP = { cartao: 'cartao', fixos: 'fixos', recebimentos: 'entradas', contas: 'previsto' };
-  ui.fe = { mes: '', per: { k: '6', de: '', ate: '' }, hud: '', chip: 'conferir', grupo: '', pular: [], lado: '', cli: { chip: 'todos', sel: '' }, pes: { sel: '', desconto: '' } };
+  ui.fe = { mes: '', per: { k: '6', de: '', ate: '' }, hud: '', chip: 'conferir', grupo: '', pular: [], lado: '', cli: { chip: 'todos', sel: '' }, pes: { sel: '', desconto: '' }, hj: { dias: 7, dia: '', mais: '' } };
   const feMeses = (d) => [...new Set([...(d.meses || []), (d.hoje || '').slice(0, 7)].filter((m) => /^\d{4}-\d{2}$/.test(m)))].sort();
   function feIniciar(ctx) {
     anfitriao = ctx;
@@ -1582,70 +1582,107 @@
       ${resto ? '' : `<div class="fe-bts">${feBtn(`Ver ${titulo} no Movimento`, `data-fx="fe-grupo" data-valor="${esc(k)}"`, 'q')}</div>`}
     </section>`;
   }
-  function feHoje(ctx) {
-    const d = feIniciar(ctx), lista = d.transacoes || [], mes = ui.fe.mes, hoje = d.hoje || '', mesHoje = hoje.slice(0, 7);
-    const r = X().resumo(lista, { mes });
+  // ---------- O HOJE: o painel de 5 segundos do mês (Paulo, 27/11/2026) ----------
+  // "Quanto já entrou? Previsão de quanto vai entrar? Quanto vai pagar? Quanto já pagou? De quê? Para quando?"
+  // Duas colunas (Entradas e Saídas) com as mesmas quatro respostas, a conta que liga as duas (saldo + vai entrar − vai
+  // pagar = fecha o mês com), os próximos dias e, embaixo, os gráficos de antes. Os números vêm de uma conta só,
+  // VybeFinancasAnalises.hojeDoMes (shared/financeiro-analises.js), a mesma que responde a pergunta por texto ou voz.
+  const SEM3 = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'];
+  const semana3 = (iso) => SEM3[new Date(`${iso}T12:00:00Z`).getUTCDay()] || '';
+  // Para onde cada número leva: { fx, valor } (uma ação das cinco telas) ou { aba, chip } (uma tela já filtrada).
+  const feIrPara = (ir) => (!ir ? '' : ir.fx ? `data-fx="${esc(ir.fx)}" data-valor="${esc(ir.valor)}"` : feIr(ir.aba, ir.chip ? `data-chip="${esc(ir.chip)}"` : ''));
+  const feIrItem = (i) => (i.tipo === 'cliente' ? `data-fx="fe-cli" data-valor="${esc(i.id)}"` : i.tipo === 'salario' ? feIr('fin_pessoas', `data-pes="${esc(i.id)}"`)
+    : i.tipo === 'assinatura' ? feIr('fin_assinaturas', `data-fixo="${esc(i.id)}"`) : `data-fx="fe-chip-fixo" data-valor="${esc(i.id)}"`);
+  // Um lançamento previsto: a data (ou "atrasado"), quem/o quê, o detalhe e o valor.
+  const feHjItem = (i, { comData = true } = {}) => { const sub = [comData ? `<span class="fe-hj-d">${esc(dataCurta(i.data))}</span>` : '', i.atrasado ? '<em>atrasado</em>' : '', i.det ? esc(i.det) : ''].filter(Boolean).join(' · ');
+    return `<button type="button" class="fe-hj-it${i.atrasado ? ' atr' : ''}" ${feIrItem(i)} title="${esc(i.nome)}"><span class="fe-hj-quem"><b>${esc(i.nome)}</b>${sub ? `<small>${sub}</small>` : ''}</span><b class="fe-hj-val">${esc(rs(i.valor))}</b></button>`; };
+  // Uma coluna: Entradas ou Saídas.
+  function feHjColuna(h, lado) {
+    const e = lado === 'entra', c = e ? h.entradas : h.saidas, u = ui.fe.hj, mes = soMes(h.mes);
+    const verTudo = e ? feIr('fin_movimento', 'data-chip="entradas"') : feIr('fin_movimento', 'data-chip="saidas"');
+    const fimMes = dataCurta(`${h.mes}-${String(new Date(Date.UTC(Number(h.mes.slice(0, 4)), Number(h.mes.slice(5, 7)), 0)).getUTCDate()).padStart(2, '0')}`);
+    const rotVai = h.corrente ? (e ? 'Vai entrar' : 'Vai pagar') : h.futuro ? 'Previsto' : (e ? 'Não entrou' : 'Ficou sem pagar');
+    const subVai = c.itens.length ? `${h.corrente ? `até ${fimMes} · ` : ''}${quantos(c.itens.length, e ? 'cliente' : 'conta', e ? 'clientes' : 'contas')}${c.itens.some((i) => i.atrasado) && h.corrente ? ` · ${quantos(c.itens.filter((i) => i.atrasado).length, 'atrasado', 'atrasados')}` : ''}` : (e ? 'nada previsto' : 'nada previsto');
+    const nums = `<div class="fe-hj-dois">
+      <button type="button" class="fe-hj-n" ${verTudo}><span class="fe-rot">${e ? 'Já entrou' : 'Já pagou'}</span><b class="fe-v">${esc(mil(c.ja))}</b><small>${esc(quantos(c.n, 'lançamento', 'lançamentos'))}</small></button>
+      <div class="fe-hj-n vai"><span class="fe-rot">${rotVai}</span><b class="fe-v">${esc(mil(c.vai))}</b><small>${esc(subVai)}</small></div></div>`;
+    // A previsão incompleta e a média dos meses, ditas na própria coluna.
+    // A previsão incompleta e a média dos meses, numa nota só na própria coluna.
+    const pv = h.previsao, media = e && pv.entra_difere ? pv.media_entra : null;
+    let nota = '';
+    if (e && pv.incompleta && !h.futuro) nota = `<p class="fe-hj-aviso"><span>${pv.com_contrato ? `Só ${n0(pv.com_contrato)} de ${quantos(pv.ativos, 'cliente ativo', 'clientes ativos')} ${pv.com_contrato === 1 ? 'tem' : 'têm'}` : `Nenhum dos ${quantos(pv.ativos, 'cliente ativo', 'clientes ativos')} tem`} contrato ou valor cadastrado: o "vai entrar" está subestimado${media != null ? ` (pela média dos meses: ${esc(mil(media))})` : ''}.</span><button type="button" class="fe-elo" ${feIr('fin_clientes', 'data-cli-chip="sem"')}>Cadastrar</button></p>`;
+    // Previsto por contrato × pela média dos meses (a média das saídas da projeção tira o combinado e o fixo embutidos: não compara).
+    else if (media != null) nota = `<p class="fe-hj-media">Por contrato: <b>${esc(mil(c.vai))}</b> · pela média dos meses: <b>${esc(mil(media))}</b> até o fim do mês <button type="button" class="fe-elo" ${feIr('fin_projecao')}>ver a projeção</button></p>`;
+    // De quê: os 4 maiores grupos (e o resto numa linha), cada um com a barra fina e o filtro dele.
+    const gr = c.grupos, top = gr.slice(0, 4), resto = gr.slice(4).reduce((s, g) => s + g.valor, 0), maxG = Math.max(1, ...top.map((g) => g.valor), resto);
+    const barra = (v) => `<i class="fe-hj-bar" aria-hidden="true"><i style="--v:${Math.max(2, Math.round(v / maxG * 100))}%"></i></i>`;
+    const deQue = gr.length ? top.map((g) => `<button type="button" class="fe-hj-g" ${feIrPara(g.ir)} title="${esc(g.nome)}"><span>${esc(g.nome)}</span><b>${esc(mil(g.valor))}</b>${barra(g.valor)}</button>`).join('')
+      + (resto ? `<button type="button" class="fe-hj-g q" ${verTudo}><span>Mais ${n0(gr.length - 4)}</span><b>${esc(mil(resto))}</b>${barra(resto)}</button>` : '')
+      : `<p class="fe-vazio">${e ? 'Nada entrou' : 'Nada saiu'} em ${esc(mes)} ainda.</p>`;
+    // Para quando: o que falta, por data (o atrasado primeiro, em destaque).
+    const aberta = u.mais === lado, cabem = aberta ? c.itens : c.itens.slice(0, 3);
+    // "Ver os N" fica na linha do rótulo (não ocupa uma linha a mais na coluna).
+    const mais = c.itens.length > 3 ? `<button type="button" class="fe-elo fe-hj-mais" data-fx="fe-hj-mais" data-valor="${lado}" aria-expanded="${aberta}">${aberta ? 'Mostrar menos' : `Ver os ${n0(c.itens.length)}`}</button>` : '';
+    const paraQuando = c.itens.length ? cabem.map((i) => feHjItem(i)).join('')
+      : `<p class="fe-vazio">${e ? (h.corrente ? 'Nenhuma mensalidade prevista para o resto do mês.' : 'Nada em aberto.') : (h.corrente ? 'Nada de salário, assinatura ou conta fixa faltando.' : 'Nada em aberto.')}</p>`;
+    return `<section class="fe-card fe-hj-col ${e ? 'e' : 's'}" aria-label="${e ? 'Entradas' : 'Saídas'} de ${esc(mes)}">
+      <div class="fe-card-cab"><h2 class="fe-hj-tit">${e ? 'Entradas' : 'Saídas'}</h2><span class="fe-dir"><button type="button" class="fe-elo" ${verTudo}>Ver tudo</button></span></div>
+      ${nums}${nota}
+      <div class="fe-hj-corpo"><div class="fe-hj-bl"><span class="fe-rot">De quê</span>${deQue}</div>
+      <div class="fe-hj-bl"><div class="fe-hj-rot"><span class="fe-rot">Para quando</span>${mais}</div>${paraQuando}</div></div></section>`;
+  }
+  // A conta que liga as duas colunas.
+  function feHjConta(h) {
+    const k = h.conta, termo = (rot, val, sub = '', attrs = '', cls = '') => `<${attrs ? `button type="button" ${attrs}` : 'div'} class="fe-hj-t${cls ? ' ' + cls : ''}"><small>${esc(rot)}</small><b>${esc(rs(val))}</b>${sub ? `<span>${sub}</span>` : ''}</${attrs ? 'button' : 'div'}>`;
+    if (k.fecha == null) {
+      return `<section class="fe-card fe-hj-conta" aria-label="Resultado de ${esc(soMes(h.mes))}"><div class="fe-hj-eq">${termo('Entrou', h.entradas.ja, '', feIr('fin_movimento', 'data-chip="entradas"'))}<i class="fe-hj-op" aria-hidden="true">−</i>${termo('Saiu', h.saidas.ja, '', feIr('fin_movimento', 'data-chip="saidas"'))}<i class="fe-hj-op" aria-hidden="true">=</i>${termo('Resultado do mês', k.resultado, k.saldo != null ? `saldo no fim: ${esc(rs(k.saldo))}` : '', feIr('fin_analise'), 'fim' + (k.resultado < 0 ? ' r' : ''))}</div></section>`;
+    }
+    const v = k.vira_negativo;
+    const neg = v ? (v.ja ? 'o saldo já está negativo' : `fica negativo em ${esc(dataCurta(v.data))}`) : k.fecha < 0 ? 'fecha negativo' : 'não fica negativo no mês';
+    const proj = k.projecao_negativo && (!v || k.projecao_negativo !== v.data) ? ` Pela projeção (média dos meses), o saldo fica negativo em ${esc(dataCurta(k.projecao_negativo))}.` : '';
+    return `<section class="fe-card fe-hj-conta" aria-label="Como ${esc(soMes(h.mes))} fecha"><div class="fe-hj-eq">
+      ${termo('Saldo hoje', k.saldo, k.saldo_data ? `extrato até ${esc(dataCurta(k.saldo_data))}` : '', feIr('fin_movimento', 'data-chip="todos"'))}<i class="fe-hj-op" aria-hidden="true">+</i>
+      ${termo('Vai entrar', h.entradas.vai, '', '', 'mais')}<i class="fe-hj-op" aria-hidden="true">−</i>${termo('Vai pagar', h.saidas.vai, '', '', 'menos')}<i class="fe-hj-op" aria-hidden="true">=</i>
+      ${termo('Fecha o mês com', k.fecha, neg, feIr('fin_projecao'), 'fim' + (k.fecha < 0 || v ? ' r' : ''))}</div>${proj ? `<p class="fe-sub">${proj.trim()}</p>` : ''}</section>`;
+  }
+  // Os próximos 7 ou 15 dias: os dias com entrada ou saída prevista; tocar no dia mostra o que tem nele.
+  function feHjDias(h) {
+    const u = ui.fe.hj, dias = h.dias.slice(0, u.dias), comItem = dias.filter((x) => x.itens.length);
+    const sel = dias.find((x) => x.data === u.dia) || comItem[0] || null;
+    const tit = `<div class="fe-card-cab"><h2 class="fe-rot">Próximos ${n0(u.dias)} dias</h2><span class="fe-dir">${h.atrasados.n ? `<span class="fe-hj-atr">${esc(quantos(h.atrasados.n, 'atrasado', 'atrasados'))}</span>` : ''}${feChips([7, 15].map((n) => [String(n), `${n} dias`, null, `data-fx="fe-hj-dias" data-valor="${n}"`, u.dias === n]), 'Quantos dias')}</span></div>`;
+    const cel = dias.map((x) => { const tem = x.itens.length > 0;
+      return `<button type="button" class="fe-hj-dia${tem ? ' tem' : ''}" data-fx="fe-hj-dia" data-valor="${x.data}" aria-pressed="${sel?.data === x.data}"${tem ? '' : ' disabled'} aria-label="${esc(diaLongo(x.data, true))}${tem ? `: entra ${rs(x.entra)}, sai ${rs(x.sai)}` : ': nada previsto'}"><small>${x.data === h.hoje ? 'hoje' : esc(semana3(x.data))}</small><b>${Number(x.data.slice(8, 10))}</b>${x.entra ? `<span class="e">+${esc(mil(x.entra).replace('R$ ', ''))}</span>` : ''}${x.sai ? `<span class="s">−${esc(mil(x.sai).replace('R$ ', ''))}</span>` : ''}</button>`; }).join('');
+    const det = sel ? `<div class="fe-hj-sel"><span class="fe-rot">${esc(diaLongo(sel.data, true))}</span>${sel.itens.map((i) => feHjItem(i, { comData: false }).replace('class="fe-hj-it', `class="fe-hj-it ${i.lado === 'entra' ? 'ent' : 'sai'}`)).join('')}</div>` : `<p class="fe-vazio">Nada previsto para entrar ou sair nos próximos ${n0(u.dias)} dias.</p>`;
+    return `<section class="fe-card fe-hj-cal" aria-label="Próximos dias">${tit}<div class="fe-hj-dias n${dias.length}">${cel}</div>${det}</section>`;
+  }
+  // Os avisos numa faixa só: o Vorcaro (o laranja da tela) e o extrato parado, sem empurrar as respostas para baixo.
+  function feHjAvisos(d, lista, achados) {
     const pend = lista.filter((t) => !t.real.conferido), sabe = pend.filter((t) => t.real.categoria !== 'a_classificar').length;
     const whats = (d.vorcaro?.propostas || []).filter((p) => p.estado === 'pendente').length;
-    // O que já está em Falta pagar não se repete nos pontos de atenção (Paulo, 24/11/2026: o Hoje estava redundante).
+    const lar = (frase, botao = '') => `<section class="fe-lar fe-lar-faixa" aria-label="Vorcaro · Tesouraria"><span class="fe-lar-av" aria-hidden="true">V</span><p class="fe-lar-txt">${frase}</p>${botao}</section>`;
+    let v;
+    if (!lista.length) v = lar('Ainda sem extrato. Importe o extrato da conta PJ do Santander (OFX, CSV ou Excel) e eu digo para onde foi cada lançamento.', feArquivo('fe-lar-btn'));
+    else if (pend.length || whats) v = lar(esc([pend.length ? `${quantos(pend.length, 'lançamento', 'lançamentos')} para conferir${sabe ? ` (${n0(sabe)} com sugestão pronta)` : ''}` : '', whats ? `${quantos(whats, 'chegou', 'chegaram')} pelo grupo Vybe Financeiro` : ''].filter(Boolean).join(' · ')), feBtn('Conferir', feIr('fin_movimento', 'data-chip="conferir"'), 'fe-lar-btn'));
+    else if (achados[0]) v = lar(esc(achados[0].texto), achados[0].aba ? feBtn('Ver', feAchadoIr(achados[0]), 'fe-lar-btn') : '');
+    else v = lar('Tudo conferido. Nada pedindo decisão agora.');
+    const p = d.analise?.extrato_parado;
+    const parado = p?.parado ? `<section class="fe-hj-parado" aria-label="Extrato parado"><span><b>Extrato parado há ${esc(quantos(p.dias, 'dia', 'dias'))}</b> · último dia do banco ${esc(dataCurta(p.ultimo))}: saldo e previsto são estimativa</span>${feArquivo('fe-btn s')}<details><summary>Como exportar</summary>${fePassosExtrato(p)}</details></section>` : '';
+    return `<div class="fe-hj-avisos">${v}${parado}</div>`;
+  }
+  function feHoje(ctx) {
+    const d = feIniciar(ctx), lista = d.transacoes || [], mes = ui.fe.mes, hoje = d.hoje || '';
+    const r = X().resumo(lista, { mes });
+    // Sem o shared/financeiro-analises.js carregado (só num teste antigo), o Hoje fica sem as colunas, sem quebrar.
+    const h = A()?.hojeDoMes ? A().hojeDoMes(d, { mes, dias: 15 }) : null;
+    // O que já está na conta e nas colunas não se repete nos pontos de atenção.
     const doServidor = (d.analise?.achados || []).filter((a) => a.id !== 'extrato_parado').map((a) => ({ ...a, det: a.det + (a.impacto ? ` · impacto ${rs(a.impacto)}` : '') }));
     const achados = [...doServidor, ...analise(d).filter((a) => !['Banco sem conferir', 'WhatsApp', 'Fixo não apareceu', 'Fixos sem cadastro'].includes(a.rot) && !doServidor.some((x) => x.rot === a.rot))].sort((x, y) => (y.g || 0) - (x.g || 0));
-    let laranja;
-    if (!lista.length) laranja = feLaranja('Ainda sem extrato. Importe o extrato da conta PJ do Santander (OFX, CSV ou Excel) e eu digo para onde foi cada lançamento.', feArquivo('fe-lar-btn'));
-    else if (pend.length || whats) {
-      const frases = [pend.length ? `${quantos(pend.length, 'lançamento esperando', 'lançamentos esperando')} o lado real.${sabe ? ` Em ${n0(sabe)} eu já sei para onde foi, é só confirmar.` : ''}` : '',
-        whats ? `${pend.length ? 'E ' : ''}${quantos(whats, 'chegou', 'chegaram')} pelo grupo Vybe Financeiro.` : ''].filter(Boolean).join(' ');
-      laranja = feLaranja(esc(frases), feBtn('Conferir agora', feIr('fin_movimento', 'data-chip="conferir"'), 'fe-lar-btn'));
-    } else if (achados[0]) laranja = feLaranja(esc(achados[0].texto), achados[0].aba ? feBtn('Ver', feAchadoIr(achados[0]), 'fe-lar-btn') : '');
-    else laranja = feLaranja('Tudo conferido. Nada pedindo decisão agora.');
-    // O mês em quatro perguntas (Paulo, 24/11/2026): o que já entrou, o que falta entrar, o que já pagou e o que falta pagar
-    // (salários, programas e contas fixas). Cada linha abre a tela onde o valor nasce.
-    const pc2 = d.por_cliente || { meses: [], linhas: [] };
-    const doMes = pc2.meses.includes(mes) ? pc2.linhas.map((l) => ({ l, m: l.meses.find((x) => x.mes === mes) })).filter((x) => x.m && x.m.situacao !== 'sem' && x.m.situacao !== 'fora') : [];
-    const pagos = doMes.filter((x) => x.m.situacao === 'pago').length;
-    const SIT = { aberto: ['r', 'em aberto'], parcial: ['a', 'pagou parte'], a_receber: ['n', 'a receber'] };
-    const faltaCli = doMes.map(({ l, m }) => ({ id: l.cliente_id, nome: l.cliente_nome, v: (m.em_aberto || 0) + (m.a_receber || 0), sit: m.situacao }))
-      .filter((x) => x.v > 0).sort((a, b) => b.v - a.v);
-    const soma = (l) => l.reduce((s, x) => s + (x.v ?? x.valor ?? 0), 0);
-    const faltaEntrar = soma(faltaCli);
-    const sal = (d.contas_pessoas || []).map((c) => { const m = c.meses.find((x) => x.mes === mes); return { id: c.pessoa_id, nome: c.nome, v: m ? (m.aberto ? m.falta_pagar || 0 : m.a_pagar || 0) : 0, comb: m?.combinado || 0, pago: m?.pago || 0 }; })
-      .filter((x) => x.v > 0).sort((a, b) => b.v - a.v);
-    const fa = (d.fixos || []).length ? X().analisarFixos(d.fixos, lista, mes, d.cartao?.itens || []) : null;
-    const fxFalta = fa ? fa.fixos.filter((f) => !f.achado) : [];
-    const prog = fxFalta.filter((f) => f.categoria === 'ferramentas'), contas = fxFalta.filter((f) => f.categoria !== 'ferramentas');
-    const faltaPagar = soma(sal) + soma(prog) + soma(contas);
-    const saiu = r.saidas + r.cartao_e_transferencias;
-    const us = ultimoSaldo(lista), saldo = r.saldo_final ?? us?.banco.saldo ?? null;
-    const fecha = saldo != null && mes === mesHoje ? saldo + faltaEntrar - faltaPagar : null;
-    const nums = `<div class="fe-nums">${[
-      feNum({ rot: 'Saldo no banco', valor: saldo == null ? '—' : esc(rs(saldo)), tom: saldo < 0 ? 'r' : '', sub: us ? `pelo extrato de ${esc(dataCurta(us.banco.data))}` : 'sem extrato', attrs: feIr('fin_movimento', 'data-chip="todos"') }),
-      feNum({ rot: 'Já entrou', valor: esc(mil(r.entradas)), sub: `falta entrar ${esc(mil(faltaEntrar))}`, attrs: feIr('fin_movimento', 'data-chip="entradas"') }),
-      feNum({ rot: 'Já pagou', valor: esc(mil(saiu)), sub: `falta pagar ${esc(mil(faltaPagar))}`, attrs: feIr('fin_movimento', 'data-chip="saidas"') }),
-      feNum({ rot: fecha != null ? 'Fecha o mês com' : 'Resultado do mês', valor: fecha != null ? esc(rs(fecha)) : esc(comSinal(r.resultado)), tom: (fecha ?? r.resultado) < 0 ? 'r' : '',
-        sub: fecha != null ? 'saldo + falta entrar − falta pagar' : 'o que entrou − o que saiu', attrs: feIr('fin_analise') }),
-    ].join('')}</div>`;
-    const linha = (attrs, rot, det, val, tom = '') => `<button type="button" class="fe-al" ${attrs}><i class="fe-dot ${tom}" aria-hidden="true"></i><span><b>${esc(rot)}</b>${det ? `<small>${esc(det)}</small>` : ''}</span><b class="fe-al-v">${esc(rs(val))}</b></button>`;
-    const grupo = (rot, itens, total) => (itens.length ? `<div class="fe-gr"><span class="fe-rot">${esc(rot)}</span><b>${esc(rs(total))}</b></div>${itens.join('')}` : '');
-    const total = (v) => `<div class="fe-gr fe-tot"><span>Total</span><b>${esc(rs(v))}</b></div>`;
-    const entrar = feCard('Falta entrar', faltaCli.length
-      ? faltaCli.slice(0, 8).map((x) => linha(`data-fx="fe-cli" data-valor="${esc(x.id)}"`, x.nome, (SIT[x.sit] || SIT.aberto)[1], x.v, (SIT[x.sit] || SIT.aberto)[0])).join('')
-        + (faltaCli.length > 8 ? `<button type="button" class="fe-elo" ${feIr('fin_clientes')}>Mais ${n0(faltaCli.length - 8)} na grade de clientes</button>` : '') + total(faltaEntrar)
-      : `<p class="fe-vazio">${doMes.length ? 'Todos os clientes com mensalidade já pagaram este mês.' : 'Sem mensalidade prevista neste mês.'}</p>`,
-    { dir: doMes.length ? `${n0(pagos)} de ${quantos(doMes.length, 'cliente pagou', 'clientes pagaram')}` : '', cls: 'fe-entrar' });
-    const vence = (f) => (f.vence < hoje ? `venceu dia ${f.dia}` : `vence dia ${f.dia}`) + (f.forma === 'cartao' ? ' · no cartão' : '');
-    const pagar = feCard('Falta pagar', faltaPagar
-      ? grupo('Salários', sal.map((x) => linha(feIr('fin_pessoas', `data-pes="${esc(x.id)}"`), x.nome, x.comb ? `recebeu ${rs(x.pago)} de ${rs(x.comb)}` : '', x.v, 'n')), soma(sal))
-        + grupo('Programas e assinaturas', prog.map((f) => linha(feIr('fin_assinaturas', `data-fixo="${esc(f.id)}"`), f.nome, vence(f), f.valor, f.vence < hoje ? 'r' : 'a')), soma(prog))
-        + grupo('Contas fixas', contas.map((f) => linha(`data-fx="fe-chip-fixo" data-valor="${esc(f.id)}"`, f.nome, vence(f), f.valor, f.vence < hoje ? 'r' : 'a')), soma(contas))
-        + total(faltaPagar)
-      : `<p class="fe-vazio">${(d.contas_pessoas || []).some((c) => c.salario?.valor) || fa ? 'Nada de salário, programa ou conta fixa faltando neste mês.' : 'Informe o combinado do time em Pessoas e cadastre as assinaturas para eu dizer o que falta pagar.'}</p>`, { cls: 'fe-pagar' });
-    // Pontos de atenção: o fim do mês no vermelho, os achados do Vorcaro e o vale.
+    // Pontos de atenção: os achados do Vorcaro e o vale.
     const MONEY = /[−-]?R\$\s?[\d.]+,\d{2}/;
     const partir = (det) => { const t = String(det ?? ''), m = MONEY.exec(t); if (!m) return { det: t, val: '' };
       const v = numero(m[0].replace(/R\$\s?/, '').replace('−', '-')); return { det: t.replace(m[0], '').replace(/^\s*·\s*|\s*·\s*$/g, '').trim(), val: mil(Math.abs(v)) }; };
     const vale = (d.contas_pessoas || []).filter((c) => c.vale > 0);
-    const itens = [fecha != null && fecha < 0 ? { g: 3, rot: 'O mês fecha no vermelho', det: 'se entrar e sair tudo o que falta', val: mil(Math.abs(fecha)), attrs: feIr('fin_analise') } : null,
-      ...achados.map((a) => ({ g: a.g, rot: a.rot, ...partir(a.det), attrs: feAchadoIr(a) })),
+    const itens = [...achados.map((a) => ({ g: a.g, rot: a.rot, ...partir(a.det), attrs: feAchadoIr(a) })),
       vale.length ? { g: 0, rot: 'Vale acumulado', det: quantos(vale.length, 'pessoa', 'pessoas'), val: mil(vale.reduce((s, c) => s + c.vale, 0)), attrs: feIr('fin_pessoas'), roxo: true } : null].filter(Boolean).slice(0, 6);
     const atencao = feCard('Pontos de atenção', itens.map((a) => `<button type="button" class="fe-al" ${a.attrs}><i class="fe-dot ${a.roxo ? 'v' : a.g >= 2 ? 'r' : 'a'}" aria-hidden="true"></i><span><b>${esc(a.rot)}</b>${a.det ? `<small>${esc(a.det)}</small>` : ''}</span>${a.val ? `<b class="fe-al-v">${esc(a.val)}</b>` : ICV.seta}</button>`).join('') || '<p class="fe-vazio">Nada pedindo atenção.</p>');
     const mesesP = mesesDoPeriodo(d, mes), per = fePeriodo(d, mesesP);
@@ -1656,7 +1693,7 @@
     for (const m of mesesP) for (const g of saidasPorGrupo(d, m === mes ? r : X().resumo(lista, { mes: m }))) gMap.set(g.grupo, (gMap.get(g.grupo) || 0) + g.total);
     const grupos = [...gMap].map(([grupo, total]) => ({ grupo, total })).sort((a, b) => b.total - a.total);
     const onde = feCard(`Para onde foi o dinheiro${umMes ? '' : ` · ${per.rot}`}`, feRosca(grupos, { rotulo: `Saídas de ${per.rot} por grupo`, sub: umMes ? 'saiu no mês' : 'saiu no período' }), { dir: grupos.length ? 'toque num pedaço para ver de onde vem' : '', cls: 'fe-onde' });
-    // Entrou × saiu nos últimos 6 meses, até o mês escolhido (o resultado é a distância entre as duas linhas).
+    // Entrou × saiu no período, até o mês escolhido (o resultado é a distância entre as duas linhas).
     const anos = mesesP[0].slice(0, 4) !== mesesP[mesesP.length - 1].slice(0, 4);
     const ent = mesesP.map((m) => (porMes.has(m) ? porMes.get(m).entradas : null)), sai = mesesP.map((m) => (porMes.has(m) ? porMes.get(m).saidas + porMes.get(m).cartao : null));
     const somar = (a) => a.reduce((s, v) => s + (v || 0), 0), tE = somar(ent), tS = somar(sai), comDado = ent.filter((v) => v != null).length || 1;
@@ -1665,7 +1702,7 @@
       { nome: 'Entrou', cls: 's1', vals: ent }, { nome: 'Saiu', cls: 's0', vals: sai }],
     { rotulo: `Entrou e saiu de ${per.rot}` }), { cls: 'fe-6m', dir: `<button type="button" class="fe-elo" ${feIr('fin_analise')}>mais na Análise</button>` });
     // O gasto do mês dia a dia, contra o mês anterior no mesmo dia.
-    const mAnt = X().somarMeses(mes, -1), acA = acumuladoDoMes(lista, mes), acB = acumuladoDoMes(lista, mAnt);
+    const mesHoje = hoje.slice(0, 7), mAnt = X().somarMeses(mes, -1), acA = acumuladoDoMes(lista, mes), acB = acumuladoDoMes(lista, mAnt);
     const diaHoje = mes === mesHoje ? Number(hoje.slice(8, 10)) : acA.length, nD = Math.max(acA.length, acB.length);
     const noDia = acA[Math.min(diaHoje, acA.length) - 1] || 0, antDia = acB[Math.min(diaHoje, acB.length) - 1] || 0;
     const comp = antDia ? Math.round((noDia / antDia - 1) * 100) : null;
@@ -1674,7 +1711,8 @@
         { nome: soMes(mes), cls: 's0', vals: Array.from({ length: nD }, (_, i) => (i < diaHoje && i < acA.length ? acA[i] : null)) },
         { nome: soMes(mAnt), cls: 'sq', trac: true, vals: Array.from({ length: nD }, (_, i) => (i < acB.length ? acB[i] : null)) }],
       { rotulo: `Gasto acumulado por dia em ${soMes(mes)} e ${soMes(mAnt)}`, alto: 190, marcarX: mes === mesHoje ? diaHoje - 1 : -1 }), { cls: 'fe-dia-a-dia' });
-    return feCasca('fin_hoje', d, `${feHud(d, lista, mesesP, per.rot, grupos)}${laranja}${feParado(d)}${nums}${per.html}<div class="fe-par">${linhas6}${onde}</div><div class="fe-par">${entrar}${pagar}</div><div class="fe-par">${diaADia}${atencao}</div>`);
+    const respostas = h ? `<div class="fe-hj-cols">${feHjColuna(h, 'entra')}${feHjColuna(h, 'sai')}</div>${feHjConta(h)}` : '';
+    return feCasca('fin_hoje', d, `${feHud(d, lista, mesesP, per.rot, grupos)}${feHjAvisos(d, lista, achados)}${respostas}${h?.corrente ? feHjDias(h) : ''}${per.html}<div class="fe-par">${linhas6}${onde}</div><div class="fe-par">${diaADia}${atencao}</div>`);
   }
   // O achado do Vorcaro leva à tela nova certa, com o filtro dele.
   function feAchadoIr(a) {
@@ -2254,6 +2292,10 @@
       }
       case 'fe-cli': u.cli.sel = u.cli.sel === String(valor) ? '' : String(valor); return feAbrir('fin_clientes');
       case 'fe-hud': u.hud = valor; return repintar();
+      // O Hoje: 7 ou 15 dias, o dia escolhido no calendário e a lista inteira do Para quando.
+      case 'fe-hj-dias': u.hj.dias = Number(valor) === 15 ? 15 : 7; return repintar();
+      case 'fe-hj-dia': u.hj.dia = u.hj.dia === valor ? '' : valor; return repintar();
+      case 'fe-hj-mais': u.hj.mais = u.hj.mais === valor ? '' : valor; return repintar();
       case 'fe-per': { const p = ui.fe.per; p.k = valor; if (valor === 'custom' && !p.de) { p.de = X().somarMeses(ui.fe.mes, -5); p.ate = ui.fe.mes; } return repintar(); }
       case 'fe-cli-chip': u.cli.chip = valor; return repintar();
       case 'fe-cli-mov': limparLado(); u.chip = 'entradas'; u.grupo = ''; if (anfitriao.filtro) anfitriao.filtro.fx_extrato = valor; return feAbrir('fin_movimento');
@@ -2315,15 +2357,19 @@
 
   // ---------- Extrato parado (Santander) ----------
   // O Paulo só tem o extrato de 17/08 a 13/11; o aviso diz há quantos dias parou e como trazer o próximo.
+  // Os passos para exportar o extrato do Santander (o cartão Extrato parado e a faixa de avisos do Hoje).
+  function fePassosExtrato(p) {
+    const desde = p.ultimo ? dataCurta(new Date(Date.parse(p.ultimo + 'T12:00:00Z') + 864e5).toISOString().slice(0, 10)) : '';
+    return `<ol class="fe-passos"><li>Entre no Santander Empresas (internet banking ou app) da conta PJ.</li><li>Abra <b>Conta corrente › Extrato</b> e escolha o período${desde ? ` a partir de <b>${esc(desde)}</b>` : ''} até hoje.</li>
+      <li>Exporte em <b>OFX</b> (Money/Quicken) ou, se não tiver, em <b>CSV</b> ou <b>Excel (.xlsx)</b>.</li><li>Volte aqui e toque em <b>Importar extrato</b>: a prévia mostra o que entra antes de gravar, e o que já estava não duplica.</li></ol>
+      <p class="fe-sub">O nome do menu pode mudar um pouco no Santander; o arquivo certo é o extrato da conta corrente, não a fatura do cartão.</p>`;
+  }
   function feParado(d) {
     const p = d.analise?.extrato_parado;
     if (!p?.parado) return '';
-    const desde = p.ultimo ? dataCurta(new Date(Date.parse(p.ultimo + 'T12:00:00Z') + 864e5).toISOString().slice(0, 10)) : '';
     return `<section class="fe-card fe-parado" aria-label="Extrato parado"><div class="fe-card-cab"><h2 class="fe-rot">Extrato parado há ${quantos(p.dias, 'dia', 'dias')}</h2><span class="fe-dir">${feArquivo('fe-btn k')}</span></div>
       <p>O último dia do banco aqui é <b>${esc(dataCurta(p.ultimo))}</b>. Tudo depois disso (saldo, projeção, a receber) é estimativa até o próximo extrato.</p>
-      <ol class="fe-passos"><li>Entre no Santander Empresas (internet banking ou app) da conta PJ.</li><li>Abra <b>Conta corrente › Extrato</b> e escolha o período${desde ? ` a partir de <b>${esc(desde)}</b>` : ''} até hoje.</li>
-      <li>Exporte em <b>OFX</b> (Money/Quicken) ou, se não tiver, em <b>CSV</b> ou <b>Excel (.xlsx)</b>.</li><li>Volte aqui e toque em <b>Importar extrato</b>: a prévia mostra o que entra antes de gravar, e o que já estava não duplica.</li></ol>
-      <p class="fe-sub">O nome do menu pode mudar um pouco no Santander; o arquivo certo é o extrato da conta corrente, não a fatura do cartão.</p></section>`;
+      ${fePassosExtrato(p)}</section>`;
   }
 
   // ---------- Conferir em lote ----------
