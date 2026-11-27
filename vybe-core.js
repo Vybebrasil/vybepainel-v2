@@ -1747,6 +1747,18 @@ function vbEsperarDados(desde) {
   const dorme = (ms) => new Promise((r) => setTimeout(r, ms));
   return Promise.race([Promise.allSettled(meus).then(() => dorme(30)), dorme(VB_ESPERA_MS)]);
 }
+// A troca em andamento. O segundo clique dado no meio dela vale mais que o primeiro (pente fino, 27/11/2026: com o
+// processador lento a troca dura quase 1 s, e o segundo clique no menu caía na foto da transição, no <html>, e se
+// perdia: a tela ficava na primeira escolha). Agora a troca de antes é pulada (se ainda não tinha trocado a tela, nem
+// troca) e o clique chega ao que está debaixo do ponteiro: direto, se acertou um item, ou, se caiu na foto, assim que
+// ela sai (vbCliqueNaFoto).
+let vbTrocaAtual = null;
+function vbPularTroca() {
+  const v = vbTrocaAtual; if (!v) return false;
+  v.morta = true; vbTrocaAtual = null;
+  try { v.t?.skipTransition?.(); } catch { /* já terminou */ }
+  return true;
+}
 function vbTrocarTela(atualizar, { tipo = 'tela' } = {}) {
   if (!vbPodeVoar()) { atualizar(); return Promise.resolve(false); }
   const postos = new Map();
@@ -1758,14 +1770,17 @@ function vbTrocarTela(atualizar, { tipo = 'tela' } = {}) {
   };
   marcar(false);
   vbVoando = true; document.documentElement.dataset.vbVoo = tipo;
-  const fim = () => { tirar(); vbVoando = false; delete document.documentElement.dataset.vbVoo; };
+  const troca = { morta: false, t: null };
+  const fim = () => { tirar(); vbVoando = false; delete document.documentElement.dataset.vbVoo; if (vbTrocaAtual === troca) vbTrocaAtual = null; };
   let t;
   try {
     t = document.startViewTransition(() => {
-      tirar(); const desde = vbAgora(); atualizar();
-      return vbEsperarDados(desde).then(() => marcar(true));
+      tirar(); if (troca.morta) return undefined;
+      const desde = vbAgora(); atualizar();
+      return vbEsperarDados(desde).then(() => { if (!troca.morta) marcar(true); });
     });
   } catch { fim(); atualizar(); return Promise.resolve(false); }
+  troca.t = t; vbTrocaAtual = troca;
   t.finished.then(fim, fim);
   return t.updateCallbackDone.then(() => true, () => true);
 }
@@ -1805,12 +1820,32 @@ function vbOperacaoDoClique(alvo) {
   for (const r of VB_VIRA_FICHA) { const el = alvo.closest(r.clique); if (el) return { tipo: 'ficha', el, cartao: el.closest(r.cartao) || el, destino: r.destino }; }
   return null;
 }
+// Durante a transição o navegador entrega o clique ao <html> (a foto da tela fica por cima de tudo). Esse clique pula a
+// troca e, assim que a foto sai, vai para o que está de verdade debaixo do ponteiro, como se a troca não existisse.
+function vbCliqueNaFoto(e) {
+  const v = vbTrocaAtual;
+  if (!v || typeof document === 'undefined' || e.target !== document.documentElement) return false;
+  e.preventDefault(); e.stopImmediatePropagation();
+  vbPularTroca();
+  const x = e.clientX, y = e.clientY;
+  const ini = { bubbles: true, cancelable: true, composed: true, view: e.view, detail: e.detail, clientX: x, clientY: y, screenX: e.screenX, screenY: e.screenY, button: 0, buttons: e.buttons };
+  const repassar = () => {
+    const el = typeof document.elementFromPoint === 'function' ? document.elementFromPoint(x, y) : null;
+    if (!el || el === document.documentElement) return;
+    vbRepassando = true; try { el.dispatchEvent(new MouseEvent('click', ini)); } finally { vbRepassando = false; }
+  };
+  Promise.resolve(v.t?.finished).catch(() => {}).then(() => (typeof requestAnimationFrame === 'function' ? requestAnimationFrame(repassar) : repassar()));
+  return true;
+}
 function vbInterceptarClique(e) {
   // Só o clique de gente: o .click() que o código dá (atalhos, comandos de voz) segue na hora, como sempre.
   if (vbRepassando || !e.isTrusted || e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+  if (vbCliqueNaFoto(e)) return;
   const alvo = e.target, op = vbOperacaoDoClique(alvo);
   if (op?.tipo === 'tela') vbAnotarTela(op.el);
   if (op?.tipo === 'ficha') { vbCrescerCartao(op); return; }
+  // Clique novo de troca no meio de outra: pula a de antes e este segue direto (a tela fica na última escolha).
+  if (op && vbPularTroca()) return;
   if (!op || !vbPodeVoar() || op.el.matches('a[href], [disabled], [aria-disabled="true"], .trancado') || op.el.closest('a[href]')) return;
   // A aba que já está aberta não troca nada: o clique segue direto.
   if (op.tipo === 'aba' && op.el.matches('[aria-selected="true"], [aria-checked="true"], [aria-current="true"], [aria-pressed="true"]')) return;
