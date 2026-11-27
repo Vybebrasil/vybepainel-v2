@@ -1,14 +1,32 @@
 /* PADRÃO V2 · MOVIMENTOS QUE FALTAVAM (moodboard aprovado; 13/11/2026). A peça é vbTransicao (vybe-core.js): o que tem
    data-vt voa da posição antiga para a nova com a mola do sistema; o resto da tela troca num esmaecer curto. */
-::view-transition-group(*){animation-duration:.38s;animation-timing-function:cubic-bezier(.32,.72,0,1)}
-::view-transition-old(root),::view-transition-new(root){animation-duration:.16s}
+/* Os nomes antigos do mundo passam a ser os tokens do padrão (os mesmos valores de antes, agora num lugar só). */
+body.mundo{--vv-mola:var(--d3-curva);--vv-t-rapido:var(--d3-mov-rapido);--vv-t-medio:var(--d3-mov-medio);--vv-t-janela:var(--d3-mov-lento)}
+::view-transition-group(*){animation-duration:var(--d3-mov-lento);animation-timing-function:var(--d3-curva)}
+::view-transition-old(root),::view-transition-new(root){animation-duration:var(--d3-mov-rapido)}
 /* Os itens que voam não esmaecem no meio do caminho (senão some o "voo"). */
 ::view-transition-old(*):not(:root),::view-transition-new(*){mix-blend-mode:normal}
 /* Chip que entra: cresce do ponto (sem começar transparente, regra do mundo); chip que sai: encolhe. */
 @keyframes vb-vt-entra{from{transform:scale(.6)}}
 @keyframes vb-vt-sai{to{opacity:0;transform:scale(.6)}}
-html[data-vb-voo="chip"]::view-transition-new(*):only-child{animation:vb-vt-entra .28s cubic-bezier(.32,.72,0,1) both}
-html[data-vb-voo="chip"]::view-transition-old(*):only-child{animation:vb-vt-sai .2s ease-in both}
+html[data-vb-voo="chip"]::view-transition-new(*):only-child{animation:vb-vt-entra var(--d3-mov-medio) var(--d3-curva) both}
+html[data-vb-voo="chip"]::view-transition-old(*):only-child{animation:vb-vt-sai var(--d3-mov-rapido) ease-in both}
+/* Sistema fluido (27/11/2026, vbTrocarTela em vybe-core.js). Troca de módulo: o menu lateral fica parado (sem esmaecer),
+   a marca do item ativo desliza do item de antes para o novo, a tela de antes some rápido e a nova sobe 8px já cheia.
+   Aba interna: o mesmo, mais curto. O cartão que vira ficha cresce por vbCrescerCartao (Web Animations, sem captura). */
+@keyframes vb-tela-sai{to{opacity:0}}
+@keyframes vb-tela-entra{from{transform:translateY(8px)}}
+/* A tela nova nunca começa transparente (regra do mundo): ela já está inteira por baixo e sobe 8px; a de antes fica por
+   cima e some. */
+html[data-vb-voo="tela"]::view-transition-old(root),html[data-vb-voo="aba"]::view-transition-old(root){z-index:1}
+html[data-vb-voo="tela"]::view-transition-old(root){animation:vb-tela-sai var(--d3-mov-rapido) ease-in both}
+html[data-vb-voo="tela"]::view-transition-new(root){animation:vb-tela-entra var(--d3-mov-medio) var(--d3-curva) both}
+html[data-vb-voo="aba"]::view-transition-old(root){animation:vb-tela-sai var(--d3-mov-rapido) ease-in both}
+html[data-vb-voo="aba"]::view-transition-new(root){animation:vb-tela-entra var(--d3-mov-rapido) var(--d3-curva) both}
+::view-transition-old(vb-trilho){animation:none;opacity:0}
+::view-transition-new(vb-trilho){animation:none}
+::view-transition-group(vb-trilho){animation:none}
+::view-transition-group(vb-trilho-ativo){animation-duration:var(--d3-mov-medio);animation-timing-function:var(--d3-curva)}
 @media (prefers-reduced-motion:reduce){::view-transition-group(*),::view-transition-old(*),::view-transition-new(*){animation:none}}
 
 /* 5 · Edita no lugar: o campo de data ocupa o lugar do texto, na mesma pílula. */

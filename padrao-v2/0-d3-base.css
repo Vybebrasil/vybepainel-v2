@@ -4,6 +4,9 @@
    Este arquivo vem primeiro na junção (nome com 0-): os tokens e as peças valem para todos os fragmentos. */
 
 :root{
+  /* Um padrão de movimento só (sistema fluido, 27/11/2026): três tempos e uma curva para trocar de tela, abrir gaveta,
+     janela e menu. Anima só transform e opacity. Os nomes antigos do mundo (--vv-t-*, --vv-mola) apontam para estes. */
+  --d3-mov-rapido:.16s; --d3-mov-medio:.28s; --d3-mov-lento:.42s; --d3-curva:cubic-bezier(.32,.72,0,1);
   --d3-areia:#EAE6DE; --d3-trilho:#F3F1EC; --d3-cartao:#FFFFFF; --d3-linha:#F1EDE6; --d3-borda:#E6E0D6;
   --d3-tinta:#1F1D1A; --d3-agente-texto:#4B36A8; --d3-agente-veu:#EEEAFB; --d3-texto2:#4A463F; --d3-apagado:#6B665E; --d3-meta:#B5AFA5;
   --d3-acao:#C2490C; --d3-acao-texto:#A83D08; --d3-agente:#6E56CF;

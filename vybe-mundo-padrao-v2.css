@@ -6,6 +6,9 @@
    Este arquivo vem primeiro na junção (nome com 0-): os tokens e as peças valem para todos os fragmentos. */
 
 :root{
+  /* Um padrão de movimento só (sistema fluido, 27/11/2026): três tempos e uma curva para trocar de tela, abrir gaveta,
+     janela e menu. Anima só transform e opacity. Os nomes antigos do mundo (--vv-t-*, --vv-mola) apontam para estes. */
+  --d3-mov-rapido:.16s; --d3-mov-medio:.28s; --d3-mov-lento:.42s; --d3-curva:cubic-bezier(.32,.72,0,1);
   --d3-areia:#EAE6DE; --d3-trilho:#F3F1EC; --d3-cartao:#FFFFFF; --d3-linha:#F1EDE6; --d3-borda:#E6E0D6;
   --d3-tinta:#1F1D1A; --d3-agente-texto:#4B36A8; --d3-agente-veu:#EEEAFB; --d3-texto2:#4A463F; --d3-apagado:#6B665E; --d3-meta:#B5AFA5;
   --d3-acao:#C2490C; --d3-acao-texto:#A83D08; --d3-agente:#6E56CF;
@@ -663,7 +666,7 @@ body.mundo #workspace-drawer.gv2-gaveta .gv2 > :is(.gv2-cel,.gv2-pega){display:n
   /* a folha cobre a barra de baixo, como no quadro: o HUD desce para trás do fundo escuro enquanto ela está aberta */
   body.mundo:has(> #workspace-drawer.gv2-folha:not(.gv2-folha-inteira)) #mundo-hud{z-index:600}
 
-  body.mundo #workspace-drawer.gv2-gaveta.gv2-folha:not(.gv2-folha-inteira){top:auto;right:0;bottom:0;left:0;width:100%;height:auto;max-height:calc(100dvh - 32px);padding:0;border-radius:28px 28px 0 0;box-shadow:0 -12px 30px -12px rgba(31,29,26,.4);animation:gv2-folha-sobe .36s cubic-bezier(.2,.8,.2,1) both}
+  body.mundo #workspace-drawer.gv2-gaveta.gv2-folha:not(.gv2-folha-inteira){top:auto;right:0;bottom:0;left:0;width:100%;height:auto;max-height:calc(100dvh - 32px);padding:0;border-radius:28px 28px 0 0;box-shadow:0 -12px 30px -12px rgba(31,29,26,.4);animation:gv2-folha-sobe var(--d3-mov-medio) var(--d3-curva) both}
   body.mundo #workspace-drawer.gv2-gaveta.gv2-folha:not(.gv2-folha-inteira) > .gv2{border-radius:28px 28px 0 0;padding:0 14px max(14px,env(safe-area-inset-bottom));gap:10px}
   body.mundo #workspace-drawer.gv2-gaveta.gv2-folha:not(.gv2-folha-inteira) > .gv2.gv2-tem-cel > :not(.gv2-cel):not(.gv2-pega){display:none}
   body.mundo #workspace-drawer.gv2-gaveta.gv2-folha.gv2-folha-inteira > .gv2.gv2-tem-cel > .gv2-cel{display:none}
@@ -6578,7 +6581,7 @@ body.mundo .vb-pt3:hover{background:var(--d3-borda,#E6E0D6)}
 body.mundo .vb-menu-linha[open] > .vb-pt3{background:var(--d3-tinta,var(--d3-tinta));color:var(--d3-contra)}
 body.mundo .vb-pt3:focus-visible{outline:2px solid var(--ds-acao,#C2490C);outline-offset:2px}
 body.mundo :is(.vb-menu-linha,.vb-abas-mais) > .vb-menu{position:absolute;right:0;top:calc(100% + 6px);z-index:60}
-body.mundo .vb-menu.vb-menu:not(#vb-a){display:flex;flex-direction:column;width:max-content;min-width:190px;max-width:min(320px,86vw);box-sizing:border-box;margin:0;padding:6px;border:0;border-radius:16px;background:var(--d3-cartao);color:var(--d3-tinta);box-shadow:0 2px 4px rgba(31,29,26,.08),0 18px 30px -16px rgba(31,29,26,.45);transform-origin:100% 0;animation:vb-menu .22s cubic-bezier(.34,1.3,.64,1) both}
+body.mundo .vb-menu.vb-menu:not(#vb-a){display:flex;flex-direction:column;width:max-content;min-width:190px;max-width:min(320px,86vw);box-sizing:border-box;margin:0;padding:6px;border:0;border-radius:16px;background:var(--d3-cartao);color:var(--d3-tinta);box-shadow:0 2px 4px rgba(31,29,26,.08),0 18px 30px -16px rgba(31,29,26,.45);transform-origin:100% 0;animation:vb-menu var(--d3-mov-rapido) var(--d3-curva) both}
 @keyframes vb-menu{from{transform:scale(.6)}to{transform:none}}
 body.mundo .vb-menu:not(#vb-a) .vb-mi{appearance:none;display:flex;align-items:center;gap:8px;width:100%;height:34px;min-height:0;box-sizing:border-box;margin:0;padding:0 12px;border:0;border-radius:10px;background:transparent;box-shadow:none;color:var(--d3-tinta);font:500 var(--d3-fs-texto)/1 var(--vv-texto,Inter,system-ui,sans-serif);text-align:left;text-transform:none;letter-spacing:0;white-space:nowrap;cursor:pointer}
 body.mundo .vb-menu:not(#vb-a) .vb-mi:hover,body.mundo .vb-menu:not(#vb-a) .vb-mi:focus-visible{background:var(--d3-trilho);outline:none}
@@ -8198,15 +8201,33 @@ button.vg-bh-l:hover,button.vg-bh-l:focus-visible{background:var(--d3-folha-leve
 /* ===== padrao-v2/movimentos.css ===== */
 /* PADRÃO V2 · MOVIMENTOS QUE FALTAVAM (moodboard aprovado; 13/11/2026). A peça é vbTransicao (vybe-core.js): o que tem
    data-vt voa da posição antiga para a nova com a mola do sistema; o resto da tela troca num esmaecer curto. */
-::view-transition-group(*){animation-duration:.38s;animation-timing-function:cubic-bezier(.32,.72,0,1)}
-::view-transition-old(root),::view-transition-new(root){animation-duration:.16s}
+/* Os nomes antigos do mundo passam a ser os tokens do padrão (os mesmos valores de antes, agora num lugar só). */
+body.mundo{--vv-mola:var(--d3-curva);--vv-t-rapido:var(--d3-mov-rapido);--vv-t-medio:var(--d3-mov-medio);--vv-t-janela:var(--d3-mov-lento)}
+::view-transition-group(*){animation-duration:var(--d3-mov-lento);animation-timing-function:var(--d3-curva)}
+::view-transition-old(root),::view-transition-new(root){animation-duration:var(--d3-mov-rapido)}
 /* Os itens que voam não esmaecem no meio do caminho (senão some o "voo"). */
 ::view-transition-old(*):not(:root),::view-transition-new(*){mix-blend-mode:normal}
 /* Chip que entra: cresce do ponto (sem começar transparente, regra do mundo); chip que sai: encolhe. */
 @keyframes vb-vt-entra{from{transform:scale(.6)}}
 @keyframes vb-vt-sai{to{opacity:0;transform:scale(.6)}}
-html[data-vb-voo="chip"]::view-transition-new(*):only-child{animation:vb-vt-entra .28s cubic-bezier(.32,.72,0,1) both}
-html[data-vb-voo="chip"]::view-transition-old(*):only-child{animation:vb-vt-sai .2s ease-in both}
+html[data-vb-voo="chip"]::view-transition-new(*):only-child{animation:vb-vt-entra var(--d3-mov-medio) var(--d3-curva) both}
+html[data-vb-voo="chip"]::view-transition-old(*):only-child{animation:vb-vt-sai var(--d3-mov-rapido) ease-in both}
+/* Sistema fluido (27/11/2026, vbTrocarTela em vybe-core.js). Troca de módulo: o menu lateral fica parado (sem esmaecer),
+   a marca do item ativo desliza do item de antes para o novo, a tela de antes some rápido e a nova sobe 8px já cheia.
+   Aba interna: o mesmo, mais curto. O cartão que vira ficha cresce por vbCrescerCartao (Web Animations, sem captura). */
+@keyframes vb-tela-sai{to{opacity:0}}
+@keyframes vb-tela-entra{from{transform:translateY(8px)}}
+/* A tela nova nunca começa transparente (regra do mundo): ela já está inteira por baixo e sobe 8px; a de antes fica por
+   cima e some. */
+html[data-vb-voo="tela"]::view-transition-old(root),html[data-vb-voo="aba"]::view-transition-old(root){z-index:1}
+html[data-vb-voo="tela"]::view-transition-old(root){animation:vb-tela-sai var(--d3-mov-rapido) ease-in both}
+html[data-vb-voo="tela"]::view-transition-new(root){animation:vb-tela-entra var(--d3-mov-medio) var(--d3-curva) both}
+html[data-vb-voo="aba"]::view-transition-old(root){animation:vb-tela-sai var(--d3-mov-rapido) ease-in both}
+html[data-vb-voo="aba"]::view-transition-new(root){animation:vb-tela-entra var(--d3-mov-rapido) var(--d3-curva) both}
+::view-transition-old(vb-trilho){animation:none;opacity:0}
+::view-transition-new(vb-trilho){animation:none}
+::view-transition-group(vb-trilho){animation:none}
+::view-transition-group(vb-trilho-ativo){animation-duration:var(--d3-mov-medio);animation-timing-function:var(--d3-curva)}
 @media (prefers-reduced-motion:reduce){::view-transition-group(*),::view-transition-old(*),::view-transition-new(*){animation:none}}
 
 /* 5 · Edita no lugar: o campo de data ocupa o lugar do texto, na mesma pílula. */
@@ -8667,7 +8688,7 @@ body[data-modo]:not([data-modo="gestor"]) :is(#pv2-painel,#pv2-semana){display:n
    As peças de movimento (.v2-estado, .v2-barra, .v2-pop) vêm do bloco PADRÃO V2 · BASE. */
 
 /* ===== 1. GAVETA DA PEÇA (#workspace-drawer.gv2-gaveta, vybe-gaveta.js) ===== */
-body.mundo #workspace-drawer.gv2-gaveta{position:fixed;z-index:621;top:16px;right:16px;bottom:16px;left:auto;box-sizing:border-box;width:700px;max-width:calc(100vw - 32px);margin:0;padding:0;border-radius:var(--d3-r-janela,28px);box-shadow:0 2px 6px rgba(31,29,26,.08),-30px 0 80px -30px rgba(31,29,26,.6);overflow:hidden;display:flex;flex-direction:column;color:var(--d3-tinta);font:400 var(--d3-fs-texto)/1.4 var(--vv-texto,"Inter",system-ui,sans-serif);animation:gv2-entra .32s cubic-bezier(.2,.8,.2,1) both}
+body.mundo #workspace-drawer.gv2-gaveta{position:fixed;z-index:621;top:16px;right:16px;bottom:16px;left:auto;box-sizing:border-box;width:700px;max-width:calc(100vw - 32px);margin:0;padding:0;border-radius:var(--d3-r-janela,28px);box-shadow:0 2px 6px rgba(31,29,26,.08),-30px 0 80px -30px rgba(31,29,26,.6);overflow:hidden;display:flex;flex-direction:column;color:var(--d3-tinta);font:400 var(--d3-fs-texto)/1.4 var(--vv-texto,"Inter",system-ui,sans-serif);animation:gv2-entra var(--d3-mov-medio) var(--d3-curva) both}
 body.mundo.com-dock-salas #workspace-drawer.gv2-gaveta{bottom:calc(var(--vv-m,14px) + var(--vv-dock-alto,74px) + 6px)}
 @keyframes gv2-entra{from{transform:translateX(108%)}to{transform:none}}
 body.mundo #workspace-drawer.gv2-gaveta .gv2{flex:1;min-height:0;box-sizing:border-box;display:flex;flex-direction:column;gap:12px;padding:20px 24px 0;background:var(--d3-cartao,var(--d3-cartao));border-radius:var(--d3-r-janela,28px);overflow:hidden}
@@ -8688,7 +8709,7 @@ body.mundo #workspace-drawer.gv2-gaveta .gv2-topo :is(.gv2-ic,.vybe-link.so-icon
 body.mundo #workspace-drawer.gv2-gaveta .gv2-topo :is(.gv2-ic,.vybe-link.so-icone,.workspace-mais > summary):hover{background:var(--d3-borda,#E6E0D6);color:var(--d3-tinta,var(--d3-tinta))}
 body.mundo #workspace-drawer.gv2-gaveta .gv2-topo .workspace-mais[open] > summary{background:var(--d3-tinta,var(--d3-tinta));color:var(--d3-contra)}
 body.mundo #workspace-drawer.gv2-gaveta .gv2-topo .workspace-mais{position:relative;flex:none}
-body.mundo #workspace-drawer.gv2-gaveta .gv2-topo .workspace-mais-menu{position:absolute;z-index:6;top:36px;right:0;width:210px;box-sizing:border-box;display:flex;flex-direction:column;padding:6px;border-radius:16px;border-width:0;box-shadow:0 2px 4px rgba(31,29,26,.08),0 18px 30px -16px rgba(31,29,26,.45);transform-origin:100% 0;animation:gv2-menu .18s cubic-bezier(.34,1.3,.64,1) both}
+body.mundo #workspace-drawer.gv2-gaveta .gv2-topo .workspace-mais-menu{position:absolute;z-index:6;top:36px;right:0;width:210px;box-sizing:border-box;display:flex;flex-direction:column;padding:6px;border-radius:16px;border-width:0;box-shadow:0 2px 4px rgba(31,29,26,.08),0 18px 30px -16px rgba(31,29,26,.45);transform-origin:100% 0;animation:gv2-menu var(--d3-mov-rapido) var(--d3-curva) both}
 @keyframes gv2-menu{from{transform:scale(.6);opacity:0}to{transform:none;opacity:1}}
 body.mundo #workspace-drawer.gv2-gaveta .gv2-topo .workspace-mais-menu :is(button,a){appearance:none;display:flex;align-items:center;height:30px;min-height:30px;padding:0 12px;border-width:0;border-radius:10px;text-align:left;text-decoration:none;font:500 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta);cursor:pointer;box-shadow:none}
 body.mundo #workspace-drawer.gv2-gaveta .gv2-topo .workspace-mais-menu :is(button,a):hover{background-color:var(--d3-trilho)}

@@ -4506,7 +4506,7 @@
   }
   const naEquipe = () => !placa().hidden && Boolean(placa().querySelector('.d3m-g-equipe'));
   // A lista acompanha a presença (quem entrou, quem mudou de sala) sem tirar o foco de quem está digitando na busca.
-  if (typeof setInterval === 'function') setInterval(() => { if (naEquipe() && !placa().contains(document.activeElement)) mostrarEquipe(); }, 4000);
+  if (typeof setInterval === 'function') (globalThis.vbIntervalo || setInterval)(() => { if (naEquipe() && !placa().contains(document.activeElement)) mostrarEquipe(); }, 4000);
   hud.addEventListener('input', (e) => {
     if (!e.target.matches?.('[data-eq-busca]')) return;
     equipeBusca = e.target.value; const l = placa().querySelector('.d3m-g-lista'); if (l) l.innerHTML = predioAgoraHtml(dadosDaEquipe()); placa().vvEquipe = '';
@@ -4582,7 +4582,7 @@
   }
   const fichaObs = new MutationObserver(() => ajustarFicha());
   const vigiarFicha = () => { const d = document.getElementById('office-ficha'); if (d && !d.dataset.vvVigia) { d.dataset.vvVigia = '1'; fichaObs.observe(d, { childList: true }); ajustarFicha(); } };
-  setInterval(vigiarFicha, 1500);
+  (globalThis.vbIntervalo || setInterval)(vigiarFicha, 1500);
   function desviarIdaAoQuarto() {
     if (desviarIdaAoQuarto.feito || typeof window.escritorioIrParaAmbiente !== 'function') return;
     desviarIdaAoQuarto.feito = true;
@@ -4596,7 +4596,7 @@
       irParaSala(id);
     };
   }
-  setInterval(desviarIdaAoQuarto, 2000); desviarIdaAoQuarto();
+  (globalThis.vbIntervalo || setInterval)(desviarIdaAoQuarto, 2000); desviarIdaAoQuarto();
   function usarEquipe(id) {
     const a = EQUIPE_ACOES.find((x) => x[0] === id); if (!a) return;
     // Conversa e recados moram na coluna do Escritório: abre o Escritório (motor) com a aba certa.
@@ -5144,7 +5144,7 @@
   document.addEventListener?.('vybe:janela-topo', (e) => fecharJanelasDoTopo(e.detail?.qual));
   // O número do sino: notificações não lidas (o total do servidor; o ponto antigo do cabeçalho não tem número) e o que
   // os planejamentos e clientes pedem. Com o painel aberto, ele se atualiza junto.
-  setInterval(() => { pintarSelosDeAviso(); const p = hud.querySelector('.vv-avisos-painel'); if (p && !p.contains(document.activeElement)) pintarAvisos(); }, 3000);
+  (globalThis.vbIntervalo || setInterval)(() => { pintarSelosDeAviso(); const p = hud.querySelector('.vv-avisos-painel'); if (p && !p.contains(document.activeElement)) pintarAvisos(); }, 3000);
 
   function mostrarCliente(nome) {
     const c = naTela.find((x) => x.nome === nome) || clientesDoMundo().find((x) => x.nome === nome); if (!c) return;
@@ -6047,7 +6047,7 @@
     else if (b.dataset.irSala) { irParaSala(b.dataset.irSala); chamarAberto = false; pessoaAberta = null; }
     else if (b.dataset.chamarPessoa) { fn('chamarParaSalaEscritorio')?.(b.dataset.chamarPessoa); chamarAberto = false; pessoaAberta = null; pintarChamada(); }
   });
-  if (typeof setInterval === 'function') setInterval(pintarChamada, 1500);
+  if (typeof setInterval === 'function') (globalThis.vbIntervalo || setInterval)(pintarChamada, 1500);
 
   // ---------- Palco do Irecity: vídeos da chamada, TV da sala e recado rápido ----------
   // O Escritório desenha isso dentro da tela dele, que no Irecity fica escondida. Aqui eles sobem:
@@ -6209,7 +6209,7 @@
     const rr = document.getElementById('office-recado-rapido');
     if (rr && !rr.dataset.vv) { rr.dataset.vv = '1'; rr.addEventListener('click', (ev) => { const b = ev.target.closest('[data-vv-responder]'); if (b) { window.VybeConversa?.abrir?.('recados', b.dataset.vvResponder); rr.remove(); } }); }
   }
-  if (typeof setInterval === 'function') setInterval(trazerProPalco, 800);
+  if (typeof setInterval === 'function') (globalThis.vbIntervalo || setInterval)(trazerProPalco, 800);
 
   // ---------- Esc fecha o que está por cima; módulo com "tela cheia" e "fechar" ----------
   const cantoModulo = document.createElement('div');
@@ -6488,7 +6488,7 @@
     el.style.setProperty('--mx', cx + 'px'); el.style.setProperty('--my', cy + 'px'); el.classList.add('movida');
   }
   // O player some quando a sala não tem música (o Escritório mostra/esconde pelo hidden); o botão Música fica no dock.
-  if (typeof setInterval === 'function') setInterval(() => {
+  if (typeof setInterval === 'function') (globalThis.vbIntervalo || setInterval)(() => {
     const el = document.getElementById('office-musica');
     const tem = Boolean(el && !el.hidden);
     if (!tem && body.classList.contains('musica-aberta')) abrirMusica(false);
@@ -6599,10 +6599,10 @@
       if (window.VYBE_ACABOU_DE_ENTRAR && !APP_AGENDA) { window.VYBE_ACABOU_DE_ENTRAR = false; vigiarContinuar(); mostrarEntrada(); }
       if (!sincronizar.tour) { sincronizar.tour = true; setTimeout(() => { if (entradaAberta) tourDepoisDaEntrada = true; else window.VybeTutorial?.iniciar?.(); }, 1200); }
       if (centroAberto) { carregar(); mundo?.pausar(false); } else { mundo?.pausar(true); void garantirLeve(); } pintarClientes(); pintarHoje(); ajustarAreaLivre(); carregarAgenda(); observarPresenca(); pintarPresenca(); void carregarAgentes();
-      if (!timer) timer = setInterval(() => { pintarClientes(); pintarPresenca(); carregarAgenda(); pintarHoje(); void carregarAgentes(); }, 5000);
+      if (!timer) timer = (globalThis.vbIntervalo || setInterval)(() => { pintarClientes(); pintarPresenca(); carregarAgenda(); pintarHoje(); void carregarAgentes(); }, 5000);
     } else {
       mundo?.pausar(true); if (cartao()) cartao().hidden = true;
-      clearInterval(timer); timer = null;
+      if (timer?.parar) timer.parar(); else clearInterval(timer); timer = null;
     }
   }
   // Com o mundo ligado, entrar no painel cai no mundo (a tela de módulos sobre Irecê),

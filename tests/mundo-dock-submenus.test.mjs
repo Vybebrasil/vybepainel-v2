@@ -23,8 +23,9 @@ test('a janela que fecha não acende o Hoje por cima da visão geral, de Planeja
 test('HUDs: X da janela sem o filtro do kicker, rodapé do tema antigo só no tema antigo, módulo para na moldura', () => {
   assert.match(css, /\[class\*="-kicker"\],\.day-today-label,\.client-module-kicker\):not\(:has\(button,a,input,select\)\)/);
   // O grupo de botões dentro do kicker (barra da gaveta, quadro 06) também fica fora do filtro. O kicker com botão vai
-  // pelos nomes de classe (sistema leve 2: [class*=] à esquerda recalculava tudo a cada troca de classe).
-  assert.match(css, /:is\(\.workflow-kicker,[^)]*\.abr-kicker,[^)]*\):has\(button,a,input,select\) > :not\(button,a,input,select\):not\(:has\(button,a,input,select\)\)\{filter:/);
+  // pelos nomes de classe (sistema leve 2: [class*=] à esquerda recalculava tudo a cada troca de classe) e pela marca
+  // vb-kicker-ctl que o vybe-core.js põe (sistema fluido: o :has ali recalculava o body inteiro a cada botão novo).
+  assert.match(css, /:is\(\.workflow-kicker,[^)]*\.abr-kicker,[^)]*\):where\(\.vb-kicker-ctl\):not\(vb-x\) > :not\(button,a,input,select\):not\(:has\(button,a,input,select\)\)\{filter:/);
   assert.ok(legado.includes(':where(body:not(.mundo)) :is(.workspace-actions,.workflow-actions){position:sticky;bottom:0!important;'));
   assert.ok(css.includes('html body.mundo.mundo-modulo{position:fixed!important;top:var(--vv-m)!important;bottom:calc(var(--vv-m) + var(--vv-dock-alto, -6px) + 6px + var(--vv-pe-barra,0px))!important;'));
   assert.ok(!css.includes('body.mundo.mundo-modulo.com-dock-salas::after'), 'no celular a janela já termina acima do dock, sem folga a mais');
