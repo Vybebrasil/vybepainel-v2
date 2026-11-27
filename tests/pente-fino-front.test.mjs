@@ -87,3 +87,20 @@ test('rótulos do menu largo (Operação, Negócio, Time, Vybe): o cinza antigo 
   assert.doesNotMatch(mundo, /\.vv-trilho-grupo\{[^}]*color:[^;}]*!important/, 'nenhuma cor com !important no rótulo');
   assert.match(v2, /body\.mundo\.trilho-largo #mundo-hud \.vv-trilho \.vv-trilho-grupo\{[^}]*color:var\(--d3-fume-apagado\)/, 'a cor do tema vem do padrão v2');
 });
+
+test('tempo do topo com o serviço fora: uma consulta só, e não uma a cada volta ao Hoje', async () => {
+  const topo = ler('vybe-topo.js');
+  const trecho = topo.slice(topo.indexOf('const TOPO_TEMPO_FALHOU'), topo.indexOf('async function pintarTempoDoTopo'));
+  let consultas = 0, agora = 1_000_000, resposta = { ok: false, status: 429 };
+  const c = vm.createContext({ JSON, Math, Number, Map, Error, Promise, Date: { now: () => agora },
+    sessionStorage: { getItem: () => null, setItem: () => {} },
+    fetch: async () => { consultas++; return { ...resposta, json: async () => ({ current: { temperature_2m: 31.4, weather_code: 1 } }) }; } });
+  vm.runInContext(trecho, c);
+  const lugar = { lat: -11.3042, lon: -41.8558 };
+  for (let i = 0; i < 4; i++) await assert.rejects(c.buscarTempoDoTopo(lugar));
+  assert.equal(consultas, 1, 'falhou uma vez e esperou, em vez de consultar de novo a cada abertura do portão');
+  agora += 11 * 60 * 1000; resposta = { ok: true, status: 200 };
+  const t = await c.buscarTempoDoTopo(lugar);
+  assert.equal(consultas, 2, 'passados 10 minutos, tenta de novo');
+  assert.equal(t.grau, 31);
+});

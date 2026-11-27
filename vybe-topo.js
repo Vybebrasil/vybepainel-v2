@@ -159,6 +159,7 @@ function ondeVerOTempo() {
   return TOPO_CASA;
 }
 
+const TOPO_TEMPO_FALHOU = new Map(); // lugar -> quando a última consulta falhou
 async function buscarTempoDoTopo(lugar) {
   const chave = `vybeTopoTempo:${lugar.lat.toFixed(2)},${lugar.lon.toFixed(2)}`;
   try {
@@ -167,19 +168,30 @@ async function buscarTempoDoTopo(lugar) {
     // abertura seria uma consulta a mais sem nenhuma informação nova.
     if (guardado && Date.now() - guardado.em < 30 * 60 * 1000) return guardado.dados;
   } catch { /* segue e consulta */ }
+  // Serviço fora (sem internet, 429 por excesso, bloqueio da rede): espera 10 minutos antes de tentar de novo. Antes,
+  // cada volta ao Hoje (que abre o portão) consultava outra vez e somava um erro no console a cada troca de tela, e o
+  // excesso de consultas era justamente o que mantinha o serviço respondendo 429 (pente fino, 27/11/2026).
+  const falhou = TOPO_TEMPO_FALHOU.get(chave);
+  if (falhou && Date.now() - falhou < 10 * 60 * 1000) throw new Error('tempo indisponível (esperando para tentar de novo)');
 
   const url = `https://api.open-meteo.com/v1/forecast?latitude=${lugar.lat}&longitude=${lugar.lon}`
     + '&current=temperature_2m,weather_code&timezone=auto';
-  const r = await fetch(url);
-  if (!r.ok) throw new Error(`tempo indisponível (${r.status})`);
-  const d = await r.json();
-  const dados = {
-    grau: Math.round(Number(d?.current?.temperature_2m)),
-    codigo: Number(d?.current?.weather_code ?? 0),
-  };
-  if (!Number.isFinite(dados.grau)) throw new Error('resposta sem temperatura');
-  try { sessionStorage.setItem(chave, JSON.stringify({ em: Date.now(), dados })); } catch { /* sem cache */ }
-  return dados;
+  try {
+    const r = await fetch(url);
+    if (!r.ok) throw new Error(`tempo indisponível (${r.status})`);
+    const d = await r.json();
+    const dados = {
+      grau: Math.round(Number(d?.current?.temperature_2m)),
+      codigo: Number(d?.current?.weather_code ?? 0),
+    };
+    if (!Number.isFinite(dados.grau)) throw new Error('resposta sem temperatura');
+    TOPO_TEMPO_FALHOU.delete(chave);
+    try { sessionStorage.setItem(chave, JSON.stringify({ em: Date.now(), dados })); } catch { /* sem cache */ }
+    return dados;
+  } catch (erro) {
+    TOPO_TEMPO_FALHOU.set(chave, Date.now());
+    throw erro;
+  }
 }
 
 async function pintarTempoDoTopo() {
