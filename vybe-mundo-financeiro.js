@@ -56,6 +56,8 @@
     projecao: { horizonte: 6, aba: 'caixa', cenario: { cortes: {}, economias: {}, clientes_novos: [], clientes_perdidos: {}, gastos_novos: [], ajuste_entradas_pct: 0 }, nome: '', base: null },
   };
   let anfitriao = {}; // { d, repintar, recarregar } da última pintura (janela do Comercial)
+  // O que o "Importar extrato" aceita: OFX, CSV e Excel (o .xls antigo entra só para dizer por que não dá).
+  const ACEITA_EXTRATO = '.ofx,.csv,.xlsx,.xls,text/csv,application/x-ofx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel';
   const avisar = (texto, tipo = 'error') => { try { if (typeof showToast === 'function') return showToast(texto, tipo, 4500); } catch { /* sem aviso */ } console.warn('[financeiro]', texto); };
 
   async function post(corpo) {
@@ -141,7 +143,7 @@
     // Padrão V2 (prancha V2-M-Financas-Extrato): o molde. Um cartão com os lançamentos do mês (Dia, No banco, De verdade,
     // Valor e Conferir), as fichas na cabeça e o "De olho" no pé; "Para onde foi", as regras, as importações e os apagados
     // ficam atrás de botões e abrem embaixo da lista. O laranja só quando há o que conferir ou dividir.
-    const arquivo = (cls, rot = 'Importar extrato') => `<label class="${cls} fx-arquivo">${cls.includes('p') ? IC.mais : ''}${rot}<input type="file" accept=".ofx,.csv,text/csv,application/x-ofx" data-fx-arquivo hidden></label>`;
+    const arquivo = (cls, rot = 'Importar extrato') => `<label class="${cls} fx-arquivo">${cls.includes('p') ? IC.mais : ''}${rot}<input type="file" accept="${ACEITA_EXTRATO}" data-fx-arquivo hidden></label>`;
     const i = meses.indexOf(u.mes), antes = meses[i - 1] || '', depois = meses[i + 1] || '';
     const contar = (k) => doMes.filter((t) => ({ conferir: !t.real.conferido, entradas: t.banco.valor > 0, saidas: t.banco.valor < 0, abertos: t.real.status !== 'pago', todos: true })[k]).length;
     const sem = doMes.filter((t) => t.real.categoria === 'receita_boleto' && !t.real.partes?.length);
@@ -170,7 +172,7 @@
       apoio: sem.length ? `E ${quantos(sem.length, 'boleto', 'boletos')} de ${esc(rs(sem.reduce((s, t) => s + t.banco.valor, 0)))} para dividir entre clientes.` : 'A categoria sugerida já está na linha; abra para corrigir.',
       bts: [[aConferir === 1 ? 'Ver o lançamento' : `Ver os ${n0(aConferir)}`, 'data-fx="chip" data-alvo="extrato" data-valor="conferir"'], sem.length ? ['Dividir', 'data-fx="cat" data-valor="receita_boleto"'] : null] })
       : sem.length ? M().laranja({ rot: 'boleto para dividir', num: n0(sem.length), frase: sem.length === 1 ? 'boleto para dividir entre clientes' : 'boletos para dividir entre clientes', apoio: `${esc(rs(sem.reduce((s, t) => s + t.banco.valor, 0)))} no total.`, bts: [['Dividir', 'data-fx="cat" data-valor="receita_boleto"']] }) : '';
-    const corpoTela = (u.previa ? M().folha({ titulo: `Prévia: ${ui.extrato.nomeArquivo || 'extrato'}`, dir: 'nada gravado ainda', corpo: `<div class="d3m-d-fm-painel">${previaHtml(d)}</div>`, cls: 'd3m-d-fm-curta d3m-d-fm-segundo', rotulo: 'previa' }) : '') + principal + painel;
+    const corpoTela = principal + painel + importacaoPorCima(d);
     return M().molde({ tela: 'fx-extrato', aba: 'extrato', titulo: 'Extrato e conciliação', d, repintar,
       sub: `${esc(nomeMes(u.mes) || 'sem extrato')}${doMes.length ? ` · ${quantos(doMes.length, 'lançamento', 'lançamentos')}` : ''}${aConferir ? ` · ${n0(aConferir)} para conferir` : todas.length ? ' · tudo conferido' : ''}`,
       ferr: (meses.length ? M().setas(antes ? `data-fx="mes" data-alvo="extrato" data-valor="${antes}"` : '', depois ? `data-fx="mes" data-alvo="extrato" data-valor="${depois}"` : '') : '')
@@ -270,17 +272,28 @@
   }
   function previaHtml(d) {
     const p = ui.extrato.previa;
-    if (p.erro) return card('Prévia do extrato', `<p class="fv2-sub">${esc(p.erro)}</p><div class="fx-linha-acoes"><button type="button" class="fv2-btn s" data-fx="previa-fechar">Fechar</button></div>`, '', 'fx-previa');
+    if (p.erro) return card('Não deu para ler o extrato', `<p class="fx-previa-num">${esc(p.erro)}</p>${ui.extrato.nomeArquivo ? `<p class="fv2-sub">Arquivo: ${esc(ui.extrato.nomeArquivo)}</p>` : ''}<div class="fx-linha-acoes fx-fim"><label class="fv2-btn s d3f-escuro fx-arquivo">Escolher outro arquivo<input type="file" accept="${ACEITA_EXTRATO}" data-fx-arquivo hidden></label><button type="button" class="fv2-btn s" data-fx="previa-fechar">Fechar</button></div>`, 'nada gravado', 'fx-previa');
+    const datas = (p.transacoes || []).map((t) => t.banco.data).sort(), de = datas[0], ate = datas[datas.length - 1];
+    const conta = [p.agencia ? `agência ${esc(p.agencia)}` : '', p.conta ? `conta ${esc(p.conta)}` : ''].filter(Boolean).join(' ');
     const porRegra = new Map();
     for (const t of p.transacoes.filter((x) => !x.ja_importada)) { const k = nomeCat(d, t.real.categoria); porRegra.set(k, (porRegra.get(k) || 0) + 1); }
     const meses = p.meses.map((m) => `<div class="fx-mini"><span><b>${esc(nomeMes(m.mes || ''))}</b> · ${quantos(m.lancamentos, 'lançamento', 'lançamentos')}</span><span>entrou ${esc(rs(m.entradas))} · saiu ${esc(rs(m.saidas + m.cartao_e_transferencias))}</span></div>`).join('');
     const exemplos = p.transacoes.filter((x) => !x.ja_importada).slice(-12).reverse().map((t) => `<div class="fx-mini"><span>${esc(dataCurta(t.banco.data))} · ${esc(t.banco.historico)}</span><span>${pill(nomeCat(d, t.real.categoria), t.real.conferido ? 'n' : 'a')} <b>${esc(rs(t.banco.valor))}</b></span></div>`).join('');
-    return card(`Prévia: ${ui.extrato.nomeArquivo || 'extrato'}`, `<p class="fx-previa-num"><b>${quantos(p.novas, 'lançamento novo', 'lançamentos novos')}</b>${p.repetidas ? ` · ${n0(p.repetidas)} já estavam aqui` : ''} · agência ${esc(p.agencia)} conta ${esc(p.conta)}</p>
+    return card(`Prévia: ${ui.extrato.nomeArquivo || 'extrato'}`, `<p class="fx-previa-num"><b>${quantos(p.novas, 'lançamento novo', 'lançamentos novos')}</b>${p.repetidas ? ` · ${n0(p.repetidas)} já estavam aqui${p.de_outro_formato ? ` (${n0(p.de_outro_formato)} vieram antes em outro formato)` : ''}` : ''}</p>
+      <p class="fv2-sub">${de ? `De ${esc(dataCurta(de))} a ${esc(dataCurta(ate))} · ` : ''}${quantos(datas.length, 'lançamento no arquivo', 'lançamentos no arquivo')}${p.formato ? ` · ${esc(String(p.formato).toUpperCase())}` : ''}${conta ? ` · ${conta}` : ''}</p>
+      ${p.falhou ? `<p class="fx-previa-num" role="alert">${esc(p.falhou)}</p>` : ''}
       ${p.avisos?.length ? `<p class="fv2-sub">${p.avisos.map(esc).join(' · ')}</p>` : ''}${meses}
       <p class="fx-rot">Como ficou classificado</p><p class="fv2-sub">${[...porRegra].sort((a, b) => b[1] - a[1]).map(([k, n]) => `${esc(k)}: ${n}`).join(' · ')}</p>
       <details class="fx-det"><summary>Últimos lançamentos</summary>${exemplos}</details>
-      <div class="fx-linha-acoes fx-fim"><button type="button" class="fv2-btn s d3f-escuro" data-fx="importar"${p.novas ? '' : ' disabled'}>${p.novas ? `Importar ${quantos(p.novas, 'lançamento', 'lançamentos')}` : 'Nada novo para importar'}</button><button type="button" class="fv2-btn s" data-fx="previa-fechar">Cancelar</button></div>`,
+      <div class="fx-linha-acoes fx-fim"><button type="button" class="fv2-btn s d3f-escuro" data-fx="importar"${p.novas ? '' : ' disabled'}>${p.novas ? `${p.falhou ? 'Tentar de novo: importar' : 'Importar'} ${quantos(p.novas, 'lançamento', 'lançamentos')}` : 'Nada novo para importar'}</button><button type="button" class="fv2-btn s" data-fx="previa-fechar">${p.novas ? 'Cancelar' : 'Fechar'}</button></div>`,
     'nada gravado ainda', 'fx-previa');
+  }
+  // A leitura e a prévia por cima da tela atual (Hoje, Movimento, Extrato ou outra): a mesma janela de qualquer botão.
+  function importacaoPorCima(d) {
+    const u = ui.extrato;
+    if (!u.lendo && !u.previa) return '';
+    const corpo = u.lendo ? `<p class="fe-imp-lendo" role="status"><span class="fe-imp-gira" aria-hidden="true"></span><span>Lendo o extrato${u.nomeArquivo ? ` <b>${esc(u.nomeArquivo)}</b>` : ''}…</span></p>` : previaHtml(d);
+    return `<div class="fe-imp-veu"${u.lendo ? '' : ' data-fx="previa-fechar"'} aria-hidden="true"></div><section class="fe-imp" role="dialog" aria-modal="true" aria-label="Importar extrato" data-fx-card="importar">${corpo}</section>`;
   }
 
   // =====================================================================================================
@@ -993,20 +1006,25 @@
   function lerArquivo(arquivo) {
     return new Promise((ok, falha) => {
       const r = new FileReader();
-      // UTF-8 quando o arquivo é UTF-8; senão Windows-1252 (o CSV e o OFX dos bancos costumam vir assim).
-      r.onload = () => { const b = new Uint8Array(r.result || new ArrayBuffer(0));
-        try { ok(new TextDecoder('utf-8', { fatal: true }).decode(b)); } catch { ok(new TextDecoder('windows-1252').decode(b)); } };
-      r.onerror = () => falha(new Error('Não consegui ler o arquivo.'));
+      r.onload = () => ok(new Uint8Array(r.result || new ArrayBuffer(0)));
+      r.onerror = () => falha(new Error('Não consegui abrir o arquivo. Escolha de novo.'));
       r.readAsArrayBuffer(arquivo);
     });
   }
+  // Importar extrato (Paulo, 27/11/2026: "não aconteceu nada"). De qualquer botão (Hoje, Movimento, Extrato parado),
+  // na hora aparece "Lendo o extrato…" por cima da tela; depois a prévia ou o erro, no mesmo lugar. Nenhum caminho
+  // termina em silêncio: arquivo vazio, formato desconhecido, Excel antigo e falta de rede viram frase clara.
+  const erroDeRede = (e) => (e instanceof TypeError || /failed to fetch|networkerror|load failed/i.test(e?.message || '') ? 'Não consegui falar com o servidor agora. Confira a internet e tente de novo.' : e?.message || 'Não deu para ler o extrato.');
   async function previa(arquivo) {
     const u = ui.extrato;
+    u.previa = null; u.csv = ''; u.nomeArquivo = arquivo.name || ''; u.lendo = true; repintar();
     try {
-      u.csv = await lerArquivo(arquivo); u.nomeArquivo = arquivo.name;
-      u.previa = await post({ acao: 'previa', csv: u.csv });
-    } catch (e) { u.previa = { erro: e.message }; }
-    repintar();
+      // UTF-8 quando o arquivo é UTF-8; senão Windows-1252 (o CSV e o OFX dos bancos costumam vir assim); o .xlsx vira CSV.
+      const texto = await X().textoDoExtrato(await lerArquivo(arquivo), arquivo.name || '');
+      u.previa = await post({ acao: 'previa', csv: texto });
+      u.csv = texto;
+    } catch (e) { u.previa = { erro: erroDeRede(e) }; u.csv = ''; }
+    u.lendo = false; repintar();
   }
   // O botão que conta o estado: gira enquanto grava; se der erro, volta como estava.
   const indo = (b) => { if (b?.classList.contains('v2-estado')) b.dataset.estado = 'indo'; };
@@ -1036,9 +1054,19 @@
       case 'importar': {
         if (!ue.csv) return;
         b.disabled = true;
-        const r = await gravar({ acao: 'importar', csv: ue.csv });
-        if (r) { avisar(`Importados ${r.importado.novas} lançamentos.`, 'success'); ue.previa = null; ue.csv = ''; ue.chip = 'conferir'; ue.mes = ''; repintar(); }
-        else b.disabled = false;
+        b.textContent = 'Importando…';
+        const naFe = Boolean(b.closest('.fe'));
+        let r;
+        try { r = await post({ acao: 'importar', csv: ue.csv }); }
+        catch (e) { ue.previa = { ...ue.previa, falhou: erroDeRede(e) }; return repintar(); }
+        const imp = r.importado || {};
+        ue.previa = null; ue.csv = '';
+        try { await anfitriao.recarregar?.(); } catch { /* gravou; a tela recarrega na próxima abertura */ }
+        avisar(`Entraram ${quantos(imp.novas || 0, 'lançamento novo', 'lançamentos novos')}${imp.repetidas ? ` (${n0(imp.repetidas)} já estavam)` : ''}. Confira em Movimento.`, 'success');
+        ue.chip = 'conferir'; ue.mes = '';
+        // Leva ao Movimento no filtro "conferir", no mês do último dia que chegou.
+        if (naFe) { feDe('fin_movimento', { chip: 'conferir', mes: String(imp.ate || '').slice(0, 7) }); feAbrir('fin_movimento'); }
+        repintar();
         return;
       }
       case 'conferir': { const t = (d.transacoes || []).find((x) => x.id === valor); if (!t) return; b.setAttribute('aria-pressed', String(!t.real.conferido)); await gravar({ acao: 'editar', id: valor, mudanca: { conferido: !t.real.conferido } }); return; }
@@ -1353,7 +1381,7 @@
   const feTag = (t, tom = '') => `<span class="fe-tag${tom ? ' ' + tom : ''}">${esc(t)}</span>`;
   const feNum = ({ rot, valor, sub = '', attrs = '', tom = '' }) => `<${attrs ? `button type="button" ${attrs}` : 'div'} class="fe-num"><span class="fe-rot">${esc(rot)}</span><b class="fe-v${tom ? ' ' + tom : ''}">${valor}</b><span class="fe-sub">${sub}</span></${attrs ? 'button' : 'div'}>`;
   const feIr = (aba, extra = '') => `data-fx="ir-aba" data-valor="${aba}"${extra ? ' ' + extra : ''}`;
-  const feArquivo = (cls = 'fe-btn s') => `<label class="${cls} fx-arquivo">Importar extrato<input type="file" accept=".ofx,.csv,text/csv,application/x-ofx" data-fx-arquivo hidden></label>`;
+  const feArquivo = (cls = 'fe-btn s') => `<label class="${cls} fx-arquivo">Importar extrato<input type="file" accept="${ACEITA_EXTRATO}" data-fx-arquivo hidden></label>`;
   // O laranja (o único cartão cheio da tela): o Vorcaro, a frase e um botão.
   const feLaranja = (frase, botao = '') => `<section class="fe-lar" aria-label="Vorcaro · Tesouraria"><span class="fe-lar-av" aria-hidden="true">V</span><div class="fe-lar-txt"><small>Vorcaro · Tesouraria</small><p>${frase}</p></div>${botao}</section>`;
   // A linha do caixa: o realizado cheio e o que vem tracejado, com a linha do zero quando passa dela.
@@ -1388,7 +1416,7 @@
       <div class="fe-marca"><span class="fe-ic" aria-hidden="true">${ICV.cifrao}</span><h1>Finanças</h1>${SELO}</div>
       <nav class="fe-abas" aria-label="Telas de Finanças">${abas}</nav>
       <div class="fe-mes" role="group" aria-label="Mês"><button type="button" class="fe-ico" data-fx="fe-mes" data-valor="${antes}" aria-label="Mês anterior"${antes ? '' : ' disabled'}>${SETA.esq}</button><b aria-live="polite">${esc(nomeMes(ui.fe.mes) || 'sem extrato')}</b><button type="button" class="fe-ico" data-fx="fe-mes" data-valor="${depois}" aria-label="Próximo mês"${depois ? '' : ' disabled'}>${SETA.dir}</button></div>
-      <button type="button" class="fe-ico" data-v2="ajuda" aria-label="Como funciona" title="Como funciona">${ICV.ajuda}</button><button type="button" class="fe-ico" data-vc="fechar" aria-label="Fechar" title="Fechar (Esc)">${IC_FECHAR}</button></header>${corpo}</div>`;
+      <button type="button" class="fe-ico" data-v2="ajuda" aria-label="Como funciona" title="Como funciona">${ICV.ajuda}</button><button type="button" class="fe-ico" data-vc="fechar" aria-label="Fechar" title="Fechar (Esc)">${IC_FECHAR}</button></header>${corpo}${importacaoPorCima(d)}</div>`;
   }
   const grupoDe = (d, cat) => (categorias(d).find((c) => c.id === cat) || {}).grupo || 'Outros';
   // As saídas do mês por grupo (Pessoas, Sócios, Estrutura…), do maior para o menor.
@@ -1538,7 +1566,7 @@
     const doServidor = (d.analise?.achados || []).filter((a) => a.id !== 'extrato_parado').map((a) => ({ ...a, det: a.det + (a.impacto ? ` · impacto ${rs(a.impacto)}` : '') }));
     const achados = [...doServidor, ...analise(d).filter((a) => !['Banco sem conferir', 'WhatsApp', 'Fixo não apareceu', 'Fixos sem cadastro'].includes(a.rot) && !doServidor.some((x) => x.rot === a.rot))].sort((x, y) => (y.g || 0) - (x.g || 0));
     let laranja;
-    if (!lista.length) laranja = feLaranja('Ainda sem extrato. Importe o extrato da conta PJ do Santander (OFX ou CSV) e eu digo para onde foi cada lançamento.', feArquivo('fe-lar-btn'));
+    if (!lista.length) laranja = feLaranja('Ainda sem extrato. Importe o extrato da conta PJ do Santander (OFX, CSV ou Excel) e eu digo para onde foi cada lançamento.', feArquivo('fe-lar-btn'));
     else if (pend.length || whats) {
       const frases = [pend.length ? `${quantos(pend.length, 'lançamento esperando', 'lançamentos esperando')} o lado real.${sabe ? ` Em ${n0(sabe)} eu já sei para onde foi, é só confirmar.` : ''}` : '',
         whats ? `${pend.length ? 'E ' : ''}${quantos(whats, 'chegou', 'chegaram')} pelo grupo Vybe Financeiro.` : ''].filter(Boolean).join(' ');
@@ -1666,7 +1694,7 @@
       let dia = '';
       corpo = cabem.map((t) => { const h = t.banco.data !== dia ? `<p class="fe-dia">${esc(diaLongo(t.banco.data))}</p>` : ''; dia = t.banco.data; return h + feLinhaLanc(d, t); }).join('')
         + (vis.length > cabem.length ? `<button type="button" class="fe-elo" data-fx="mais" data-alvo="extrato">Mais ${n0(vis.length - cabem.length)}</button>` : '');
-      if (!lista.length) corpo = `<div class="fe-vazio"><p>Sem extrato ainda. Importe o CSV da conta PJ.</p>${feArquivo('fe-btn k')}</div>`;
+      if (!lista.length) corpo = `<div class="fe-vazio"><p>Sem extrato ainda. Importe o extrato da conta PJ (OFX, CSV ou Excel).</p>${feArquivo('fe-btn k')}</div>`;
       else if (!vis.length) corpo = `<p class="fe-vazio">${chip === 'conferir' ? 'Tudo conferido.' : 'Nada com esse filtro.'}</p>`;
     } else if (chip === 'cartao') {
       cab = ['Item', 'Situação', 'Valor'];
@@ -1710,7 +1738,6 @@
   function feLadoMovimento(d, doMes) {
     const u = ui.fe, ue = ui.extrato, lista = d.transacoes || [];
     const fechar = (attrs) => `<button type="button" class="fe-ico" ${attrs} aria-label="Fechar">${IC_FECHAR}</button>`;
-    if (ue.previa) return previaHtml(d);
     if (ui.vorcaro.mao) return maoForm(d);
     if (u.lado === 'whats') {
       const ps = (d.vorcaro?.propostas || []).filter((p) => p.estado === 'pendente');
@@ -2198,8 +2225,9 @@
     window.VybeComercial?.abrir?.(aba, { abas: [aba], rotulo: 'Finanças' });
   }
   if (typeof document !== 'undefined' && document.addEventListener) { document.addEventListener('click', aoClicarFe); document.addEventListener('pointermove', aoPassarFe); document.addEventListener('pointerout', saiuDoGrafico);
-    // Esc fecha só o HUD da rosca (antes de chegar ao Esc que fecha a janela).
-    document.addEventListener('keydown', (ev) => { if (ev.key === 'Escape' && ui.fe.hud && document.querySelector('.fe .fe-hud')) { ev.preventDefault(); ev.stopImmediatePropagation(); ui.fe.hud = ''; document.querySelectorAll('.fe .fe-hud, .fe .fe-hud-veu').forEach((e) => e.remove()); } }, true); }
+    // Esc fecha só o HUD da rosca ou a prévia do extrato (antes de chegar ao Esc que fecha a janela).
+    document.addEventListener('keydown', (ev) => { if (ev.key === 'Escape' && ui.extrato.previa && !ui.extrato.lendo && document.querySelector('.fx .fe-imp')) { ev.preventDefault(); ev.stopImmediatePropagation(); ui.extrato.previa = null; ui.extrato.csv = ''; repintar(); return; }
+      if (ev.key === 'Escape' && ui.fe.hud && document.querySelector('.fe .fe-hud')) { ev.preventDefault(); ev.stopImmediatePropagation(); ui.fe.hud = ''; document.querySelectorAll('.fe .fe-hud, .fe .fe-hud-veu').forEach((e) => e.remove()); } }, true); }
 
   // =====================================================================================================================
   // Finanças completo (Paulo, 26/11/2026: "preciso que seja FODA, COMPLETO… gráficos de linha, pizza, projeções,
@@ -2232,7 +2260,7 @@
     return `<section class="fe-card fe-parado" aria-label="Extrato parado"><div class="fe-card-cab"><h2 class="fe-rot">Extrato parado há ${quantos(p.dias, 'dia', 'dias')}</h2><span class="fe-dir">${feArquivo('fe-btn k')}</span></div>
       <p>O último dia do banco aqui é <b>${esc(dataCurta(p.ultimo))}</b>. Tudo depois disso (saldo, projeção, a receber) é estimativa até o próximo extrato.</p>
       <ol class="fe-passos"><li>Entre no Santander Empresas (internet banking ou app) da conta PJ.</li><li>Abra <b>Conta corrente › Extrato</b> e escolha o período${desde ? ` a partir de <b>${esc(desde)}</b>` : ''} até hoje.</li>
-      <li>Exporte em <b>OFX</b> (Money/Quicken) ou, se não tiver, em <b>CSV/Excel</b>.</li><li>Volte aqui e toque em <b>Importar extrato</b>: a prévia mostra o que entra antes de gravar, e o que já estava não duplica.</li></ol>
+      <li>Exporte em <b>OFX</b> (Money/Quicken) ou, se não tiver, em <b>CSV</b> ou <b>Excel (.xlsx)</b>.</li><li>Volte aqui e toque em <b>Importar extrato</b>: a prévia mostra o que entra antes de gravar, e o que já estava não duplica.</li></ol>
       <p class="fe-sub">O nome do menu pode mudar um pouco no Santander; o arquivo certo é o extrato da conta corrente, não a fatura do cartão.</p></section>`;
   }
 
