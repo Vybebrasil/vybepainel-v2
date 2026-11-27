@@ -161,19 +161,30 @@ export async function clientesComMensalidade(sql) {
 
 // O time (sócios incluídos) para o "Para quem" do extrato e a conta de cada pessoa. Sem a tabela: ninguém.
 // A conta do VYBES (servico, server/conta-vybes.js) não recebe nem paga: fica fora.
-// 27/11/2026: quem foi juntado a outra pessoa (juntada_em_id) também fica fora; tem_login diz quem tem acesso ao painel
-// (e-mail ou senha), para a junção nunca tirar de cena a pessoa que entra no sistema.
+// 27/11/2026: quem foi juntado a outra pessoa (juntada_em_id) também fica fora; tem_login diz quem entra no painel e dono
+// quem é dono, para a junção nunca tirar de cena a pessoa que entra no sistema.
+// Acesso de verdade (o mesmo critério do login, vybe_sessao.js): pode_entrar E (senha OU já entrou alguma vez). Ter e-mail
+// sozinho não é acesso (28/11/2026: o cadastro sem acesso do Ewerton aparecia como "entra no painel" e travava a junção).
+// Dono pela regra única de server/donos.js (flag dono, id do Monday ou id da conta), nunca por uma coluna solta.
+const sim = (v) => v === true || v === 't' || v === 'true';
+export function acessoDaPessoa(l = {}) {
+  const tem_login = sim(l.pode_entrar) && (Boolean(l.senha_hash) || sim(l.tem_senha) || Boolean(l.ultimo_acesso));
+  const dono = ehDonoPessoa({ id: Number(l.id), monday_user_id: l.monday_user_id ?? null, dono: sim(l.dono) });
+  return { tem_login, dono };
+}
 export async function pessoasDoTime(sql) {
-  const login = (p) => ({ ...p, tem_login: p.tem_login === true || p.tem_login === 't' });
-  try { return (await sql`SELECT id::text, nome, ((to_jsonb(p) ->> 'senha_hash') IS NOT NULL OR (to_jsonb(p) ->> 'email') IS NOT NULL) AS tem_login FROM vybe_pessoas p
-    WHERE COALESCE(ativo, true) AND (to_jsonb(p) ->> 'servico') IS DISTINCT FROM 'true' AND (to_jsonb(p) ->> 'juntada_em_id') IS NULL ORDER BY nome`).map(login); }
-  catch (e) { if (e.code !== '42P01' && e.code !== '42703') throw e; try { return (await sql`SELECT id::text, nome, ((to_jsonb(p) ->> 'senha_hash') IS NOT NULL OR (to_jsonb(p) ->> 'email') IS NOT NULL) AS tem_login FROM vybe_pessoas p
-    WHERE (to_jsonb(p) ->> 'servico') IS DISTINCT FROM 'true' AND (to_jsonb(p) ->> 'juntada_em_id') IS NULL ORDER BY nome`).map(login); } catch { return []; } }
+  const comAcesso = (p) => { const { pode_entrar, tem_senha, ultimo_acesso, monday_user_id, dono, ...resto } = p; return { ...resto, ...acessoDaPessoa(p) }; };
+  try { return (await sql`SELECT id::text, nome, to_jsonb(p) ->> 'pode_entrar' AS pode_entrar, ((to_jsonb(p) ->> 'senha_hash') IS NOT NULL) AS tem_senha,
+      to_jsonb(p) ->> 'ultimo_acesso' AS ultimo_acesso, to_jsonb(p) ->> 'monday_user_id' AS monday_user_id, to_jsonb(p) ->> 'dono' AS dono FROM vybe_pessoas p
+    WHERE COALESCE(ativo, true) AND (to_jsonb(p) ->> 'servico') IS DISTINCT FROM 'true' AND (to_jsonb(p) ->> 'juntada_em_id') IS NULL ORDER BY nome`).map(comAcesso); }
+  catch (e) { if (e.code !== '42P01' && e.code !== '42703') throw e; try { return (await sql`SELECT id::text, nome, to_jsonb(p) ->> 'pode_entrar' AS pode_entrar, ((to_jsonb(p) ->> 'senha_hash') IS NOT NULL) AS tem_senha,
+      to_jsonb(p) ->> 'ultimo_acesso' AS ultimo_acesso, to_jsonb(p) ->> 'monday_user_id' AS monday_user_id, to_jsonb(p) ->> 'dono' AS dono FROM vybe_pessoas p
+    WHERE (to_jsonb(p) ->> 'servico') IS DISTINCT FROM 'true' AND (to_jsonb(p) ->> 'juntada_em_id') IS NULL ORDER BY nome`).map(comAcesso); } catch { return []; } }
 }
 
 // ---------- Junção de pessoas duplicadas (Paulo, 27/11/2026: a mesma pessoa cadastrada duas vezes) ----------
 // Nunca sozinha: só pela ação pessoa_juntar, que só um dono chama (pegarDono). Quem fica é a de mais dados, nesta ordem:
-// tem login (e-mail ou senha), é dono, tem combinado, vales, lançamentos ligados à mão, apelidos; empate, o menor id.
+// entra no painel (acessoDaPessoa: pode_entrar e senha ou acesso), é dono, tem combinado, vales, lançamentos ligados à mão, apelidos; empate, o menor id.
 // Recusa juntar quando as duas têm login (credencial não se move) ou quando a que sairia é dono.
 export function dadosDaPessoaNaJuncao(base, id, linha = {}) {
   const s = base.salarios?.[id];
@@ -256,8 +267,9 @@ async function linhasDaJuncao(sql, ids) {
   const out = new Map();
   for (const id of ids) {
     const [l] = await sql`SELECT id::text, nome, to_jsonb(p) ->> 'ativo' AS ativo, to_jsonb(p) ->> 'monday_user_id' AS monday_user_id, to_jsonb(p) ->> 'juntada_em_id' AS juntada_em_id,
-      ((to_jsonb(p) ->> 'senha_hash') IS NOT NULL OR (to_jsonb(p) ->> 'email') IS NOT NULL) AS tem_login FROM vybe_pessoas p WHERE id::text = ${id}`;
-    if (l) out.set(id, { ...l, tem_login: l.tem_login === true || l.tem_login === 't', dono: ehDonoPessoa({ id: Number(l.id), monday_user_id: l.monday_user_id ?? null }) });
+      to_jsonb(p) ->> 'pode_entrar' AS pode_entrar, ((to_jsonb(p) ->> 'senha_hash') IS NOT NULL) AS tem_senha, to_jsonb(p) ->> 'ultimo_acesso' AS ultimo_acesso, to_jsonb(p) ->> 'dono' AS dono
+      FROM vybe_pessoas p WHERE id::text = ${id}`;
+    if (l) out.set(id, { id: l.id, nome: l.nome, ativo: l.ativo, juntada_em_id: l.juntada_em_id, ...acessoDaPessoa(l) });
   }
   return out;
 }
@@ -763,7 +775,7 @@ export async function escreverFinanceiro(sql, quem, b = {}) {
       const linhas = await linhasDaJuncao(sql, [de, para]);
       if (!linhas.get(de) || !linhas.get(para)) throw erro(404, 'Pessoa não encontrada.');
       if (linhas.get(de).juntada_em_id || linhas.get(para).juntada_em_id) throw erro(409, 'Uma das duas já foi juntada a outra pessoa.');
-      if (linhas.get(de).tem_login && linhas.get(para).tem_login) throw erro(409, 'As duas pessoas entram no painel (e-mail ou senha): juntar tiraria o acesso de uma. Resolva o acesso na Equipe primeiro.');
+      if (linhas.get(de).tem_login && linhas.get(para).tem_login) throw erro(409, 'As duas pessoas entram no painel (podem entrar e têm senha ou já entraram): juntar tiraria o acesso de uma. Resolva o acesso na Equipe primeiro.');
       if (linhas.get(de).dono) throw erro(409, 'A pessoa que sairia é dona da Vybe: inverta (ela fica).');
       const base = await lerTudo(sql);
       const fica = quemFicaNaJuncao(dadosDaPessoaNaJuncao(base, de, linhas.get(de)), dadosDaPessoaNaJuncao(base, para, linhas.get(para)));

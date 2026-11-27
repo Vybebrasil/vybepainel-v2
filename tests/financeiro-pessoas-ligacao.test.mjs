@@ -128,8 +128,8 @@ function csv(linhas) {
 }
 async function banco(t) {
   const { db, sql } = conexao(); t.after(() => db.close());
-  await db.exec(`CREATE TABLE vybe_pessoas (id bigint PRIMARY KEY, nome text, ativo boolean DEFAULT true, email text, senha_hash text);
-    INSERT INTO vybe_pessoas (id, nome, email) VALUES (1,'Dono Ficticio','dono@exemplo.test'),(7,'Rita Exemplo Lima',NULL),(24,'Caio Modelo Souza Prado','caio@exemplo.test'),(31,'Caio Prado',NULL),(50,'Tito Exemplo',NULL),(52,'Tito Exemplo',NULL);
+  await db.exec(`CREATE TABLE vybe_pessoas (id bigint PRIMARY KEY, nome text, ativo boolean DEFAULT true, email text, senha_hash text, pode_entrar boolean DEFAULT false, ultimo_acesso timestamptz, dono boolean DEFAULT false);
+    INSERT INTO vybe_pessoas (id, nome, email, pode_entrar, senha_hash) VALUES (1,'Dono Ficticio','dono@exemplo.test',true,'h'),(7,'Rita Exemplo Lima',NULL,false,NULL),(24,'Caio Modelo Souza Prado','caio@exemplo.test',true,'h'),(31,'Caio Prado','caio.antigo@exemplo.test',false,NULL),(50,'Tito Exemplo',NULL,false,NULL),(52,'Tito Exemplo',NULL,false,NULL);
     CREATE TABLE vybe_clientes (id bigint PRIMARY KEY, nome text, ativo boolean DEFAULT true, nao_e_cliente boolean DEFAULT false);
     CREATE TABLE vybe_carteira_config (chave text PRIMARY KEY CHECK (chave ~ '^[a-z_]{1,40}$'), valor jsonb NOT NULL, atualizado_em timestamptz NOT NULL DEFAULT now(), atualizado_por bigint REFERENCES vybe_pessoas(id));`);
   await escreverFinanceiro(sql, dono, { acao: 'importar', csv: csv([['2026-10-05', 'Pix Enviado Caio Prado', -1000], ['2026-10-06', 'Pix Enviado Caio Modelo Souza Prado', -2000], ['2026-10-07', 'Pix Enviado Varios Exemplo', -900]]) });
@@ -203,7 +203,7 @@ test('junção: as duas com login não juntam; empate sem dados fica o menor id'
   assert.equal(quemFicaNaJuncao({ id: '50', salario: 0, vales: 0, lancamentos: 0, apelidos: 0 }, { id: '52', salario: 0, vales: 0, lancamentos: 0, apelidos: 0 }), '50');
   assert.equal(quemFicaNaJuncao({ id: '50', salario: 0, vales: 0, lancamentos: 0, apelidos: 0 }, { id: '52', salario: 1, vales: 0, lancamentos: 0, apelidos: 0 }), '52');
   const { db, sql } = await banco(t);
-  await db.query("UPDATE vybe_pessoas SET email = 'outro@exemplo.test' WHERE id = 31");
+  await db.query("UPDATE vybe_pessoas SET pode_entrar = true, senha_hash = 'h' WHERE id = 31");
   await assert.rejects(escreverFinanceiro(sql, dono, { acao: 'pessoa_juntar', de: '31', para: '24' }), (e) => e.status === 409 && /As duas pessoas entram no painel/.test(e.message));
   // A função pura não depende do banco: o que muda é só do id que sai.
   const a = { extrato: { transacoes: [lanc('2026-10-01', -10, 'x', { pessoa_id: '52' }), lanc('2026-10-02', -10, 'y', { pessoa_id: '7' })] }, salarios: {}, vales: [], pessoas_extra: {} };
@@ -211,4 +211,24 @@ test('junção: as duas com login não juntam; empate sem dados fica o menor id'
   assert.deepEqual(j.valores.extrato.transacoes.map((x) => x.real.pessoa_id), ['50', '7']);
   const s = separarNaBase(j.valores, '52');
   assert.deepEqual(s.valores.extrato.transacoes.map((x) => x.real.pessoa_id), ['52', '7']);
+});
+
+test('junção: e-mail sem acesso não é login e a flag de dono conta (o cadastro com acesso fica, o combinado do outro passa)', async (t) => {
+  const { db, sql } = await banco(t);
+  // O cadastro antigo tem e-mail mas não entra; o novo entra (senha e acesso) e é dono pela flag. O combinado está no antigo.
+  await db.query("UPDATE vybe_pessoas SET pode_entrar = false, senha_hash = NULL, email = 'antigo@exemplo.test' WHERE id = 31");
+  await db.query("UPDATE vybe_pessoas SET pode_entrar = true, senha_hash = 'h', ultimo_acesso = now(), dono = true WHERE id = 24");
+  await escreverFinanceiro(sql, dono, { acao: 'salario_salvar', pessoa_id: '31', valor: 3000, desde: '2026-08' });
+  const r = await lerFinanceiro(sql, dono, {}, { hoje: HOJE });
+  const par = r.pessoas_duplicadas.find((d) => d.ids.includes('24'));
+  assert.deepEqual([par.fica, par.sai, par.bloqueio], ['24', '31', '']);
+  assert.deepEqual([par.dados['24'].tem_login, par.dados['24'].dono, par.dados['31'].tem_login, par.dados['31'].dono], [true, true, false, false]);
+  // Só e-mail e já entrou, mas sem pode_entrar: também não é acesso.
+  await db.query('UPDATE vybe_pessoas SET ultimo_acesso = now() WHERE id = 31');
+  assert.equal((await lerFinanceiro(sql, dono, {}, { hoje: HOJE })).pessoas_duplicadas.find((d) => d.ids.includes('24')).bloqueio, '');
+  const j = await escreverFinanceiro(sql, dono, { acao: 'pessoa_juntar', de: '31', para: '24' });
+  assert.equal(j.juntou.salario_movido, true);
+  const depois = await lerFinanceiro(sql, dono, {}, { hoje: HOJE });
+  assert.equal(depois.salarios['24'].valor, 3000);
+  assert.equal(depois.salarios['31'], undefined);
 });
