@@ -844,9 +844,174 @@
     return out.sort((x, y) => y.g - x.g || (y.impacto || 0) - (x.impacto || 0));
   }
 
+  // ---------- O Hoje do dono (Paulo, 27/11/2026) ----------
+  // "Quanto já entrou? Previsão de quanto vai entrar? Quanto vai pagar? Quanto já pagou? De quê? Para quando?"
+  // d = o que /api/painel?area=financeiro devolve (server/financeiro.js montar()); mes = 'AAAA-MM' (o do topo).
+  // Uma conta só para a tela e para a pergunta por texto ou voz (respostaHoje): os números são sempre os mesmos.
+  //   entradas/saidas  ja (o que o banco mostra no mês) e n (lançamentos), vai (o previsto que ainda falta, item a item,
+  //                    com data e "atrasado"), grupos (de quê: entradas por cliente, saídas pelo grupo da categoria)
+  //   conta            saldo do extrato + vai entrar − vai pagar = fecha o mês com; o dia em que o saldo vira negativo
+  //   dias             os próximos dias com o que entra e sai em cada um (o mês seguinte entra pelo previsto dele)
+  //   previsao         se o "vai entrar" está incompleto (cliente ativo sem contrato) e o previsto pela média dos meses
+  // O previsto é o mesmo de antes no Hoje: mensalidade em aberto pelo contrato (porCliente), o combinado que falta pagar a
+  // cada pessoa (contaPessoa) e o fixo que ainda não apareceu no mês (analisarFixos), no dia dele (31 em mês curto = o
+  // último dia; o "vence" de analisarFixos para no 28). A média vem da projeção (projecao3).
+  const diaDoMes = (mes, dia) => { const ult = ultimoDia(mes), n = Number(dia) || 0; return `${mes}-${String(n >= 1 ? Math.min(n, ult) : ult).padStart(2, '0')}`; };
+  const NOMES_MES = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
+  const nomeDoMes = (m) => (ehMes(m) ? NOMES_MES[Number(m.slice(5, 7)) - 1] : '');
+  const brl = (v) => `R$ ${(Number(v) || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  // O dia em que a pessoa costuma receber: a mediana dos dias dos pagamentos de salário/pró-labore dela; sem histórico, 5.
+  // Desde o #792 o item traz o tipo da ligação (à mão, Pago a, extrato ou apelido): vale o tipo; freela e reembolso não contam.
+  function diaDoSalario(c) {
+    const dias = (c?.itens || []).filter((i) => ['salario', 'pro_labore'].includes(i.tipo || i.categoria) && Number(i.valor) < 0 && ehDia(i.data)).map((i) => Number(i.data.slice(8, 10))).sort((a, b) => a - b);
+    return dias.length ? dias[Math.floor(dias.length / 2)] : 5;
+  }
+  // Os contratos, para o mês que ainda não está na grade por cliente (o mês seguinte, no calendário).
+  const contratosDe = (d) => (d.analise?.contratos?.length ? d.analise.contratos : (d.clientes || []).map((c) => ({ cliente_id: c.id, cliente_nome: c.nome, valor_mensal: c.mensalidade, inicio: c.inicio, fim: c.fim,
+    dia_vencimento: c.dia_vencimento, reajuste_em: c.reajuste_em, reajuste_pct: c.reajuste_pct, ativo: c.ativo !== false }))).filter((c) => c.ativo !== false && Number(c.valor_mensal) > 0);
+  // O que ainda vai entrar e sair num mês, item a item: { lado, tipo, id, nome, valor, data, atrasado, det, forma }.
+  function previstosDoMes(d, mes, hoje) {
+    const entra = [], sai = [];
+    const pc = d.por_cliente || { meses: [], linhas: [] };
+    const diaCli = new Map([...(d.clientes || []).map((c) => [String(c.id), c.dia_vencimento]), ...contratosDe(d).map((c) => [String(c.cliente_id), c.dia_vencimento])]);
+    if ((pc.meses || []).includes(mes)) {
+      for (const l of pc.linhas || []) {
+        const m = (l.meses || []).find((x) => x.mes === mes);
+        if (!m || m.situacao === 'sem' || m.situacao === 'fora') continue;
+        const v = centavos(m.em_aberto || 0) + centavos(m.a_receber || 0);
+        if (v > 0) entra.push({ lado: 'entra', tipo: 'cliente', id: String(l.cliente_id), nome: l.cliente_nome || 'Cliente', valor: reais(v), data: diaDoMes(mes, diaCli.get(String(l.cliente_id))),
+          det: Number(m.recebido) > 0 ? `pagou ${brl(m.recebido)} de ${brl(m.previsto)}` : 'mensalidade' });
+      }
+    } else if (mes > hoje.slice(0, 7)) {
+      for (const ct of contratosDe(d)) { const v = valorNoMes(ct, mes); if (v > 0) entra.push({ lado: 'entra', tipo: 'cliente', id: String(ct.cliente_id), nome: ct.cliente_nome || 'Cliente', valor: v, data: vencimento(ct, mes), det: 'mensalidade' }); }
+    }
+    const fora = new Set(Object.entries(d.salarios || {}).filter(([, s]) => s?.fora).map(([id]) => String(id)));
+    for (const c of d.contas_pessoas || []) {
+      if (fora.has(String(c.pessoa_id))) continue;
+      const m = (c.meses || []).find((x) => x.mes === mes);
+      let v = 0, det = '';
+      if (m) { v = centavos(m.aberto ? m.falta_pagar || 0 : m.a_pagar || 0); det = m.combinado ? `recebeu ${brl(m.pago || 0)} de ${brl(m.combinado)}` : '';
+        // Freela e reembolso (#792) são pagos à parte: não abatem o combinado, só aparecem no detalhe.
+        const aParte = Number(m.freela || 0) + Number(m.reembolso || 0); if (det && aParte > 0) det += ` · ${brl(aParte)} de freela/reembolso à parte`; }
+      else if (mes > hoje.slice(0, 7)) { const s = d.salarios?.[c.pessoa_id]; if (s && Number(s.valor) > 0 && (!s.desde || s.desde <= mes)) { v = centavos(s.valor); det = 'combinado do mês'; } }
+      if (v > 0) sai.push({ lado: 'sai', tipo: 'salario', id: String(c.pessoa_id), nome: c.nome || 'Pessoa', valor: reais(v), data: diaDoMes(mes, diaDoSalario(c)), det });
+    }
+    if ((d.fixos || []).length) {
+      const fa = X.analisarFixos(d.fixos, d.transacoes || [], mes, d.cartao?.itens || []);
+      for (const f of fa.fixos) if (!f.achado && Number(f.valor) > 0) sai.push({ lado: 'sai', tipo: f.categoria === 'ferramentas' ? 'assinatura' : 'fixo', id: String(f.id), nome: f.nome, valor: reais(centavos(f.valor)), data: diaDoMes(mes, f.dia), forma: f.forma || '', det: f.forma === 'cartao' ? 'no cartão' : '' });
+    }
+    const marca = (i) => ({ ...i, atrasado: i.data < hoje });
+    const ordem = (a, b) => a.data.localeCompare(b.data) || b.valor - a.valor;
+    return { entra: entra.map(marca).sort(ordem), sai: sai.map(marca).sort(ordem) };
+  }
+  function hojeDoMes(d = {}, { mes = '', dias = 15 } = {}) {
+    const lista = d.transacoes || [];
+    const hoje = ehDia(d.hoje) ? d.hoje : new Date().toISOString().slice(0, 10), mesHoje = hoje.slice(0, 7);
+    if (!ehMes(mes)) mes = mesHoje;
+    const corrente = mes === mesHoje, futuro = mes > mesHoje;
+    const r = X.resumo(lista, { mes });
+    // De quê: o que o banco mostra no mês, pedaço a pedaço (o boleto dividido entre três clientes conta em cada um).
+    const ent = new Map(), sai = new Map();
+    let nE = 0, nS = 0;
+    for (const t of lista) {
+      if (!t.banco.data.startsWith(mes)) continue;
+      if (t.banco.valor > 0) nE++; else if (t.banco.valor < 0) nS++;
+      for (const p of X.pedacos(t)) {
+        const c = CAT.get(p.categoria) || CAT.get('a_classificar'), v = centavos(p.valor);
+        if (c.tipo === 'transferencia' || v < 0) {
+          const g = sai.get(c.grupo) || { chave: c.grupo, nome: c.grupo, valor: 0, n: 0, ir: { fx: 'fe-grupo', valor: c.grupo } };
+          g.valor -= v; g.n++; sai.set(c.grupo, g);
+        } else if (v > 0) {
+          const cli = p.cliente_id ? String(p.cliente_id) : '', semCli = !cli && ehDeCliente(p);
+          const chave = cli ? 'c:' + cli : 'k:' + (semCli ? 'sem_cliente' : c.id);
+          const g = ent.get(chave) || { chave, nome: cli ? (p.cliente_nome || 'Cliente') : semCli ? 'Cliente sem identificar' : c.nome, valor: 0, n: 0, cliente_id: cli,
+            ir: cli ? { fx: 'fe-cli', valor: cli } : { aba: 'fin_movimento', chip: semCli ? 'conferir' : 'entradas' } };
+          g.valor += v; g.n++; ent.set(chave, g);
+        }
+      }
+    }
+    const grupos = (m) => [...m.values()].filter((g) => g.valor > 0).map((g) => ({ ...g, valor: reais(g.valor) })).sort((a, b) => b.valor - a.valor);
+    const prev = previstosDoMes(d, mes, hoje);
+    const soma = (l) => reais(l.reduce((s, i) => s + centavos(i.valor), 0));
+    const jaE = reais(centavos(r.entradas)), jaS = reais(centavos(r.saidas) + centavos(r.cartao_e_transferencias));
+    const vaiE = soma(prev.entra), vaiS = soma(prev.sai);
+    // O saldo: o último dia do banco no extrato (no mês corrente, o de hoje; num mês passado, o do fim dele).
+    const comSaldo = lista.filter((t) => t.banco.saldo != null && (corrente || futuro || t.banco.data.slice(0, 7) <= mes)).sort((a, b) => a.banco.data.localeCompare(b.banco.data));
+    const ult = comSaldo[comSaldo.length - 1] || null;
+    const saldo = ult ? reais(centavos(ult.banco.saldo)) : null;
+    const fecha = corrente && saldo != null ? reais(centavos(saldo) + centavos(vaiE) - centavos(vaiS)) : null;
+    // O dia em que o saldo vira negativo, pela mesma lista do "para quando" (o que está atrasado conta como hoje).
+    let vira = null;
+    if (fecha != null) {
+      let s = centavos(saldo);
+      const porDia = new Map();
+      for (const i of [...prev.entra, ...prev.sai]) { const k = i.data < hoje ? hoje : i.data; porDia.set(k, (porDia.get(k) || 0) + (i.lado === 'entra' ? 1 : -1) * centavos(i.valor)); }
+      if (s < 0) vira = { data: hoje, ja: true };
+      else for (const k of [...porDia.keys()].sort()) { s += porDia.get(k); if (s < 0) { vira = { data: k, ja: false }; break; } }
+    }
+    const pj = d.analise?.projecao?.base || null;
+    const pjMes = corrente && pj?.meses?.[0]?.mes === mes ? pj.meses[0] : null;
+    const pjNeg = pj?.primeiro_dia_negativo && pj.primeiro_dia_negativo.startsWith(mes) ? pj.primeiro_dia_negativo : null;
+    // Honestidade do previsto: quantos clientes ativos têm contrato ou valor cadastrado (a mesma cobertura da projeção).
+    const cobP = d.analise?.projecao?.receita_base?.cobertura;
+    const ativos = (d.clientes || []).filter((c) => c.ativo !== false);
+    const cob = cobP && Number.isFinite(cobP.ativos) ? { ativos: cobP.ativos, com_contrato: cobP.com_contrato } : { ativos: ativos.length, com_contrato: ativos.filter((c) => Number(c.mensalidade) > 0).length };
+    const difere = (a, b) => a != null && Math.abs(centavos(a) - centavos(b)) > Math.max(10000, centavos(b) * 0.1);
+    const previsao = { ativos: cob.ativos, com_contrato: cob.com_contrato, sem_contrato: Math.max(0, cob.ativos - cob.com_contrato), incompleta: cob.ativos > 0 && cob.com_contrato < cob.ativos,
+      media_entra: pjMes ? pjMes.entradas : null, media_sai: pjMes ? pjMes.saidas : null,
+      entra_difere: Boolean(pjMes) && difere(pjMes.entradas, vaiE), sai_difere: Boolean(pjMes) && difere(pjMes.saidas, vaiS) };
+    // Os próximos dias: o que tem data de hoje em diante (o mês seguinte pelo previsto dele).
+    const N = Math.max(1, Math.min(31, Number(dias) || 15));
+    const fim = new Date(diaMs(hoje) + (N - 1) * 864e5).toISOString().slice(0, 10);
+    const doCorrente = corrente ? prev : previstosDoMes(d, mesHoje, hoje);
+    const proximo = fim.slice(0, 7) > mesHoje ? previstosDoMes(d, somarMeses(mesHoje, 1), hoje) : { entra: [], sai: [] };
+    const naJanela = [...doCorrente.entra, ...doCorrente.sai, ...proximo.entra, ...proximo.sai].filter((i) => i.data >= hoje && i.data <= fim);
+    const listaDias = Array.from({ length: N }, (_, k) => {
+      const data = new Date(diaMs(hoje) + k * 864e5).toISOString().slice(0, 10);
+      const itens = naJanela.filter((i) => i.data === data).sort((a, b) => (a.lado === b.lado ? b.valor - a.valor : a.lado === 'entra' ? -1 : 1));
+      return { data, entra: soma(itens.filter((i) => i.lado === 'entra')), sai: soma(itens.filter((i) => i.lado === 'sai')), itens };
+    });
+    const atrasados = [...doCorrente.entra, ...doCorrente.sai].filter((i) => i.atrasado);
+    return {
+      mes, hoje, corrente, futuro, nome_mes: nomeDoMes(mes),
+      entradas: { ja: jaE, n: nE, vai: vaiE, total: reais(centavos(jaE) + centavos(vaiE)), itens: prev.entra, grupos: grupos(ent) },
+      saidas: { ja: jaS, n: nS, vai: vaiS, total: reais(centavos(jaS) + centavos(vaiS)), itens: prev.sai, grupos: grupos(sai) },
+      conta: { saldo, saldo_data: ult ? ult.banco.data : '', fecha, resultado: reais(centavos(jaE) - centavos(jaS)), vira_negativo: vira, projecao_negativo: pjNeg },
+      previsao, dias: listaDias,
+      atrasados: { entra: soma(atrasados.filter((i) => i.lado === 'entra')), sai: soma(atrasados.filter((i) => i.lado === 'sai')), n: atrasados.length },
+    };
+  }
+  // A pergunta por texto ou voz ("quanto já entrou", "quanto falta pagar", "o que vence essa semana"), respondida com os
+  // números do Hoje (h = hojeDoMes). Devolve { tipo, valor, texto } ou null quando a pergunta não é dessas.
+  function respostaHoje(h, pergunta = '') {
+    if (!h) return null;
+    const q = semAcento(pergunta).replace(/[^a-z0-9 ]+/g, ' ').replace(/\s+/g, ' ');
+    const br = (iso) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}`;
+    const itens = (l, n = 3) => l.slice(0, n).map((i) => `${i.nome} ${brl(i.valor)} (${i.atrasado ? `atrasado desde ${br(i.data)}` : br(i.data)})`).join(', ');
+    const mais = (l, n = 3) => (l.length > n ? ` e mais ${l.length - n}` : '');
+    const mes = h.nome_mes || 'este mês';
+    const lanc = (n) => `${n} ${n === 1 ? 'lançamento' : 'lançamentos'}`;
+    if (/(falta|vai|vamos|tem que|temos que|a) pagar|contas a pagar/.test(q)) return { tipo: 'vai_pagar', valor: h.saidas.vai,
+      texto: h.saidas.itens.length ? `Falta pagar ${brl(h.saidas.vai)} em ${mes}: ${itens(h.saidas.itens)}${mais(h.saidas.itens)}.` : `Nada previsto para pagar no resto de ${mes}.` };
+    if (/(falta|vai|a) (entrar|receber)|previsao/.test(q)) return { tipo: 'vai_entrar', valor: h.entradas.vai,
+      texto: `${h.entradas.itens.length ? `Falta entrar ${brl(h.entradas.vai)} em ${mes}: ${itens(h.entradas.itens)}${mais(h.entradas.itens)}.` : `Nenhuma mensalidade prevista para entrar no resto de ${mes}.`}${h.previsao.incompleta ? ` Só ${h.previsao.com_contrato} de ${h.previsao.ativos} clientes ativos têm contrato cadastrado: o previsto está subestimado.` : ''}` };
+    if (/venc|essa semana|esta semana|proximos dias/.test(q)) {
+      const sem = h.dias.slice(0, 7).flatMap((x) => x.itens), sai = sem.filter((i) => i.lado === 'sai'), ent = sem.filter((i) => i.lado === 'entra');
+      const tot = (l) => reais(l.reduce((s, i) => s + centavos(i.valor), 0));
+      return { tipo: 'semana', valor: tot(sai), texto: `${sem.length ? `Nos próximos 7 dias sai ${brl(tot(sai))}${sai.length ? ` (${itens(sai, 4)}${mais(sai, 4)})` : ''} e entra ${brl(tot(ent))}${ent.length ? ` (${itens(ent, 4)}${mais(ent, 4)})` : ''}.` : 'Nada previsto para os próximos 7 dias.'}${h.atrasados.n ? ` Atrasado: ${brl(h.atrasados.sai)} para pagar e ${brl(h.atrasados.entra)} para entrar.` : ''}` };
+    }
+    if (/ja pag|quanto pag|quanto saiu|ja saiu|gastamos|gastei/.test(q)) return { tipo: 'ja_pagou', valor: h.saidas.ja,
+      texto: `Já saiu ${brl(h.saidas.ja)} em ${mes}, em ${lanc(h.saidas.n)}${h.saidas.grupos.length ? `: ${h.saidas.grupos.slice(0, 3).map((g) => `${g.nome} ${brl(g.valor)}`).join(', ')}` : ''}.` };
+    if (/ja entr|quanto entr|recebemos|recebi|faturamos/.test(q)) return { tipo: 'ja_entrou', valor: h.entradas.ja,
+      texto: `Já entrou ${brl(h.entradas.ja)} em ${mes}, em ${lanc(h.entradas.n)}${h.entradas.grupos.length ? `: ${h.entradas.grupos.slice(0, 3).map((g) => `${g.nome} ${brl(g.valor)}`).join(', ')}` : ''}.` };
+    if (/fecha|fim do mes|sobra|saldo/.test(q)) return { tipo: 'fecha', valor: h.conta.fecha,
+      texto: h.conta.fecha == null ? `O resultado de ${mes} foi ${brl(h.conta.resultado)}.` : `Saldo ${brl(h.conta.saldo)} (extrato até ${br(h.conta.saldo_data)}) + vai entrar ${brl(h.entradas.vai)} − vai pagar ${brl(h.saidas.vai)}: fecha ${mes} com ${brl(h.conta.fecha)}.${h.conta.vira_negativo ? ` O saldo ${h.conta.vira_negativo.ja ? 'já está negativo' : `fica negativo em ${br(h.conta.vira_negativo.data)}`}.` : ''}` };
+    return null;
+  }
+
   const api = Object.freeze({ confianca, vigente, valorNoMes, vencimento, LINHAS_DRE, LINHA_DA, dre, recorrente, margemClientes, FAIXAS, aging, atrasoMedioPago, GRUPOS_ORCAMENTO, realPorGrupo,
     orcadoReal, copiarOrcamento, sugerirOrcamento, checklistFechamento, resumoContabil, historico, variaveisPorMes, variaveisDetalhe, entradasForaDeContrato, semClientePorMes, receitaDaBase, projecao3, equilibrio, metas, lote, regraDaConfirmacao,
-    repetidas, extratoParado, achados, mesesEntre, percentil });
+    repetidas, extratoParado, achados, mesesEntre, percentil, previstosDoMes, hojeDoMes, respostaHoje });
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else raiz.VybeFinancasAnalises = api;
 })(typeof globalThis !== 'undefined' ? globalThis : this);
