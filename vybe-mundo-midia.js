@@ -642,11 +642,18 @@
   }
   // De 4 em 4: cada cliente leva alguns segundos no Hub. O que chega repinta só o que depende dele, uma vez por quadro: os
   // que chegam juntos (no cache ou na demo, os 18 de uma vez) viram uma repintura só, não uma por cliente (sistema leve 2).
-  let corpoNoQuadro = false;
+  // Sistema fluido (27/11/2026): no Hub de verdade os clientes chegam espalhados (alguns segundos cada, de 4 em 4), e cada
+  // um repintava o corpo inteiro. Agora as chegadas se juntam: no máximo uma repintura a cada 300 ms (a primeira na hora).
+  // O VybeHub não tem rota que traga a carteira inteira de uma vez (são 3 chamadas ao Hub por cliente), então juntar no
+  // servidor ficaria para quando o Hub tiver essa rota.
+  const CORPO_JUNTA_MS = 300;
+  let corpoNoQuadro = false, ultimoCorpo = 0;
   function pintarCorpoNoQuadro() {
     if (corpoNoQuadro) return; corpoNoQuadro = true;
     const quadro = typeof requestAnimationFrame === 'function' ? requestAnimationFrame : (f) => setTimeout(f, 16);
-    quadro(() => { corpoNoQuadro = false; if (janela && !janela.hidden) pintarCorpo(); });
+    const espera = Math.max(0, CORPO_JUNTA_MS - (Date.now() - ultimoCorpo));
+    const vai = () => quadro(() => { corpoNoQuadro = false; ultimoCorpo = Date.now(); if (janela && !janela.hidden) pintarCorpo(); });
+    if (espera) setTimeout(vai, espera); else vai();
   }
   // Com a ponte desligada não pergunta a ninguém: cada cliente já fica como "ponte desligada".
   async function buscarMetas(dias = estado.dias) {

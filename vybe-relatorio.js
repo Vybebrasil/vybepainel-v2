@@ -773,7 +773,7 @@ td.n,th.n{text-align:right;white-space:nowrap}
     new MutationObserver(agendarBotao).observe(hud, { subtree: true, attributes: true, attributeFilter: ['aria-current'] });
     new MutationObserver(agendarBotao).observe(document.body, { attributes: true, attributeFilter: ['class'] });
     // A tela que redesenha o cabeçalho leva o botão junto: a checagem barata (sem medir nada) devolve no próximo quadro.
-    setInterval(() => { if (telaDoDock() !== telaAtual || (moduloDaTela(telaAtual) && !botao?.isConnected)) agendarBotao(); }, 700);
+    (globalThis.vbIntervalo || setInterval)(() => { if (telaDoDock() !== telaAtual || (moduloDaTela(telaAtual) && !botao?.isConnected)) agendarBotao(); }, 700);
     addEventListener('resize', () => { if (pop) fecharEscolha(); });
     agendarBotao();
   }

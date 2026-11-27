@@ -10,7 +10,7 @@ body.mundo #workspace-drawer.gv2-gaveta .gv2 > :is(.gv2-cel,.gv2-pega){display:n
   /* a folha cobre a barra de baixo, como no quadro: o HUD desce para trás do fundo escuro enquanto ela está aberta */
   body.mundo:has(> #workspace-drawer.gv2-folha:not(.gv2-folha-inteira)) #mundo-hud{z-index:600}
 
-  body.mundo #workspace-drawer.gv2-gaveta.gv2-folha:not(.gv2-folha-inteira){top:auto;right:0;bottom:0;left:0;width:100%;height:auto;max-height:calc(100dvh - 32px);padding:0;border-radius:28px 28px 0 0;box-shadow:0 -12px 30px -12px rgba(31,29,26,.4);animation:gv2-folha-sobe .36s cubic-bezier(.2,.8,.2,1) both}
+  body.mundo #workspace-drawer.gv2-gaveta.gv2-folha:not(.gv2-folha-inteira){top:auto;right:0;bottom:0;left:0;width:100%;height:auto;max-height:calc(100dvh - 32px);padding:0;border-radius:28px 28px 0 0;box-shadow:0 -12px 30px -12px rgba(31,29,26,.4);animation:gv2-folha-sobe var(--d3-mov-medio) var(--d3-curva) both}
   body.mundo #workspace-drawer.gv2-gaveta.gv2-folha:not(.gv2-folha-inteira) > .gv2{border-radius:28px 28px 0 0;padding:0 14px max(14px,env(safe-area-inset-bottom));gap:10px}
   body.mundo #workspace-drawer.gv2-gaveta.gv2-folha:not(.gv2-folha-inteira) > .gv2.gv2-tem-cel > :not(.gv2-cel):not(.gv2-pega){display:none}
   body.mundo #workspace-drawer.gv2-gaveta.gv2-folha.gv2-folha-inteira > .gv2.gv2-tem-cel > .gv2-cel{display:none}

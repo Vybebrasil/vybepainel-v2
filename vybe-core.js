@@ -1672,4 +1672,233 @@ if (typeof document !== 'undefined' && document.body && typeof MutationObserver 
   try { new MutationObserver(vbMarcasDoCorpo).observe(document.body, { childList: true }); vbMarcasDoCorpo(); } catch { /* sem DOM de verdade */ }
 }
 
-if (typeof globalThis !== 'undefined') Object.assign(globalThis, { d3AcaoHtml, d3LinhaSvg, d3NumHtml, d3Series, d3SerieValores, D3_SERIES, vbMarcasDoCorpo });
+// ── KICKER COM BOTÃO: MARCA NO LUGAR DO :has (sistema fluido, 27/11/2026) ─────────────────────────────────────────────────
+// O rótulo pequeno (kicker) que leva um botão (o X da janela) escurece só o texto, não o botão (vybe-mundo.css). Antes era
+// ":is(kickers):has(button,a,input,select) > :not(…)": com o :has fora da ponta e um alvo sem nome, cada botão ou link que
+// entrava em qualquer lugar fazia o navegador recalcular o body inteiro. Medido na demo cheia: 50% a 70% dos elementos
+// recalculados em cada troca de módulo vinham dessa regra. Agora a marca vb-kicker-ctl fica no próprio kicker enquanto ele
+// tiver um controle dentro. O observador vê só o que entrou e o kicker em volta do que mudou (sem varrer a página), e a
+// classe só muda quando o estado muda.
+const VB_KICKERS = '.workflow-kicker,.abr-kicker,.workspace-delivery-kicker,.vp-kicker,.focus-next-kicker,.da-command-daily-kicker,.client-module-kicker,.vv-cb-kicker,.auto-kicker,.vc-kicker,.da-today-pulse-kicker,.cadastros-preview-kicker,.brief-kicker,.vv-missoes-kicker,.vv-decorar-kicker,.escolha-kicker,.ai-usage-kicker,.vv-plj-kicker,.vv-personagem-kicker,.sz-kicker,.dr-kicker,.arquivadas-kicker,.vv-tour-kicker,.fc-kicker';
+const VB_CONTROLES = 'button,a,input,select';
+function vbMarcarKicker(k) {
+  const tem = Boolean(k.querySelector(VB_CONTROLES));
+  if (k.classList.contains('vb-kicker-ctl') !== tem) k.classList.toggle('vb-kicker-ctl', tem);
+}
+function vbMarcarKickers(registros) {
+  const ver = new Set();
+  for (const m of registros || []) {
+    const k = m.target?.nodeType === 1 ? m.target.closest?.(VB_KICKERS) : null; if (k) ver.add(k);
+    for (const n of m.addedNodes || []) {
+      if (n.nodeType !== 1) continue;
+      if (n.matches?.(VB_KICKERS)) ver.add(n);
+      for (const x of n.querySelectorAll?.(VB_KICKERS) || []) ver.add(x);
+    }
+  }
+  for (const k of ver) if (k.isConnected !== false) vbMarcarKicker(k);
+}
+if (typeof document !== 'undefined' && document.documentElement && typeof MutationObserver === 'function') {
+  try {
+    new MutationObserver(vbMarcarKickers).observe(document.documentElement, { childList: true, subtree: true });
+    for (const k of document.querySelectorAll(VB_KICKERS)) vbMarcarKicker(k);
+  } catch { /* sem DOM de verdade */ }
+}
+
+if (typeof globalThis !== 'undefined') Object.assign(globalThis, { d3AcaoHtml, d3LinhaSvg, d3NumHtml, d3Series, d3SerieValores, D3_SERIES, vbMarcasDoCorpo, vbMarcarKickers, VB_KICKERS });
+
+// ── SISTEMA FLUIDO (Paulo, 27/11/2026: "por que nosso sistema não é fluido assim?" — "Sim, ataca") ───────────────────────
+// Um ponto só para a navegação: o clique no menu lateral, numa aba ou num cartão que abre a ficha passa por aqui antes de
+// chegar a quem trata dele (o mesmo clique, repassado ao mesmo elemento, sem mudar nenhum caminho de antes).
+// 1) Troca sem piscar (View Transitions, na mesma página): a tela de antes some e a nova entra num esmaecer curto; o menu
+//    lateral fica parado e a marca do item ativo desliza do item de antes para o novo; o cartão clicado cresce até virar
+//    a ficha. Os nomes de transição ficam só nesses elementos e só durante a troca (fora dela, nada muda no desenho).
+//    Sem suporte no navegador, com "menos movimento", com a aba escondida ou com outra troca no meio: troca na hora.
+// 2) Dados antes do clique: passar o mouse (ou o foco) num item do menu já pede o /api/painel daquele módulo; o pedido
+//    igual que chega logo depois usa a mesma resposta (uma vez, por até 20 s), e dois pedidos iguais ao mesmo tempo viram
+//    um. Gravou numa área (POST), o guardado dela é jogado fora. Com o navegador folgado, os módulos mais usados nesta
+//    máquina já vêm buscados. A troca espera até 180 ms pelos dados que ela mesma pediu, e a tela nova entra já cheia.
+// 3) Intervalos que dormem (vbIntervalo): com a aba escondida, param; o "quando" de cada um diz se a tela dele está à vista.
+const VB_SEL_TELA = '.vv-trilho [data-trilho], .vv-trilho [data-submodulo], .vv-trilho [data-visao-setor], .vv-setor [data-submodulo]';
+const VB_SEL_ABA = '.vb-abas [role="tab"], #pv2-vistas [data-vista], [data-visao-hoje], .fe-aba[data-fx="ir-aba"]';
+// Cartão que vira ficha: o que foi clicado, o cartão em volta (o que cresce) e o destino (o que ele vira).
+const VB_VIRA_FICHA = [
+  { clique: '[onclick*="abrirClienteDetalhe("]', cartao: '.v2f-linha, .cv2c, .client-card, [data-cliente]', destino: '#panel-cliente-detalhe' },
+  { clique: '[onclick*="openItemWorkspace("]', cartao: 'tr, li, .dem-cartao, .vv-demanda', destino: '#workspace-drawer' },
+];
+function vbPodeVoar() {
+  if (typeof document === 'undefined' || typeof document.startViewTransition !== 'function' || document.hidden || vbVoando) return false;
+  return !(typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches);
+}
+function vbAtivoDoTrilho() {
+  const l = [...document.querySelectorAll('.vv-trilho [aria-current]')].filter((el) => el.getClientRects().length);
+  return l[l.length - 1] || null;
+}
+// Pedidos ao painel em andamento: a troca espera os que ela mesma disparou (até VB_ESPERA_MS) antes de mostrar a tela nova.
+const VB_PENDENTES = new Set();
+const VB_ESPERA_MS = 180;
+function vbAgora() { return typeof performance !== 'undefined' ? performance.now() : Date.now(); }
+function vbEsperarDados(desde) {
+  const meus = [...VB_PENDENTES].filter((x) => x.t >= desde).map((x) => x.p);
+  if (!meus.length) return Promise.resolve();
+  const dorme = (ms) => new Promise((r) => setTimeout(r, ms));
+  return Promise.race([Promise.allSettled(meus).then(() => dorme(30)), dorme(VB_ESPERA_MS)]);
+}
+function vbTrocarTela(atualizar, { tipo = 'tela', cartao = null, destino = '' } = {}) {
+  if (!vbPodeVoar()) { atualizar(); return Promise.resolve(false); }
+  const postos = new Map();
+  const por = (el, nome) => { if (!el || postos.has(el) || [...postos.values()].includes(nome)) return; el.style.viewTransitionName = nome; postos.set(el, nome); };
+  const tirar = () => { for (const el of postos.keys()) el.style.viewTransitionName = ''; postos.clear(); };
+  const marcar = (depois) => {
+    const trilho = document.querySelector('.vv-trilho');
+    if (tipo === 'tela' && trilho) { por(trilho, 'vb-trilho'); por(vbAtivoDoTrilho(), 'vb-trilho-ativo'); }
+    if (tipo === 'ficha') por(depois ? document.querySelector(destino) : cartao, 'vb-cartao');
+  };
+  marcar(false);
+  vbVoando = true; document.documentElement.dataset.vbVoo = tipo;
+  const fim = () => { tirar(); vbVoando = false; delete document.documentElement.dataset.vbVoo; };
+  let t;
+  try {
+    t = document.startViewTransition(() => {
+      tirar(); const desde = vbAgora(); atualizar();
+      return vbEsperarDados(desde).then(() => marcar(true));
+    });
+  } catch { fim(); atualizar(); return Promise.resolve(false); }
+  t.finished.then(fim, fim);
+  return t.updateCallbackDone.then(() => true, () => true);
+}
+let vbRepassando = false;
+function vbOperacaoDoClique(alvo) {
+  if (!alvo?.closest) return null;
+  const tela = alvo.closest(VB_SEL_TELA);
+  // Com o menu estreito, o ícone do setor só abre a listinha dele (que já tem a própria entrada): não é troca de tela.
+  if (tela && tela.matches('[data-trilho^="setor:"]') && !document.body?.classList?.contains('trilho-largo')) return null;
+  if (tela) return { tipo: 'tela', el: tela };
+  const aba = alvo.closest(VB_SEL_ABA); if (aba) return { tipo: 'aba', el: aba };
+  for (const r of VB_VIRA_FICHA) { const el = alvo.closest(r.clique); if (el) return { tipo: 'ficha', el, cartao: el.closest(r.cartao) || el, destino: r.destino }; }
+  return null;
+}
+function vbInterceptarClique(e) {
+  // Só o clique de gente: o .click() que o código dá (atalhos, comandos de voz) segue na hora, como sempre.
+  if (vbRepassando || !e.isTrusted || e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+  const alvo = e.target, op = vbOperacaoDoClique(alvo);
+  if (op?.tipo === 'tela') vbAnotarTela(op.el);
+  if (!op || !vbPodeVoar() || op.el.matches('a[href], [disabled], [aria-disabled="true"], .trancado') || op.el.closest('a[href]')) return;
+  // A aba que já está aberta não troca nada: o clique segue direto.
+  if (op.tipo === 'aba' && op.el.matches('[aria-selected="true"], [aria-checked="true"], [aria-current="true"], [aria-pressed="true"]')) return;
+  e.preventDefault(); e.stopImmediatePropagation();
+  const ini = { bubbles: true, cancelable: true, composed: true, view: e.view, detail: e.detail, clientX: e.clientX, clientY: e.clientY, screenX: e.screenX, screenY: e.screenY, button: 0, buttons: e.buttons };
+  vbTrocarTela(() => { vbRepassando = true; try { alvo.dispatchEvent(new MouseEvent('click', ini)); } finally { vbRepassando = false; } }, op);
+}
+
+// 2) Dados antes do clique.
+const VB_PRE_MS = 20000;
+const VB_GUARDADO = new Map(); // chave -> { t, p }: resposta pedida antes, usada uma vez
+const VB_NO_AR = new Map();    // chave -> promessa do pedido GET igual em andamento
+// O que cada item do menu pede ao abrir (medido na demo, 27/11/2026). O que a pessoa abre e não está aqui é aprendido na hora.
+const VB_DADOS_DE = {
+  'visao:setor:producao': ['/api/painel?area=vybes'], clientes: ['/api/painel?area=clientes'],
+  carteira: ['/api/painel?area=carteira'], midia: ['/api/painel?area=midia&acao=carteira'],
+  funil: ['/api/painel?area=comercial'], planejamentos: ['/api/painel?area=planejamentos'],
+  // O ícone do setor (menu estreito) abre a listinha: quem passa o mouse nele já ganha o módulo mais aberto do setor.
+  'setor:producao': ['/api/painel?area=vybes'], 'setor:clientes': ['/api/painel?area=clientes'],
+  'setor:midia': ['/api/painel?area=midia&acao=carteira'], 'setor:financas': ['/api/painel?area=financeiro'],
+};
+for (const f of ['fin_hoje', 'fin_movimento', 'fin_clientes', 'fin_pessoas', 'fin_assinaturas', 'fin_analise', 'fin_projecao', 'fin_fechamento']) VB_DADOS_DE[f] = ['/api/painel?area=financeiro'];
+// Cada quem lê a própria cópia da resposta (quem não tem clone, como um dublê de teste, recebe a mesma).
+const vbCopia = (r) => (r && typeof r.clone === 'function' ? r.clone() : r);
+const VB_APRENDIDO = new Map(); // id do menu -> Set de pedidos vistos logo depois de abrir
+let vbUltimaTela = { id: '', t: 0 };
+function vbChaveDoPedido(url) {
+  try {
+    const aqui = typeof location !== 'undefined' ? location.href : 'http://localhost/';
+    const u = new URL(String(url), aqui);
+    if (u.origin !== new URL(aqui).origin) return '';
+    return u.pathname === '/api/painel' && u.searchParams.get('area') ? u.pathname + u.search : '';
+  } catch { return ''; }
+}
+const vbAreaDe = (chave) => { try { return new URL(chave, 'http://x').searchParams.get('area') || ''; } catch { return ''; } };
+function vbIdDoItem(el) {
+  const d = el?.dataset || {};
+  // "Visão geral" na listinha do setor: a visão daquele setor.
+  if (d.submodulo === '__visao') { const setor = el.closest?.('[data-setor]')?.dataset?.setor; return setor ? 'visao:' + setor : ''; }
+  return d.visaoSetor ? 'visao:' + d.visaoSetor : d.submodulo || d.trilho || '';
+}
+function vbAnotarTela(el) {
+  const id = vbIdDoItem(el); if (!id) return;
+  vbUltimaTela = { id, t: Date.now() };
+  try { const u = JSON.parse(localStorage.getItem('vybe.fluido.usos') || '{}'); u[id] = (u[id] || 0) + 1; localStorage.setItem('vybe.fluido.usos', JSON.stringify(u)); } catch { /* sem armazenamento: só não conta */ }
+}
+function vbEmbrulharFetch(original) {
+  return function vbFetch(rec, op) {
+    const url = typeof rec === 'string' || (typeof URL !== 'undefined' && rec instanceof URL) ? String(rec) : rec?.url;
+    const chave = vbChaveDoPedido(url);
+    if (!chave) return original(rec, op);
+    const metodo = String(op?.method || (typeof rec === 'object' && rec?.method) || 'GET').toUpperCase();
+    if (metodo !== 'GET') { const area = vbAreaDe(chave); for (const k of [...VB_GUARDADO.keys()]) if (vbAreaDe(k) === area) VB_GUARDADO.delete(k); return original(rec, op); }
+    if (vbUltimaTela.id && Date.now() - vbUltimaTela.t < 2500) {
+      if (!VB_APRENDIDO.has(vbUltimaTela.id)) VB_APRENDIDO.set(vbUltimaTela.id, new Set());
+      const s = VB_APRENDIDO.get(vbUltimaTela.id); if (s.size < 4) s.add(chave);
+    }
+    const g = VB_GUARDADO.get(chave);
+    if (g) { VB_GUARDADO.delete(chave); if (Date.now() - g.t < VB_PRE_MS) return g.p.then(vbCopia); }
+    const voando = VB_NO_AR.get(chave);
+    if (voando) return voando.then(vbCopia);
+    const p = original(rec, op);
+    const x = { t: vbAgora(), p };
+    VB_NO_AR.set(chave, p); VB_PENDENTES.add(x);
+    const solta = () => { if (VB_NO_AR.get(chave) === p) VB_NO_AR.delete(chave); VB_PENDENTES.delete(x); };
+    p.then(solta, solta);
+    return p.then(vbCopia);
+  };
+}
+// Pede antes; não pede de novo o que já está guardado ou no ar. Só GET, com o mesmo crachá dos pedidos de sempre.
+function vbPreBuscar(url, buscar = typeof window !== 'undefined' ? window.fetch : null) {
+  const chave = vbChaveDoPedido(url);
+  if (!chave || !buscar || VB_NO_AR.has(chave)) return false;
+  const g = VB_GUARDADO.get(chave); if (g && Date.now() - g.t < VB_PRE_MS) return false;
+  const p = buscar(chave, { credentials: 'same-origin', cache: 'no-store' });
+  const orig = VB_NO_AR.get(chave) || p;
+  VB_GUARDADO.set(chave, { t: Date.now(), p: orig });
+  // Pedido que falhou não fica guardado.
+  Promise.resolve(orig).then((r) => { if (!r || !r.ok) VB_GUARDADO.delete(chave); }, () => VB_GUARDADO.delete(chave));
+  return true;
+}
+function vbPreBuscarItem(el) {
+  if (!el || el.classList?.contains('trancado')) return 0;
+  const id = vbIdDoItem(el), lista = new Set([...(VB_DADOS_DE[id] || []), ...(VB_APRENDIDO.get(id) || [])]);
+  let n = 0; for (const u of lista) if (vbPreBuscar(u)) n++;
+  return n;
+}
+function vbPreBuscarMaisUsados(n = 3) {
+  let usos = {}; try { usos = JSON.parse(localStorage.getItem('vybe.fluido.usos') || '{}'); } catch { /* sem armazenamento */ }
+  const ids = Object.entries(usos).filter(([, c]) => c >= 2).sort((a, b) => b[1] - a[1]).slice(0, n).map(([id]) => id);
+  for (const id of ids) vbPreBuscarItem({ dataset: id.startsWith('visao:') ? { visaoSetor: id.slice(6) } : { trilho: id } });
+  return ids;
+}
+
+// 3) Intervalos que dormem.
+const VB_INTERVALOS = new Set();
+function vbIntervalo(fn, ms, { quando } = {}) {
+  const escondida = () => typeof document !== 'undefined' && document.hidden;
+  const t = { ms, id: 0, parado: false,
+    tique() { if (escondida() || (quando && !quando())) return; fn(); },
+    ligar() { if (!t.id && !t.parado && !escondida()) t.id = setInterval(t.tique, ms); },
+    desligar() { if (t.id) { clearInterval(t.id); t.id = 0; } },
+    parar() { t.parado = true; t.desligar(); VB_INTERVALOS.delete(t); } };
+  VB_INTERVALOS.add(t); t.ligar();
+  return t;
+}
+function vbAcordarIntervalos() { for (const t of VB_INTERVALOS) if (typeof document !== 'undefined' && document.hidden) t.desligar(); else t.ligar(); }
+
+if (typeof window !== 'undefined' && typeof document !== 'undefined' && typeof window.addEventListener === 'function') {
+  window.addEventListener('click', vbInterceptarClique, true);
+  if (typeof window.fetch === 'function' && !window.fetch.vbFluido) { const f = vbEmbrulharFetch(window.fetch.bind(window)); f.vbFluido = true; window.fetch = f; }
+  const quer = (e) => { const el = e.target?.closest?.(VB_SEL_TELA); if (el) vbPreBuscarItem(el); };
+  document.addEventListener('pointerover', quer, { passive: true });
+  document.addEventListener('focusin', quer);
+  document.addEventListener('visibilitychange', vbAcordarIntervalos);
+  // Depois que a tela inicial assenta, com o navegador folgado: os 3 módulos mais abertos nesta máquina.
+  const folga = (f) => (typeof requestIdleCallback === 'function' ? requestIdleCallback(f, { timeout: 8000 }) : setTimeout(f, 3000));
+  window.addEventListener('load', () => setTimeout(() => folga(() => { try { vbPreBuscarMaisUsados(3); } catch { /* segue */ } }), 4000), { once: true });
+}
+if (typeof globalThis !== 'undefined') Object.assign(globalThis, { vbTrocarTela, vbPodeVoar, vbOperacaoDoClique, vbInterceptarClique, vbEmbrulharFetch, vbChaveDoPedido, vbPreBuscar, vbPreBuscarItem, vbPreBuscarMaisUsados, vbIntervalo, vbAcordarIntervalos, VB_DADOS_DE });

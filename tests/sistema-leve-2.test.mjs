@@ -19,7 +19,7 @@ test('as quatro regras pesadas saíram das folhas', () => {
 });
 
 test('o kicker com botão vai pelos nomes: todo "-kicker" usado no código está na lista', () => {
-  const lista = folhas.match(/html body\.mundo :is\(([^)]*)\):has\(button,a,input,select\) > :not\(/)[1].split(',').map((x) => x.slice(1));
+  const lista = folhas.match(/html body\.mundo :is\(([^)]*)\):where\(\.vb-kicker-ctl\):not\(vb-x\) > :not\(/)[1].split(',').map((x) => x.slice(1));
   const fontes = ['vybe-core.js', 'vybe-mundo.js', 'vybe-perfis.js', 'vybe-portoes.js', 'vybe-mundo-tutorial.js', 'vybe-mundo-tutorial.css', 'vybe-styles.css', 'vybe-mundo.css'].map(ler).join('\n');
   for (const nome of new Set(fontes.match(/(?<![\w-])[a-z][a-z0-9-]*-kicker(?![\w-])/g))) assert.ok(lista.includes(nome), nome);
 });
@@ -47,5 +47,5 @@ test('o voo não marca mais o <html> com classe; o Hoje marca com-d3q; a Mídia 
   assert.ok(mundo.includes("h.classList.toggle('com-d3q', Boolean(h.querySelector(':scope > .d3q')));"));
   assert.ok(mundo.includes('new MutationObserver(marcarHojeD3q).observe(h, { childList: true })'));
   assert.ok(midia.includes('(dias === estado.dias || dias === 7)) pintarCorpoNoQuadro();'), 'cada cliente que chega pede o quadro');
-  assert.ok(midia.includes('quadro(() => { corpoNoQuadro = false; if (janela && !janela.hidden) pintarCorpo(); });'));
+  assert.ok(midia.includes('quadro(() => { corpoNoQuadro = false; ultimoCorpo = Date.now(); if (janela && !janela.hidden) pintarCorpo(); });'));
 });
