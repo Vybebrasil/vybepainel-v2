@@ -191,7 +191,9 @@
       if (valor == null || valor === 0) { out.ignorados.push({ linha: i + 1, motivo: 'sem valor' }); return; }
       const memo = tagOfx(b, 'MEMO'), nome = tagOfx(b, 'NAME');
       const historico = (memo && nome && !semAcento(memo).includes(semAcento(nome)) ? `${memo} ${nome}` : memo || nome || tagOfx(b, 'TRNTYPE')).replace(/\s+/g, ' ').trim();
-      out.lancamentos.push({ data, historico, documento: tagOfx(b, 'CHECKNUM') || tagOfx(b, 'FITID'), valor, saldo: null });
+      // O FITID NÃO entra no id: o Santander põe a hora da exportação no fim dele (…202611270152480), e o mesmo
+      // lançamento exportado de novo viraria outro (27/11/2026). Os iguais do mesmo dia se separam pela ordem no dia.
+      out.lancamentos.push({ data, historico, documento: tagOfx(b, 'CHECKNUM'), valor, saldo: null });
     });
     if (!blocos.length) out.avisos.push('O arquivo OFX não tem lançamentos (<STMTTRN>).');
     const L = out.lancamentos;
@@ -213,6 +215,124 @@
   }
   // Qualquer extrato da conta: OFX ou CSV, pelo conteúdo.
   function lerExtrato(texto) { return ehOfx(texto) ? lerOfx(texto) : lerCsvBB(texto); }
+
+  // ---------- Excel (Paulo, 27/11/2026: jogou o Excel do Santander e nada aconteceu) ----------
+  // O .xlsx é um zip: lido aqui mesmo, sem pacote (o zip pelo índice do fim, o deflate pelo DecompressionStream do
+  // navegador ou do Node), depois xl/sharedStrings.xml e a primeira planilha. As colunas saem do cabeçalho, como no
+  // CSV, e a planilha vira o CSV que o lerCsvBB já entende (Data;Histórico;Documento;Valor;Saldo). O .xls antigo
+  // (binário) não dá para ler: vira mensagem, nunca silêncio. textoDoExtrato(bytes, nome) devolve o texto para a prévia.
+  const ENT = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'" };
+  const desXml = (s) => String(s || '').replace(/&(#x[0-9a-f]+|#\d+|amp|lt|gt|quot|apos);/gi, (m, e) => (e[0] === '#' ? String.fromCodePoint(e[1].toLowerCase() === 'x' ? parseInt(e.slice(2), 16) : Number(e.slice(1))) : ENT[e.toLowerCase()]));
+  const textoXml = (s) => [...String(s || '').matchAll(/<t\b[^>]*>([\s\S]*?)<\/t>/g)].map((m) => desXml(m[1])).join('');
+  const u16 = (b, i) => b[i] | (b[i + 1] << 8);
+  const u32 = (b, i) => (b[i] | (b[i + 1] << 8) | (b[i + 2] << 16) | (b[i + 3] << 24)) >>> 0;
+  const ehZip = (b) => b.length > 4 && b[0] === 0x50 && b[1] === 0x4b && b[2] === 3 && b[3] === 4;
+  const ehXlsAntigo = (b) => b.length > 8 && b[0] === 0xd0 && b[1] === 0xcf && b[2] === 0x11 && b[3] === 0xe0;
+  const XLS_ANTIGO = 'Esse Excel antigo não dá para ler; exporte em OFX ou CSV.';
+  async function arquivosDoZip(b, quero) {
+    let fim = -1;
+    for (let i = b.length - 22; i >= Math.max(0, b.length - 65557); i--) if (u32(b, i) === 0x06054b50) { fim = i; break; }
+    if (fim < 0) throw new Error('Esse Excel parece corrompido. Exporte de novo, em OFX ou CSV.');
+    const n = u16(b, fim + 10), out = {};
+    let p = u32(b, fim + 16);
+    for (let k = 0; k < n && u32(b, p) === 0x02014b50; k++) {
+      const metodo = u16(b, p + 10), tam = u32(b, p + 20), lnome = u16(b, p + 28), local = u32(b, p + 42);
+      const nome = new TextDecoder().decode(b.subarray(p + 46, p + 46 + lnome));
+      p += 46 + lnome + u16(b, p + 30) + u16(b, p + 32);
+      if (!quero(nome)) continue;
+      const ini = local + 30 + u16(b, local + 26) + u16(b, local + 28), dados = b.subarray(ini, ini + tam);
+      if (metodo === 0) out[nome] = new TextDecoder().decode(dados);
+      else if (metodo === 8) {
+        if (typeof DecompressionStream === 'undefined') throw new Error('Este navegador não abre Excel. Exporte em OFX ou CSV.');
+        out[nome] = await new Response(new Blob([dados]).stream().pipeThrough(new DecompressionStream('deflate-raw'))).text();
+      } else throw new Error('Esse Excel vem num formato que não dá para ler. Exporte em OFX ou CSV.');
+    }
+    return out;
+  }
+  const colDaRef = (ref) => { let n = 0; for (const c of ref) n = n * 26 + c.charCodeAt(0) - 64; return n - 1; };
+  function linhasDaPlanilha(xml, compart) {
+    const linhas = [];
+    for (const r of String(xml || '').matchAll(/<row\b[^>]*>([\s\S]*?)<\/row>/g)) {
+      const linha = [];
+      let prox = 0;
+      for (const c of r[1].matchAll(/<c\b([^>]*?)(?:\/>|>([\s\S]*?)<\/c>)/g)) {
+        const at = c[1], dentro = c[2] || '', ref = /\br="([A-Z]+)\d+"/.exec(at), i = ref ? colDaRef(ref[1]) : prox;
+        prox = i + 1;
+        const t = (/\bt="(\w+)"/.exec(at) || [])[1] || 'n', v = (/<v\b[^>]*>([\s\S]*?)<\/v>/.exec(dentro) || [])[1];
+        linha[i] = t === 's' ? compart[Number(v)] ?? '' : t === 'inlineStr' ? textoXml(dentro) : v == null ? '' : t === 'n' && v.trim() !== '' && Number.isFinite(Number(v)) ? Number(v) : desXml(v);
+      }
+      linhas.push(linha);
+    }
+    return linhas;
+  }
+  // Data do Excel: número de dias desde 30/12/1899 (a célula com formato de data guarda o número).
+  const dataDoExcel = (v) => {
+    if (typeof v === 'number') { const d = new Date(Date.UTC(1899, 11, 30) + Math.round(v * 864e5)); return `${String(d.getUTCDate()).padStart(2, '0')}/${String(d.getUTCMonth() + 1).padStart(2, '0')}/${d.getUTCFullYear()}`; }
+    const s = String(v ?? '').trim(), br = /^(\d{2}\/\d{2}\/\d{4})/.exec(s), iso = /^(\d{4})-(\d{2})-(\d{2})/.exec(s);
+    return br ? br[1] : iso ? `${iso[3]}/${iso[2]}/${iso[1]}` : s;
+  };
+  const numeroDoExcel = (v) => (typeof v === 'number' ? v.toFixed(2).replace('.', ',') : String(v ?? '').trim());
+  // Uma tabela (linhas × células) com o cabeçalho em qualquer linha e em qualquer coluna → o CSV do extrato.
+  function tabelaParaCsv(linhas) {
+    const txt = (v) => (v == null ? '' : String(v).trim());
+    let h = -1, col = null;
+    for (let i = 0; i < linhas.length && h < 0; i++) {
+      const c = colunasDoCabecalho(Array.from(linhas[i] || [], txt));
+      if (c.data >= 0 && c.hist >= 0 && (c.valor >= 0 || (c.credito >= 0 && c.debito >= 0))) { h = i; col = c; }
+    }
+    if (h < 0) throw new Error('Não achei na planilha o cabeçalho com Data, Histórico e Valor. É o extrato da conta corrente?');
+    let agencia = '', conta = '';
+    for (const l of linhas.slice(0, h)) {
+      const f = Array.from(l || [], txt);
+      f.forEach((x, j) => {
+        const m = /^(ag[eê]ncia|conta)\s*:?\s*([\d.\-/ ]*)$/i.exec(x);
+        if (!m) return;
+        const v = m[2].trim() || f.slice(j + 1).find(Boolean) || '';
+        if (/^ag/i.test(m[1])) agencia = agencia || v; else conta = conta || v;
+      });
+    }
+    const q = (s) => `"${String(s).replace(/"/g, '""')}"`, g = (l, k) => (k >= 0 ? (l || [])[k] : '');
+    const out = agencia || conta ? [`AGENCIA;${q(agencia)};CONTA;${q(conta)}`, ''] : [];
+    out.push('Data;Histórico;Documento;Valor (R$);Saldo (R$)');
+    for (const l of linhas.slice(h + 1)) {
+      if (!Array.from(l || [], txt).some(Boolean)) continue;
+      let valor = numeroDoExcel(g(l, col.valor));
+      if (col.valor < 0) {
+        const cr = numeroBR(numeroDoExcel(g(l, col.credito))), db = numeroBR(numeroDoExcel(g(l, col.debito)));
+        valor = cr ? numeroDoExcel(Math.abs(cr)) : db ? numeroDoExcel(-Math.abs(db)) : '';
+      }
+      out.push([dataDoExcel(g(l, col.data)), txt(g(l, col.hist)), txt(g(l, col.doc)), valor, numeroDoExcel(g(l, col.saldo))].map(q).join(';'));
+    }
+    return out.join('\r\n');
+  }
+  async function xlsxParaCsv(bytes) {
+    const b = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
+    const arq = await arquivosDoZip(b, (n) => n === 'xl/sharedStrings.xml' || /^xl\/worksheets\/sheet\d+\.xml$/.test(n));
+    const folhas = Object.keys(arq).filter((n) => n.startsWith('xl/worksheets/')).sort((a, z) => Number(a.match(/\d+/)[0]) - Number(z.match(/\d+/)[0]));
+    if (!folhas.length) throw new Error('Não achei a planilha dentro desse Excel. Exporte em OFX ou CSV.');
+    const compart = [...String(arq['xl/sharedStrings.xml'] || '').replace(/<rPh\b[\s\S]*?<\/rPh>/g, '').matchAll(/<si\b[^>]*>([\s\S]*?)<\/si>/g)].map((m) => textoXml(m[1]));
+    return tabelaParaCsv(linhasDaPlanilha(arq[folhas.includes('xl/worksheets/sheet1.xml') ? 'xl/worksheets/sheet1.xml' : folhas[0]], compart));
+  }
+  // O "Excel" que alguns bancos exportam é uma tabela HTML com o nome .xls.
+  function htmlTabelaParaCsv(html) {
+    const limpar = (s) => desXml(s.replace(/<br\s*\/?>/gi, ' ').replace(/<[^>]+>/g, '').replace(/&nbsp;/gi, ' ')).replace(/\s+/g, ' ').trim();
+    return tabelaParaCsv([...String(html).matchAll(/<tr\b[^>]*>([\s\S]*?)<\/tr>/gi)].map((r) => [...r[1].matchAll(/<t[dh]\b[^>]*>([\s\S]*?)<\/t[dh]>/gi)].map((c) => limpar(c[1]))));
+  }
+  // Os bytes do arquivo escolhido → o texto do extrato (OFX ou CSV) para a prévia. Erra com uma frase clara.
+  async function textoDoExtrato(bytes, nome = '') {
+    const b = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes || new ArrayBuffer(0));
+    if (!b.length) throw new Error('O arquivo está vazio. Exporte o extrato de novo, em OFX ou CSV.');
+    if (ehZip(b)) return xlsxParaCsv(b);
+    if (ehXlsAntigo(b)) throw new Error(XLS_ANTIGO);
+    if (b[0] === 0x25 && b[1] === 0x50 && b[2] === 0x44 && b[3] === 0x46) throw new Error('Esse arquivo é um PDF. Exporte o extrato em OFX, CSV ou Excel (.xlsx).');
+    let t;
+    try { t = new TextDecoder('utf-8', { fatal: true }).decode(b); } catch { t = new TextDecoder('windows-1252').decode(b); }
+    t = t.replace(/^﻿/, '');
+    if (!t.trim()) throw new Error('O arquivo está vazio. Exporte o extrato de novo, em OFX ou CSV.');
+    if (/\u0000/.test(t.slice(0, 4000))) throw new Error(/\.xls$/i.test(nome) ? XLS_ANTIGO : 'Não reconheço esse arquivo. O extrato vem em OFX, CSV ou Excel (.xlsx).');
+    if (!ehOfx(t) && /<table\b/i.test(t.slice(0, 20000))) return htmlTabelaParaCsv(t);
+    return t;
+  }
   // Outro formato do mesmo dia (um OFX depois do CSV): o histórico muda de um para o outro e o id também. O lançamento
   // novo que tem o mesmo dia e o mesmo valor de um do banco já guardado, vindo de OUTRO formato, conta como repetido.
   function casarEntreFormatos(guardadas = [], novas = [], formato = 'csv') {
@@ -757,7 +877,7 @@
     return { ajuste: { id, pessoa_id, mes: a.mes, tipo, valor, nota: String(a.nota || '').slice(0, 160) } };
   }
 
-  const api = Object.freeze({ CAT_PAGO_PESSOA, contaPessoa, normalizarSalario, normalizarAjusteVale, CATEGORIAS, ESTADOS_PROPOSTA, normalizarProposta, candidatosDaProposta, transacaoDaProposta, STATUS, REGRAS_PADRAO, lerCsvBB, lerOfx, lerExtrato, ehOfx, casarEntreFormatos, numeroBR, dataBR, idsDosLancamentos, sugerir, contraparte, novaTransacao,
+  const api = Object.freeze({ CAT_PAGO_PESSOA, contaPessoa, normalizarSalario, normalizarAjusteVale, CATEGORIAS, ESTADOS_PROPOSTA, normalizarProposta, candidatosDaProposta, transacaoDaProposta, STATUS, REGRAS_PADRAO, lerCsvBB, lerOfx, lerExtrato, ehOfx, textoDoExtrato, xlsxParaCsv, tabelaParaCsv, casarEntreFormatos, numeroBR, dataBR, idsDosLancamentos, sugerir, contraparte, novaTransacao,
     clienteDoHistorico, FORMAS_LANCAMENTO, formaDoHistorico, formaDe, transacoesDoCsv, mesclar, reaplicarRegras, normalizarRegra, FORMAS, normalizarFixo, fixoVigente, analisarFixos, normalizarItemCartao, partesValidas, aplicarEdicao, pedacos, resumo, mesesDa, porCliente, cartao, pagamentosSemFatura, baseDaProjecao, projetar, somarMeses });
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else raiz.VybeFinanceiroExtrato = api;

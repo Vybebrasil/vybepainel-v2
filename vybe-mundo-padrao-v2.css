@@ -7359,6 +7359,15 @@ button.vg-bh-l:hover,button.vg-bh-l:focus-visible{background:var(--d3-folha-leve
 .fe .fe-al > .fe-tag{flex:0 0 auto;margin-left:auto}
 /* Contraste 4,5:1 nos três temas: o cabeçalho das tabelas do Finanças e o rótulo dos três cenários. */
 .fe table.fe-dre thead th,.fe .fe-cen3-c > small,.fe span.fe-rot,.fe h2.fe-rot{color:var(--d3-texto2)}
+/* Importar extrato (27/11/2026): "Lendo o extrato…", a prévia e o erro por cima da tela, de qualquer botão Importar extrato. */
+.fx .fe-imp-veu{position:fixed;inset:0;z-index:70;background:var(--d3-veu-forte)}
+.fx .fe-imp{position:fixed;z-index:71;top:50%;left:50%;transform:translate(-50%,-50%);width:min(560px,calc(100vw - 32px));max-height:calc(100dvh - 48px);overflow:auto;overscroll-behavior:contain;border-radius:var(--d3-r-cartao);background:var(--d3-cartao);border:1px solid var(--d3-borda)}
+.fx .fe-imp > .fx-previa{margin:0}
+.fx .fe-imp .fx-linha-acoes{flex-wrap:wrap}
+.fx .fe-imp-lendo{display:flex;align-items:center;gap:12px;margin:0;padding:24px 20px;color:var(--d3-tinta)}
+.fx .fe-imp-gira{flex:0 0 auto;width:18px;height:18px;border-radius:50%;border:2px solid var(--d3-borda);border-top-color:var(--d3-tinta);animation:fe-imp-gira .8s linear infinite}
+@keyframes fe-imp-gira{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.fx .fe-imp-gira{animation:none}}
 
 /* ===== padrao-v2/financas.css ===== */
 /* PADRÃO V2 · FINANÇAS (quadros Finanças, Recebimentos, Contas a pagar e Inadimplência do moodboard, 12/11/2026).

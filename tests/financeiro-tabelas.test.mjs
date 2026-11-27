@@ -137,7 +137,9 @@ test('OFX do Santander: lê, e o mesmo período que já veio em CSV não duplica
   const { sql } = await banco(t);
   await chamar(sql, dono, 'POST', { acao: 'importar', csv: CSV });
   const previa = (await chamar(sql, dono, 'POST', { acao: 'previa', csv: OFX })).body;
-  assert.equal(previa.formato, 'ofx'); assert.equal(previa.novas, 1); assert.equal(previa.de_outro_formato, 6);
+  // Sem o FITID no id (27/11/2026), o Pix com o mesmo histórico nos dois formatos já bate pelo id; os outros 5 casam
+  // pelo outro formato. Os 6 continuam repetidos.
+  assert.equal(previa.formato, 'ofx'); assert.equal(previa.novas, 1); assert.equal(previa.repetidas, 6); assert.equal(previa.de_outro_formato, 5);
   const imp = (await chamar(sql, dono, 'POST', { acao: 'importar', csv: OFX })).body;
   assert.equal(imp.importado.novas, 1); assert.equal(imp.importado.formato, 'ofx');
   assert.equal((await chamar(sql, dono, 'POST', { acao: 'importar', csv: OFX })).body.importado.novas, 0);
