@@ -16475,6 +16475,18 @@ body.mundo.mundo-modulo[data-modo="clientes"][data-cv2="lista"] #painel-clientes
   #painel-clientes .cv2-fichas{grid-template-columns:repeat(3,minmax(0,1fr))}
   #painel-clientes :is(.cv2-re,.cv2-h-reuniao,.cv2-extra){display:none}
 }
+
+/* 6b · Lista estreita mesmo em tela larga (menu largo aberto em 1366): as colunas fixas somam ~730 px e o nome, que é o
+   que encolhe, ficava com 0 px (sumia, e o título "Cliente" caía por cima de "Head"). Quem decide é a largura da
+   própria lista: abaixo de 900 px sai a Reunião (o rodapé já conta quantos estão sem reunião), abaixo de 780 px sai
+   também o Cadastro (o funil de Cadastros fica no lado). Pente fino, 27/11/2026. */
+#painel-clientes .cv2-tabela{container:cv2lista / inline-size}
+@container cv2lista (max-width:900px){
+  #painel-clientes :is(.cv2-re,.cv2-h-reuniao,.cv2-extra){display:none}
+}
+@container cv2lista (max-width:780px){
+  #painel-clientes :is(.cv2-tr > .cv2-cd,.cv2-h-cadastro){display:none}
+}
 @media (max-width:900px){
   /* No celular a janela encosta nas bordas e a casa antiga tem outro espaçamento (22px 30px 36px até 760 px; 16px 12px 70px abaixo). */
   body.mundo.mundo-modulo[data-modo="clientes"][data-cv2="lista"] #painel-clientes{height:100%;margin:0}

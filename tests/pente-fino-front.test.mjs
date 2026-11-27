@@ -88,6 +88,27 @@ test('rótulos do menu largo (Operação, Negócio, Time, Vybe): o cinza antigo 
   assert.match(v2, /body\.mundo\.trilho-largo #mundo-hud \.vv-trilho \.vv-trilho-grupo\{[^}]*color:var\(--d3-fume-apagado\)/, 'a cor do tema vem do padrão v2');
 });
 
+test('Gestão de clientes: o nome do cliente não some na lista estreita (menu largo em 1366)', () => {
+  // Antes: as colunas fixas somavam ~730 px; numa lista de 704 px o nome (flex 1 1 0) ficava com 0 px.
+  const base = (re) => Number(v2.match(re)?.[1]);
+  const col = {
+    grupo: base(/#painel-clientes \.cv2-grupo\{flex:0 0 (\d+)px/), foto: base(/#painel-clientes \.cv2-th-foto\{flex:0 0 (\d+)px/),
+    hd: base(/:is\(\.cv2-hd,\.cv2-h-head\)\{flex:0 0 (\d+)px/), sa: base(/:is\(\.cv2-tr > \.cv2-sa,\.cv2-h-saude\)\{flex:0 0 (\d+)px/),
+    ab: base(/:is\(\.cv2-ab,\.cv2-h-abertos\)\{flex:0 0 (\d+)px/), re: base(/:is\(\.cv2-re,\.cv2-h-reuniao\)\{flex:0 0 (\d+)px/),
+    cd: base(/:is\(\.cv2-cd,\.cv2-h-cadastro\)\{flex:0 0 (\d+)px/), vai: 14,
+  };
+  for (const [k, n] of Object.entries(col)) assert.ok(n > 0, `largura da coluna ${k} encontrada`);
+  const gap = 10, lados = 32;
+  const nome = (largura, fora) => { const c = Object.entries(col).filter(([k]) => !fora.includes(k)); return largura - lados - c.reduce((s, [, n]) => s + n, 0) - gap * c.length; };
+  assert.ok(nome(704, []) <= 0, 'sem a regra nova o nome não cabia em 704 px (é o bug)');
+  assert.match(v2, /#painel-clientes \.cv2-tabela\{container:cv2lista \/ inline-size\}/);
+  assert.match(v2, /@container cv2lista \(max-width:900px\)\{\s*#painel-clientes :is\(\.cv2-re,\.cv2-h-reuniao,\.cv2-extra\)\{display:none\}/);
+  assert.match(v2, /@container cv2lista \(max-width:780px\)\{\s*#painel-clientes :is\(\.cv2-tr > \.cv2-cd,\.cv2-h-cadastro\)\{display:none\}/);
+  assert.ok(nome(704, ['re', 'cd']) >= 140, 'em 704 px, sem Reunião e Cadastro, o nome tem pelo menos 140 px');
+  assert.ok(nome(781, ['re']) >= 120, 'logo acima de 780 px, só sem a Reunião, o nome tem pelo menos 120 px');
+  assert.ok(nome(901, []) >= 160, 'acima de 900 px todas as colunas voltam e o nome continua com espaço');
+});
+
 test('tempo do topo com o serviço fora: uma consulta só, e não uma a cada volta ao Hoje', async () => {
   const topo = ler('vybe-topo.js');
   const trecho = topo.slice(topo.indexOf('const TOPO_TEMPO_FALHOU'), topo.indexOf('async function pintarTempoDoTopo'));
