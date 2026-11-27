@@ -4373,7 +4373,7 @@ html body.mundo:not(.mundo-centro) .vv-barra-topo .vv-ferr-nome{display:inline;f
 .vv-trilho [data-grupo="Time"]{--cat:#0EA5B7;--cat-forte:#0E7490}
 .vv-trilho [data-grupo="Vybe"]{--cat:#16A34A;--cat-forte:#15803D}
 body.trilho-largo .vv-trilho-grupo::before{background:var(--cat)!important}
-body.trilho-largo .vv-trilho-grupo{color:#6B665E!important}
+body.trilho-largo .vv-trilho-grupo{color:#6B665E}
 .vv-trilho .vv-trilho-btn[data-grupo]:not(.criar) svg{color:color-mix(in srgb,var(--cat) 75%,#4A463F)}
 /* Selecionado na cor do módulo (Paulo, 13/11/2026: "fica da cor do módulo, nesse caso era pra tá roxinho"). O tom forte
    da categoria segura o texto branco; o ícone acompanha o texto. */

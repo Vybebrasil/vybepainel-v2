@@ -66,4 +66,15 @@ button.plj2-nome:focus-visible,.plj2-criar:focus-visible,.plj2-dl:focus-visible{
   .plj2-cab,.plj2-lin{grid-template-columns:52px 28px minmax(0,1fr) 60px minmax(0,150px) 70px}
   .plj2-cab > :is(:nth-child(5),:nth-child(8)),.plj2-lin > :is(.plj2-trilha,.plj2-head){display:none}
   .plj2-lin.sem > .plj2-criar{grid-column:6}
+  .plj2-lin.sem > .plj2-n{display:none}
+}
+/* Folha estreita mesmo em tela larga (menu largo aberto em 1366, folha com ~713 px): "Onde está" (até 172 px) crescia
+   antes da coluna do nome, que ficava com 0 px (o nome sumia e "Cliente" caía por cima de "Versão"). Abaixo de 860 px
+   de folha, as linhas usam a mesma grade da tela pequena: sem a trilha e sem o OK do head. Pente fino, 27/11/2026. */
+.plj2-folha{container:plj2folha / inline-size}
+@container plj2folha (max-width:860px){
+  .plj2-cab,.plj2-lin{grid-template-columns:52px 28px minmax(0,1fr) 60px minmax(0,150px) 70px}
+  .plj2-cab > :is(:nth-child(5),:nth-child(8)),.plj2-lin > :is(.plj2-trilha,.plj2-head){display:none}
+  .plj2-lin.sem > .plj2-criar{grid-column:6}
+  .plj2-lin.sem > .plj2-n{display:none}
 }
