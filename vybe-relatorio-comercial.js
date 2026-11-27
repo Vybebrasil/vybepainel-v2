@@ -121,6 +121,148 @@
     return { titulo: 'Comercial', subtitulo: 'Funil, conversão por fase, perdas, metas, fechamentos, orçamentos, contratos e churn', resumo: resumo.slice(0, 5), numeros, secoes, historico, projecao, recomendacoes,
       metodologia: ['Lead = oportunidade criada no período; proposta = entrada na etapa Proposta comercial; negócio = virou Ganho no período (dia de Irecê). Conversão da fase = quem chegou à fase seguinte ÷ quem passou pela fase.', 'Valores em reais só para os quatro donos. A projeção é a tendência linear dos 6 meses vezes a conversão média do mesmo intervalo.'] };
   }
-  if (raiz.VybeRelatorio?.registrar) raiz.VybeRelatorio.registrar('comercial', relatorio, { nome: 'Comercial', telas: ['setor:comercial', 'funil', 'conversas', 'pacotes', 'orcamentos', 'contratos', 'churn'], acesso: 'donos', agente: { nome: 'VYBES', papel: 'Comercial da agência' } });
+  // ---------- As subabas (Paulo, 27/11/2026): Funil, Orçamentos, Contratos e Churn ----------
+  // O relatório geral já monta tudo; cada aba refaz a conta só da parte dela, com seções, histórico e recomendações próprias.
+  const fechaCo = (aba, rel) => ({ ...rel, aba, resumo: lista(rel.resumo).filter(Boolean).slice(0, 5),
+    recomendacoes: lista(rel.recomendacoes).length ? rel.recomendacoes : [{ o_que: 'Olhar esta aba de novo na semana que vem.', por_que: 'Nada pede ação pelos números lidos.', impacto: 'Comercial em dia.', prioridade: 'baixa' }] });
+
+  async function abaFunil(ctx) {
+    const geral = await relatorio(ctx), fica = new Set(['Funil por fase', 'Por que perdemos', 'De onde vêm os leads', 'Quem fechou', 'Negociações paradas', 'Produto campeão', 'Metas do mês', 'Metas por pessoa']);
+    const funil = await ctx.api('comercial', { aba: 'funil', mes: ctx.periodo.fim.slice(0, 7) }), ops = lista(funil?.oportunidades), u = ctx.util;
+    const abertas = ops.filter(ABERTA), porEtapa = u.contarPor(abertas, (o) => String(o.etapa || 'sem etapa').replace(/_/g, ' '));
+    const porResp = u.contarPor(abertas, (o) => o.responsavel_nome || 'Sem responsável');
+    const valorAberto = abertas.reduce((t, o) => t + Math.max(0, Number(o.valor_mensal) || 0), 0);
+    const secoes = geral.secoes.filter((s) => fica.has(s.titulo));
+    if (porResp.length) secoes.push({ titulo: 'Negociações abertas por responsável', texto: ['Quantas negociações cada um tem na mão.'], grafico: { tipo: 'ranking', de: 'pessoa', itens: porResp.slice(0, 10).map(([n, k]) => ({ rotulo: n, valor: k })) } });
+    if (porEtapa.length) secoes.push({ titulo: 'Abertas por etapa', texto: ['Onde estão as negociações em aberto.'], tabela: { colunas: ['Etapa', 'Negociações'], linhas: porEtapa.map(([e, n]) => [e, u.num(n)]) } });
+    const numeros = [...geral.numeros.filter((n) => ['Leads', 'Propostas enviadas', 'Negócios fechados', 'MRR fechado', 'Taxa de ganho', 'Negociações paradas'].includes(n.rotulo)),
+      { rotulo: 'MRR em negociação', valor: u.brl(valorAberto), dinheiro: true, porque: 'Valor mensal das negociações abertas.' }];
+    const recomendacoes = geral.recomendacoes.filter((r) => !/renova|churn|Mateus/i.test(`${r.o_que} ${r.por_que}`));
+    return fechaCo('funil', { titulo: 'Comercial · Funil', subtitulo: 'Leads, conversão por fase, perdas, quem fecha e o que está parado', resumo: geral.resumo.filter((t) => !/saiu|saíram|churn/i.test(t)), numeros, secoes, historico: geral.historico, projecao: geral.projecao, recomendacoes, metodologia: geral.metodologia });
+  }
+
+  async function abaOrcamentos(ctx) {
+    const u = ctx.util, per = ctx.periodo, hoje = ctx.hoje, orc = await ctx.api('comercial', { aba: 'orcamentos' }), todos = lista(orc?.orcamentos);
+    const dia = (o) => String(o.criado_em || '').slice(0, 10), noPer = todos.filter((o) => dia(o) && u.dentro(dia(o), per)), noAnt = todos.filter((o) => dia(o) && u.dentro(dia(o), per.anterior));
+    const st = (o) => ({ rascunho: 'Rascunho', enviado: 'Enviado', aceito: 'Aceito', recusado: 'Recusado', expirado: 'Expirado' }[o.status] || o.status || 'Sem status');
+    const mensal = (l) => l.reduce((t, o) => t + (Number(o.totais?.total_recorrente) || 0), 0), avulso = (l) => l.reduce((t, o) => t + (Number(o.totais?.total_avulso) || 0), 0);
+    const enviados = todos.filter((o) => o.status === 'enviado'), falta = (o) => (/^\d{4}-\d{2}-\d{2}$/.test(String(o.validade || '').slice(0, 10)) ? u.diasEntre(hoje, String(o.validade).slice(0, 10)) : null);
+    const vencendo = enviados.filter((o) => { const n = falta(o); return n != null && n >= 0 && n <= 7; }), vencidos = enviados.filter((o) => { const n = falta(o); return n != null && n < 0; });
+    const aceitos = noPer.filter((o) => o.status === 'aceito'), decididos = noPer.filter((o) => ['aceito', 'recusado'].includes(o.status)), taxa = decididos.length ? u.pct(aceitos.length, decididos.length) : null;
+    const itens = u.contarPor(todos.flatMap((o) => lista(o.itens)), (i) => i.nome || null), porSt = u.contarPor(noPer, st);
+    const mesesH = Array.from({ length: 6 }, (_, k) => u.somarMeses(per.fim.slice(0, 7), k - 5));
+    ctx.fonte('Orçamentos (area=comercial&aba=orcamentos)', `${u.num(todos.length)} orçamentos`);
+    const resumo = [
+      orc ? `No período, ${u.plural(noPer.length, 'orçamento criado', 'orçamentos criados')}${noAnt.length ? ` (${u.num(noAnt.length)} no anterior)` : ''}: ${porSt.map(([s, n]) => `${u.num(n)} ${s.toLowerCase()}`).join(', ') || 'nenhum'}.` : 'Os orçamentos não responderam agora.',
+      taxa != null ? `${taxa}% dos decididos foram aceitos.` : '',
+      enviados.length ? `${u.plural(enviados.length, 'proposta espera', 'propostas esperam')} resposta${vencidos.length ? `; ${u.plural(vencidos.length, 'já venceu', 'já venceram')}` : ''}${vencendo.length ? `; ${u.plural(vencendo.length, 'vence', 'vencem')} em até 7 dias` : ''}.` : 'Nenhuma proposta esperando resposta.',
+      itens[0] ? `O item que mais entra nas propostas: ${itens[0][0]} (${itens[0][1]}).` : '',
+    ];
+    const numeros = [
+      { rotulo: 'Criados no período', valor: u.num(noPer.length), variacao: u.variacao(noPer.length, noAnt.length, 'maior', { contra: `vs ${per.anterior.rotulo}` }), porque: 'Orçamentos criados no período.' },
+      { rotulo: 'Aceitos', valor: u.num(aceitos.length), porque: 'Orçamentos do período aceitos.' },
+      { rotulo: 'Taxa de aceite', valor: taxa == null ? 'sem dado' : `${taxa}%`, porque: 'Aceitos ÷ (aceitos + recusados) do período.' },
+      { rotulo: 'Esperando resposta', valor: u.num(enviados.length), porque: 'Enviados sem resposta.' },
+      { rotulo: 'Mensal em aberto', valor: u.brl(mensal(enviados)), dinheiro: true, porque: 'Valor mensal das propostas enviadas.' },
+      { rotulo: 'Mensal aceito', valor: u.brl(mensal(aceitos)), dinheiro: true, porque: 'Valor mensal dos aceitos no período.' },
+    ];
+    const secoes = [
+      { titulo: 'Situação dos orçamentos', texto: [noPer.length ? 'Os orçamentos do período por situação.' : 'Nenhum orçamento no período.'], grafico: porSt.length ? { tipo: 'rosca', fatias: porSt.map(([s, n], i) => ({ rotulo: s, valor: n, papel: ({ Aceito: 'pronto', Recusado: 'atraso', Enviado: 'aberto', Expirado: 'risco' })[s] || ['neutro', 'neutro2'][i % 2] })), centro: u.num(noPer.length), sub: 'orçamentos' } : null },
+      enviados.length ? { titulo: 'Esperando resposta', texto: ['Do que vence primeiro para o que vence depois.'], tabela: { colunas: [{ rotulo: 'Cliente', cliente: true }, 'Itens', 'Validade', { rotulo: 'Mensal', dinheiro: true }, { rotulo: 'Avulso', dinheiro: true }], linhas: enviados.slice().sort((a, b) => String(a.validade || '9').localeCompare(String(b.validade || '9'))).map((o) => [o.cliente_nome || '—', lista(o.itens).map((i) => i.nome).join(' + ').slice(0, 40) || '—', o.validade ? u.dataCurta(String(o.validade).slice(0, 10)) : '—', u.brl(Number(o.totais?.total_recorrente) || 0), u.brl(Number(o.totais?.total_avulso) || 0)]) } } : null,
+      itens.length ? { titulo: 'O que mais entra nas propostas', texto: ['Itens dos pacotes por quantas propostas os levam.'], grafico: { tipo: 'ranking', itens: itens.slice(0, 10).map(([n, k]) => ({ rotulo: n, valor: k })) } } : null,
+    ].filter(Boolean);
+    const historico = { texto: ['Orçamentos criados e aceitos por mês.'], grafico: { tipo: 'barras', rotulos: mesesH.map((m) => u.nomeMes(m)), series: [{ nome: 'Criados', valores: mesesH.map((m) => todos.filter((o) => dia(o).slice(0, 7) === m).length), papel: 'neutro' }, { nome: 'Aceitos', valores: mesesH.map((m) => todos.filter((o) => dia(o).slice(0, 7) === m && o.status === 'aceito').length), papel: 'pronto' }] } };
+    const projecao = { texto: [enviados.length && taxa != null ? `Com a taxa de aceite do período (${taxa}%), das ${u.num(enviados.length)} propostas esperando devem fechar cerca de ${u.num(Math.round(enviados.length * taxa / 100))}.` : 'Sem base para projetar o aceite.'] };
+    const recomendacoes = [];
+    if (vencidos.length || vencendo.length) recomendacoes.push({ o_que: `Ligar para ${[...vencidos, ...vencendo].slice(0, 3).map((o) => o.cliente_nome).join(', ')} antes que a proposta caia.`, por_que: vencidos.length ? `${u.plural(vencidos.length, 'proposta venceu', 'propostas venceram')} sem resposta.` : 'Vencem em até 7 dias.', impacto: 'Menos proposta perdida por silêncio.', prioridade: 'alta' });
+    if (todos.filter((o) => o.status === 'rascunho').length) recomendacoes.push({ o_que: `Enviar ou apagar os ${u.num(todos.filter((o) => o.status === 'rascunho').length)} rascunhos.`, por_que: 'Rascunho parado não vende.', impacto: 'Funil limpo.', prioridade: 'baixa' });
+    if (taxa != null && taxa < 30) recomendacoes.push({ o_que: 'Rever a montagem da proposta (itens e desconto).', por_que: `Só ${taxa}% dos decididos foram aceitos.`, impacto: 'Mais aceite por proposta.', prioridade: 'media' });
+    return fechaCo('orcamentos', { titulo: 'Comercial · Orçamentos', subtitulo: 'As propostas montadas dos pacotes: aceite, o que espera resposta e o que vence', resumo, numeros, secoes, historico, projecao, recomendacoes,
+      metodologia: ['Orçamentos de GET area=comercial&aba=orcamentos (os mesmos da tela). Taxa de aceite = aceitos ÷ (aceitos + recusados) criados no período.'] });
+  }
+
+  async function abaContratos(ctx) {
+    const u = ctx.util, hoje = ctx.hoje, cart = await ctx.api('carteira'), base = lista(cart?.clientes), nomeDe = new Map(base.map((c) => [String(c.id), c.nome]));
+    const ks = lista(cart?.contratos?.lista), ativos = ks.filter((k) => !/encerr|cancel/i.test(String(k.status || '')));
+    const dias = (k) => (k.renovacao ? u.diasEntre(hoje, String(k.renovacao).slice(0, 10)) : null);
+    const vencidos = ativos.filter((k) => dias(k) != null && dias(k) < 0), em30 = ativos.filter((k) => dias(k) != null && dias(k) >= 0 && dias(k) <= 30), em90 = ativos.filter((k) => dias(k) != null && dias(k) > 30 && dias(k) <= 90), semData = ativos.filter((k) => !k.renovacao);
+    const mrr = ativos.reduce((t, k) => t + (Number(k.valor_mensal) || 0), 0), mrrRisco = [...vencidos, ...em30].reduce((t, k) => t + (Number(k.valor_mensal) || 0), 0);
+    const semContrato = base.filter((c) => !c.saida && !ks.some((k) => String(k.cliente_id) === String(c.id)));
+    const meses = Array.from({ length: 6 }, (_, k) => u.somarMeses(hoje.slice(0, 7), k));
+    ctx.fonte('Contratos (area=carteira)', `${u.num(ks.length)} contratos`);
+    const resumo = [
+      cart ? `${u.plural(ativos.length, 'contrato ativo', 'contratos ativos')}${semContrato.length ? `; ${u.plural(semContrato.length, 'cliente ativo está', 'clientes ativos estão')} sem contrato cadastrado` : ''}.` : 'A carteira não respondeu agora.',
+      vencidos.length ? `${u.plural(vencidos.length, 'contrato está', 'contratos estão')} com a renovação vencida: ${vencidos.slice(0, 3).map((k) => nomeDe.get(String(k.cliente_id)) || '—').join(', ')}.` : '',
+      em30.length ? `${u.plural(em30.length, 'renova', 'renovam')} nos próximos 30 dias e ${u.num(em90.length)} entre 31 e 90 dias.` : em90.length ? `${u.num(em90.length)} renovam entre 31 e 90 dias.` : '',
+      semData.length ? `${u.plural(semData.length, 'contrato está', 'contratos estão')} sem data de renovação.` : '',
+    ];
+    const numeros = [
+      { rotulo: 'Contratos ativos', valor: u.num(ativos.length), porque: 'Contratos não encerrados.' },
+      { rotulo: 'Renovação vencida', valor: u.num(vencidos.length), porque: 'A data passou sem renovar.' },
+      { rotulo: 'Renovam em 30 dias', valor: u.num(em30.length), porque: 'Renovação até 30 dias.' },
+      { rotulo: 'Sem data', valor: u.num(semData.length), porque: 'Contrato sem renovação marcada.' },
+      { rotulo: 'MRR dos contratos', valor: u.brl(mrr), dinheiro: true, porque: 'Valor mensal dos ativos.' },
+      { rotulo: 'MRR em renovação', valor: u.brl(mrrRisco), dinheiro: true, porque: 'Vencidos e os que renovam em 30 dias.' },
+    ];
+    const linha = (k) => [nomeDe.get(String(k.cliente_id)) || '—', k.inicio ? u.dataCurta(String(k.inicio).slice(0, 10)) : '—', k.renovacao ? u.dataCurta(String(k.renovacao).slice(0, 10)) : '—', dias(k) == null ? '—' : dias(k) < 0 ? `venceu há ${-dias(k)} d` : `${dias(k)} d`, String(k.status || '—'), k.valor_mensal != null ? u.brl(k.valor_mensal) : '—'];
+    const secoes = [
+      { titulo: 'Renovações pela data', texto: [ativos.length ? 'Vencidos primeiro, depois os mais próximos.' : 'Nenhum contrato cadastrado.'], tabela: ativos.length ? { colunas: [{ rotulo: 'Cliente', cliente: true }, 'Início', 'Renovação', 'Falta', 'Status', { rotulo: 'Valor mensal', dinheiro: true }], linhas: ativos.slice().sort((a, b) => (dias(a) ?? 9999) - (dias(b) ?? 9999)).map(linha) } : null },
+      ativos.length ? { titulo: 'Renovações nos próximos meses', texto: ['Quantos contratos renovam em cada mês.'], grafico: { tipo: 'barras', rotulos: meses.map((m) => u.nomeMes(m)), series: [{ nome: 'Renovações', valores: meses.map((m) => ativos.filter((k) => String(k.renovacao || '').slice(0, 7) === m).length), papel: 'destaque' }] } } : null,
+      semContrato.length ? { titulo: 'Clientes sem contrato', texto: ['Ativos na carteira sem contrato cadastrado no Vybe OS.'], lista: semContrato.slice(0, 30).map((c) => c.nome) } : null,
+    ].filter(Boolean);
+    const recomendacoes = [];
+    if (vencidos.length) recomendacoes.push({ o_que: `Renovar ou encerrar no sistema os contratos de ${vencidos.slice(0, 3).map((k) => nomeDe.get(String(k.cliente_id)) || '—').join(', ')}.`, por_que: 'Renovação vencida sem conversa vira churn por descuido.', impacto: 'Receita recorrente protegida.', prioridade: 'alta' });
+    if (em30.length) recomendacoes.push({ o_que: `Preparar a renovação dos ${u.num(em30.length)} que vencem em 30 dias com o resumo do que foi entregue.`, por_que: 'Renovar com o resultado na mão.', impacto: 'Renovação sem desconto.', prioridade: 'media' });
+    if (semContrato.length || semData.length) recomendacoes.push({ o_que: 'Cadastrar contrato e data de renovação de quem está sem.', por_que: 'Sem data, a renovação não aparece em lugar nenhum.', impacto: 'Nenhuma renovação esquecida.', prioridade: 'baixa' });
+    return fechaCo('contratos', { titulo: 'Comercial · Contratos', subtitulo: 'Contratos ativos, renovações e quem está sem contrato', resumo, numeros, secoes, historico: null, projecao: null, recomendacoes,
+      metodologia: ['Contratos do Vybe OS de GET area=carteira (contratos.lista), os mesmos da aba Contratos. Valores só para os donos.'] });
+  }
+
+  async function abaChurn(ctx) {
+    const u = ctx.util, per = ctx.periodo, cart = await ctx.api('carteira'), base = lista(cart?.clientes), regs = new Map(lista(cart?.churn?.registros).map((r) => [String(r.cliente_id), r]));
+    const dentro = (d, p) => Boolean(d) && u.dentro(String(d).slice(0, 10), p), saidas = (p) => base.filter((c) => c.saida && dentro(c.saida, p));
+    const saiu = saidas(per), ant = saidas(per.anterior), rec = (c) => Number(regs.get(String(c.id))?.receita_mensal ?? c.valor) || 0;
+    const ativosIni = base.filter((c) => (!c.entrada || String(c.entrada).slice(0, 10) < per.inicio) && (!c.saida || String(c.saida).slice(0, 10) >= per.inicio)).length;
+    const taxa = ativosIni ? Math.round((saiu.length / ativosIni) * 1000) / 10 : null, motivos = u.contarPor(saiu, (c) => MOTIVO_CHURN[regs.get(String(c.id))?.motivo] || 'Sem classificar');
+    const casa = saiu.filter((c) => c.entrada).map((c) => u.diasEntre(String(c.entrada).slice(0, 10), String(c.saida).slice(0, 10)) / 30.44);
+    const mesesH = Array.from({ length: 12 }, (_, k) => u.somarMeses(per.fim.slice(0, 7), k - 11)), porMes = mesesH.map((m) => base.filter((c) => String(c.saida || '').slice(0, 7) === m));
+    ctx.fonte('Churn (area=carteira)', `${u.num(lista(cart?.churn?.registros).length)} registros de saída`);
+    const resumo = [
+      cart ? `${u.plural(saiu.length, 'cliente saiu', 'clientes saíram')} no período${taxa != null ? ` (churn de ${u.num(taxa, 1)}%)` : ''}, contra ${u.num(ant.length)} no anterior.` : 'A carteira não respondeu agora.',
+      motivos[0] ? `Motivo mais comum: ${motivos[0][0].toLowerCase()} (${motivos[0][1]}).` : '',
+      casa.length ? `Quem saiu ficou em média ${u.num(u.media(casa), 1)} meses.` : '',
+      saiu.length ? `Foram ${u.brl(saiu.reduce((t, c) => t + rec(c), 0))} de receita mensal junto.` : '',
+    ];
+    const numeros = [
+      { rotulo: 'Saídas', valor: u.num(saiu.length), variacao: u.variacao(saiu.length, ant.length, 'menor', { contra: `vs ${per.anterior.rotulo}` }), porque: 'Saída (churn ou desativação) no período.' },
+      { rotulo: 'Churn', valor: taxa == null ? 'sem dado' : `${u.num(taxa, 1)}%`, porque: `Saídas ÷ ${u.plural(ativosIni, 'ativo', 'ativos')} no início do período.` },
+      { rotulo: 'Tempo de casa', valor: casa.length ? `${u.num(u.media(casa), 1)} meses` : '—', porque: 'Média de quem saiu.' },
+      { rotulo: 'Sem classificar', valor: u.num(saiu.filter((c) => !regs.get(String(c.id))?.motivo).length), porque: 'Saída sem motivo registrado.' },
+      { rotulo: 'Receita mensal perdida', valor: u.brl(saiu.reduce((t, c) => t + rec(c), 0)), dinheiro: true, porque: 'Do registro de churn; sem ele, do contrato.' },
+    ];
+    const secoes = [
+      { titulo: 'Por que saíram', texto: [saiu.length ? 'Motivo de cada saída do período.' : 'Ninguém saiu no período.'], grafico: motivos.length ? { tipo: 'rosca', fatias: motivos.map(([m, n], i) => ({ rotulo: m, valor: n, papel: ['atraso', 'risco', 'neutro', 'neutro2', 'info', 'agente'][i % 6] })), centro: u.num(saiu.length), sub: 'saídas' } : null,
+        tabela: saiu.length ? { colunas: [{ rotulo: 'Cliente', cliente: true }, 'Saiu em', 'Motivo', 'Meses de casa', { rotulo: 'Receita mensal', dinheiro: true }], linhas: saiu.map((c) => [c.nome, u.dataCurta(String(c.saida).slice(0, 10)), MOTIVO_CHURN[regs.get(String(c.id))?.motivo] || 'Sem classificar', c.entrada ? u.num(u.diasEntre(String(c.entrada).slice(0, 10), String(c.saida).slice(0, 10)) / 30.44, 1) : '—', u.brl(rec(c))]) } : null },
+    ];
+    const historico = { texto: ['Saídas por mês nos últimos 12 meses.'], grafico: { tipo: 'barras', rotulos: mesesH.map((m) => u.nomeMes(m)), series: [{ nome: 'Saídas', valores: porMes.map((l) => l.length), papel: 'atraso' }] },
+      tabela: { colunas: ['Mês', 'Saídas', { rotulo: 'Receita mensal', dinheiro: true }], linhas: mesesH.map((m, i) => [u.nomeMes(m, true), u.num(porMes[i].length), u.brl(porMes[i].reduce((t, c) => t + rec(c), 0))]) } };
+    const proxC = u.projetar(porMes.map((l) => l.length), 3);
+    const projecao = { texto: [`Pela tendência dos 12 meses, os próximos 3 ficam perto de ${proxC.map((n) => u.num(Math.max(0, n), 1)).join(', ')} saídas por mês.`] };
+    const recomendacoes = [];
+    if (saiu.some((c) => !regs.get(String(c.id))?.motivo)) recomendacoes.push({ o_que: 'Registrar o motivo de cada saída sem classificar.', por_que: 'Sem motivo, o churn não ensina nada.', impacto: 'Leitura fiel das perdas.', prioridade: 'media' });
+    if (motivos[0] && motivos[0][0] !== 'Sem classificar') recomendacoes.push({ o_que: `Atacar a causa "${motivos[0][0].toLowerCase()}" com o Mateus.`, por_que: `É o motivo de ${u.plural(motivos[0][1], 'saída', 'saídas')} no período.`, impacto: 'Menos saídas pelo mesmo motivo.', prioridade: 'alta' });
+    if (saiu.length > ant.length) recomendacoes.push({ o_que: 'Rever os clientes em risco alto da carteira antes do próximo mês.', por_que: `Saíram ${u.num(saiu.length)} contra ${u.num(ant.length)}.`, impacto: 'Churn de volta ao normal.', prioridade: 'alta' });
+    return fechaCo('churn', { titulo: 'Comercial · Churn', subtitulo: 'Quem saiu, por quê, quanto tempo ficou e quanto levou', resumo, numeros, secoes, historico, projecao, recomendacoes,
+      metodologia: ['Saída pelo registro de churn ou desativação (area=carteira). Churn = saídas ÷ ativos no início do período.'] });
+  }
+  const ABAS_CO = { funil: abaFunil, orcamentos: abaOrcamentos, contratos: abaContratos, churn: abaChurn };
+  const ABAS = [
+    { id: 'funil', nome: 'Funil', telas: ['funil', 'setor:comercial'] },
+    { id: 'orcamentos', nome: 'Orçamentos', telas: ['orcamentos'] },
+    { id: 'contratos', nome: 'Contratos', telas: ['contratos'] },
+    { id: 'churn', nome: 'Churn', telas: ['churn'] },
+  ];
+  async function relatorioComAbas(ctx) { return ctx.aba && ABAS_CO[ctx.aba.id] ? ABAS_CO[ctx.aba.id](ctx) : relatorio(ctx); }
+  if (raiz.VybeRelatorio?.registrar) raiz.VybeRelatorio.registrar('comercial', relatorioComAbas, { nome: 'Comercial', telas: ['setor:comercial', 'funil', 'conversas', 'pacotes', 'orcamentos', 'contratos', 'churn'], acesso: 'donos', agente: { nome: 'VYBES', papel: 'Comercial da agência' }, abas: ABAS });
   raiz.VybeRelComercial = Object.freeze({ relatorio });
 })(typeof window !== 'undefined' ? window : globalThis);

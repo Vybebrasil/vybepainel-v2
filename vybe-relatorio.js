@@ -28,7 +28,17 @@
 //     }
 //     ctx = { periodo, hoje, acesso: { dono, dinheiro, nome }, util, graficos, api(area, params) → json | null,
 //             fonte(nome, detalhe), dados: { pecas(), demandas(), equipe(), clientes() } }
-//   VybeRelatorio.gerar(modulo, { periodo: 'mes' | 'mes_passado' | '3m' | '6m' | '12m' | { inicio, fim } })
+//     opcoes.abas (Paulo, 27/11/2026: "quero poder gerar o relatório em PDF de cada subaba… só o de Pessoas? só o de
+//     Assinaturas?"): [{ id, nome, telas?: [...], seletor?: 'css' | () => bool, acesso?, agente?, dinheiro?,
+//              alvos?: (ctx) → [{ id, nome }], alvoDaTela?: () → id }]
+//             telas = os ids do dock em que a aba é a tela aberta; seletor = o que diz, no DOM, que ela está aberta (a aba
+//             ativa de um trilho interno, um data-*); acesso = o nível da aba (nunca abaixo do módulo; dinheiro: true = só os
+//             quatro donos); alvos = uma aba "cliente a cliente": a lista para escolher e, pela tela, o que está aberto.
+//     Com aba, ctx.aba = { id, nome, alvo: { id, nome } | null } e a fn devolve o relatório SÓ daquela parte, completo
+//     (números, gráficos, histórico, projeção quando houver, o que fazer e fontes), com `aba: ctx.aba.id` (sem isso o motor
+//     recusa: aba que a fn não sabe montar não vira recorte do geral). O título e a capa saem "Finanças · Pessoas".
+//   VybeRelatorio.gerar(modulo, { periodo: 'mes' | 'mes_passado' | '3m' | '6m' | '12m' | { inicio, fim }, aba?, alvo? })
+//   VybeRelatorio.abas(modulo, acesso?) → as abas que a pessoa pode gerar; abaDaTela(modulo) → a aba aberta agora (ou null)
 //   VybeRelatorio.documento(modulo, opcoes) → Promise<string HTML>   (o mesmo documento, sem imprimir: provas e testes)
 //   VybeRelatorio.montar(relatorio, meta) → string HTML                (puro)
 //   VybeRelatorio.filtrar(relatorio, acesso) → relatório sem o que a pessoa não vê (puro)
@@ -482,12 +492,43 @@ td.n,th.n{text-align:right;white-space:nowrap}
     const id = String(modulo || '').trim();
     if (!id || typeof fn !== 'function') return false;
     const telas = lista(opcoes.telas).map(String).filter(Boolean);
-    REG.set(id, { id, fn, nome: opcoes.nome || id, telas: telas.length ? telas : [id], agente: opcoes.agente || null, acesso: ['donos', 'dinheiro'].includes(opcoes.acesso) ? opcoes.acesso : 'todos' });
+    const acesso = ['donos', 'dinheiro'].includes(opcoes.acesso) ? opcoes.acesso : 'todos';
+    REG.set(id, { id, fn, nome: opcoes.nome || id, telas: telas.length ? telas : [id], agente: opcoes.agente || null, acesso, abas: normalizarAbas(opcoes.abas, acesso) });
     agendarBotao();
     return true;
   }
+  // As subabas do registro: id e nome obrigatórios; o acesso da aba nunca fica abaixo do módulo (dinheiro > donos > todos).
+  const NIVEL = { todos: 0, donos: 1, dinheiro: 2 };
+  function normalizarAbas(abas, acessoModulo) {
+    const vistos = new Set();
+    return lista(abas).map((a) => {
+      const id = String(a?.id || '').trim(), nome = String(a?.nome || '').trim();
+      if (!id || !nome || vistos.has(id)) return null;
+      vistos.add(id);
+      const pedido = a.dinheiro ? 'dinheiro' : ['donos', 'dinheiro'].includes(a.acesso) ? a.acesso : 'todos';
+      return { id, nome, telas: lista(a.telas).map(String).filter(Boolean), seletor: typeof a.seletor === 'function' || typeof a.seletor === 'string' ? a.seletor : null,
+        acesso: NIVEL[pedido] >= NIVEL[acessoModulo] ? pedido : acessoModulo, agente: a.agente || null,
+        alvos: typeof a.alvos === 'function' ? a.alvos : null, rotuloAlvo: String(a.rotuloAlvo || ''), alvoDaTela: typeof a.alvoDaTela === 'function' ? a.alvoDaTela : null };
+    }).filter(Boolean);
+  }
   const registrado = (modulo) => REG.has(String(modulo));
   const moduloDaTela = (tela) => [...REG.values()].find((r) => r.telas.includes(String(tela))) || null;
+  function abasDe(modulo, acesso = acessoAtual()) {
+    const reg = REG.get(String(modulo));
+    return reg ? reg.abas.filter((a) => pode(a.acesso, acesso)).map((a) => ({ id: a.id, nome: a.nome, acesso: a.acesso, telas: [...a.telas], porAlvo: Boolean(a.alvos) })) : [];
+  }
+  // A aba aberta agora: primeiro a que o DOM confirma (seletor, e a tela do dock quando ela diz qual), depois a que só a
+  // tela do dock aponta. Sem DOM (testes) ou sem nada que bata, null: o menu marca "Módulo inteiro".
+  function confere(seletor) {
+    try { return typeof seletor === 'function' ? Boolean(seletor()) : typeof document !== 'undefined' && Boolean(document.querySelector(seletor)); } catch { return false; }
+  }
+  function abaDaTela(modulo, tela = telaDoDock()) {
+    const reg = REG.get(String(modulo)); if (!reg || !reg.abas.length) return null;
+    const naTela = (a) => !a.telas.length || a.telas.includes(String(tela));
+    return reg.abas.find((a) => a.seletor && naTela(a) && confere(a.seletor)) || reg.abas.find((a) => !a.seletor && a.telas.includes(String(tela))) || null;
+  }
+  // Aba por alvo (um cliente, uma conta): o nome do alvo no lugar do nome da aba ("Clientes · Academia Lions").
+  const rotuloDaAba = (reg, aba, alvo) => [reg.nome, alvo?.nome || aba?.nome].filter(Boolean).join(' · ');
 
   // Os globais do painel (let no escopo dos scripts clássicos): lidos pelo nome, sem eval; fora do navegador ficam vazios.
   const dadosDaTela = {
@@ -526,6 +567,15 @@ td.n,th.n{text-align:right;white-space:nowrap}
     if (!reg) throw new Error(`Relatório não registrado: ${modulo}`);
     const acesso = opcoes.acesso || acessoAtual();
     if (!pode(reg.acesso, acesso)) throw new Error('Sem acesso a este relatório.');
+    // A subaba pedida: registrada, com acesso (quem não vê a aba não gera o relatório dela) e, se for por alvo, com ele.
+    let aba = null;
+    if (opcoes.aba) {
+      const a = reg.abas.find((x) => x.id === String(opcoes.aba));
+      if (!a) throw new Error(`Aba não registrada: ${reg.id} · ${opcoes.aba}`);
+      if (!pode(a.acesso, acesso)) throw new Error('Sem acesso a esta aba.');
+      const alvo = opcoes.alvo && typeof opcoes.alvo === 'object' ? { id: String(opcoes.alvo.id ?? ''), nome: String(opcoes.alvo.nome || opcoes.alvo.id || '') } : opcoes.alvo ? { id: String(opcoes.alvo), nome: String(opcoes.alvo) } : null;
+      aba = { id: a.id, nome: a.nome, alvo, agente: a.agente, porAlvo: Boolean(a.alvos) };
+    }
     const hoje = opcoes.hoje || (typeof G.hojeDeVerdade === 'function' ? (() => { try { const h = G.hojeDeVerdade(); return ISO.test(h) ? h : diaLocal(); } catch { return diaLocal(); } })() : diaLocal());
     const per = periodo(opcoes.periodo || 'mes', { hoje, inicio: opcoes.inicio, fim: opcoes.fim });
     const leituras = [], fontes = [];
@@ -541,18 +591,25 @@ td.n,th.n{text-align:right;white-space:nowrap}
       cores: { ...paleta, status: (n, amostra) => corDoStatus(n, amostra ?? todas()) },
       api: opcoes.api || ((area, params) => lerApi(area, params, leituras)),
       fonte: (nome, detalhe, extra = {}) => fontes.push({ nome, detalhe, lido_em: horaBr(new Date()), ...extra }),
-      agente: reg.agente, modulo: reg.id };
+      agente: aba?.agente || reg.agente, modulo: reg.id,
+      aba: aba ? { id: aba.id, nome: aba.nome, alvo: aba.alvo } : null };
     const { amostra, ...bruto } = (await reg.fn(ctx)) || {};
+    // A fn que recebe a aba e devolve o geral (sem `aba`) não sabe montar aquela parte: recusa, em vez de um recorte.
+    if (aba && bruto.aba !== aba.id) throw new Error(`O relatório de ${reg.nome} não montou a aba ${aba.nome}.`);
     const agora = opcoes.agora || new Date();
     const juntas = [...fontes, ...lista(bruto.fontes).map((f) => ({ lido_em: horaBr(agora), ...f })),
       ...juntarLeituras(leituras)];
     const amostraStatus = Array.isArray(amostra) ? amostra : todas();
-    const rel = colorir(filtrar({ agente: reg.agente, ...bruto, fontes: juntas }, acesso), { ...paleta, status: (n) => corDoStatus(n, amostraStatus) });
-    return { rel, reg, per, acesso, agora, tokens };
+    // Com aba, o título e a capa dizem de que parte é ("Finanças · Pessoas"); o subtítulo do módulo fica se a fn mandar.
+    const rotulo = aba ? rotuloDaAba(reg, aba, aba.alvo) : '';
+    const titulo = aba ? (String(bruto.titulo || '').startsWith(rotulo) ? bruto.titulo : rotulo) : bruto.titulo;
+    const base = { agente: aba?.agente || reg.agente, ...bruto, titulo, fontes: juntas, ...(aba ? { aba: { id: aba.id, nome: aba.nome, alvo: aba.alvo } } : {}) };
+    const rel = colorir(filtrar(base, acesso), { ...paleta, status: (n) => corDoStatus(n, amostraStatus) });
+    return { rel, reg, per, acesso, agora, tokens, aba, rotulo };
   }
   async function documento(modulo, opcoes = {}) {
-    const { rel, reg, per, acesso, agora, tokens } = await relatorioDe(modulo, opcoes);
-    return montar(rel, { modulo: reg.nome, periodo: rel.periodo || per.rotulo, geradoEm: horaBr(agora), geradoPor: opcoes.geradoPor ?? acesso.nome, agente: reg.agente, cores: tokens });
+    const { rel, reg, per, acesso, agora, tokens, aba, rotulo } = await relatorioDe(modulo, opcoes);
+    return montar(rel, { modulo: aba ? rotulo : reg.nome, periodo: rel.periodo || per.rotulo, geradoEm: horaBr(agora), geradoPor: opcoes.geradoPor ?? acesso.nome, agente: aba?.agente || reg.agente, cores: tokens });
   }
 
   // Imprime num iframe próprio: o painel fica como estava; a pessoa escolhe "Salvar como PDF" na janela do navegador.
@@ -623,25 +680,57 @@ td.n,th.n{text-align:right;white-space:nowrap}
   }
 
   // A escolha rápida do período: a lista, o personalizado e o botão de gerar.
+  // "O quê" (Paulo, 27/11/2026): só a aba aberta (já marcada quando o módulo tem a aba registrada), o módulo inteiro ou
+  // outra subaba. Um <select> nativo: cabe no celular com as 8 abas do Finanças e funciona no teclado e no leitor de tela.
+  function opcoesDoQue(reg, acesso, aberta) {
+    const abas = reg.abas.filter((a) => pode(a.acesso, acesso));
+    if (!abas.length) return '';
+    const op = (v, rot, sel) => `<option value="${esc(v)}"${sel ? ' selected' : ''}>${esc(rot)}</option>`;
+    const outras = abas.filter((a) => a.id !== aberta?.id);
+    return `${aberta ? op(`aba:${aberta.id}`, `Só esta aba (${aberta.nome})`, true) : ''}${op('', 'Módulo inteiro', !aberta)}`
+      + (outras.length ? `<optgroup label="${aberta ? 'Outras abas' : 'Só uma aba'}">${outras.map((a) => op(`aba:${a.id}`, a.nome, false)).join('')}</optgroup>` : '');
+  }
+  const ctxLeve = () => ({ hoje: diaLocal(), util, acesso: acessoAtual(), dados: dadosDaTela, api: (area, params) => lerApi(area, params, []) });
+  // Aba "cliente a cliente": a lista para escolher, com o que está aberto na tela já marcado.
+  async function pintarAlvos(reg) {
+    if (!pop) return;
+    const caixa = pop.querySelector('[data-rel-alvo-caixa]'), sel = pop.querySelector('[data-rel-alvo]');
+    const v = pop.querySelector('[data-rel-oque]')?.value || '', aba = reg.abas.find((a) => `aba:${a.id}` === v);
+    if (!caixa || !sel) return;
+    if (!aba?.alvos) { caixa.hidden = true; sel.innerHTML = ''; return; }
+    caixa.hidden = false; caixa.querySelector('span').textContent = aba.rotuloAlvo || 'Qual';
+    sel.innerHTML = '<option value="">Carregando…</option>'; sel.disabled = true;
+    let alvos = [];
+    try { alvos = lista(await aba.alvos(ctxLeve())).filter((x) => x && x.id != null && x.nome); } catch { alvos = []; }
+    if (!pop || pop.querySelector('[data-rel-oque]')?.value !== v) return;
+    let atual = ''; try { atual = String(aba.alvoDaTela?.() ?? ''); } catch { atual = ''; }
+    sel.innerHTML = alvos.length ? alvos.map((x) => `<option value="${esc(x.id)}"${String(x.id) === atual ? ' selected' : ''}>${esc(x.nome)}</option>`).join('') : '<option value="">Nada para escolher agora</option>';
+    sel.disabled = !alvos.length;
+  }
   function abrirEscolha() {
     const reg = REG.get(botao?.dataset.relModulo || ''); if (!reg) return;
+    const acesso = acessoAtual(), aberta = abaDaTela(reg.id), oque = opcoesDoQue(reg, acesso, aberta && pode(aberta.acesso, acesso) ? aberta : null);
     pop = document.createElement('div');
-    pop.className = 'vrel-pop'; pop.setAttribute('role', 'dialog'); pop.setAttribute('aria-label', `Relatório de ${reg.nome}: escolha o período`);
+    pop.className = 'vrel-pop'; pop.setAttribute('role', 'dialog'); pop.setAttribute('aria-label', `Relatório de ${reg.nome}: escolha ${oque ? 'o quê e ' : ''}o período`);
     const hoje = diaLocal();
     pop.innerHTML = `<p class="vrel-pop-tit"><b>Relatório de ${esc(reg.nome)}</b><small>${reg.agente ? `Com a análise de ${esc(reg.agente.nome)} · ` : ''}PDF para imprimir ou salvar</small></p>
-      <div class="vrel-pop-lista" role="radiogroup" aria-label="Período">${PERIODOS.map(([k, rot], i) => `<button type="button" role="radio" class="vrel-op" data-rel-per="${k}" aria-checked="${i === 0}">${esc(rot)}</button>`).join('')}</div>
+      ${oque ? `<label class="vrel-campo"><span>O quê</span><select data-rel-oque>${oque}</select></label><label class="vrel-campo" data-rel-alvo-caixa hidden><span>Qual</span><select data-rel-alvo></select></label>` : ''}
+      <div class="vrel-pop-lista" role="radiogroup" aria-label="Período">${oque ? '<span class="vrel-pop-rot" aria-hidden="true">Período</span>' : ''}${PERIODOS.map(([k, rot], i) => `<button type="button" role="radio" class="vrel-op" data-rel-per="${k}" aria-checked="${i === 0}">${esc(rot)}</button>`).join('')}</div>
       <div class="vrel-pop-datas" hidden><label><span>De</span><input type="date" data-rel-ini value="${somarDias(hoje, -29)}"></label><label><span>Até</span><input type="date" data-rel-fim value="${hoje}"></label></div>
       <div class="vrel-pop-pe"><button type="button" class="vrel-gerar" data-rel-gerar>Gerar PDF</button><small class="vrel-pop-msg" aria-live="polite"></small></div>`;
     document.body.appendChild(pop);
-    const r = botao.getBoundingClientRect(), w = Math.min(300, innerWidth - 24);
+    const r = botao.getBoundingClientRect(), w = Math.min(320, innerWidth - 24);
     pop.style.width = `${w}px`;
     pop.style.left = `${Math.max(12, Math.min(innerWidth - w - 12, r.left))}px`;
-    pop.style.top = `${Math.min(r.bottom + 8, innerHeight - 330)}px`;
+    const h = pop.offsetHeight || 360;
+    pop.style.top = `${Math.max(12, Math.min(r.bottom + 8, innerHeight - h - 12))}px`;
     botao.setAttribute('aria-expanded', 'true');
     pop.addEventListener('click', aoClicarNaEscolha);
+    pop.querySelector('[data-rel-oque]')?.addEventListener('change', () => pintarAlvos(reg));
     document.addEventListener('keydown', teclaDaEscolha, true);
     setTimeout(() => document.addEventListener('click', foraDaEscolha, true), 0);
-    pop.querySelector('[aria-checked="true"]')?.focus();
+    pintarAlvos(reg);
+    (pop.querySelector('[data-rel-oque]') || pop.querySelector('[aria-checked="true"]'))?.focus();
   }
   function fecharEscolha() {
     pop?.remove(); pop = null;
@@ -669,8 +758,12 @@ td.n,th.n{text-align:right;white-space:nowrap}
     const per = k === 'personalizado' ? { inicio: pop.querySelector('[data-rel-ini]').value, fim: pop.querySelector('[data-rel-fim]').value } : k;
     if (k === 'personalizado' && !(ISO.test(per.inicio) && ISO.test(per.fim))) { pop.querySelector('.vrel-pop-msg').textContent = 'Escolha as duas datas.'; return; }
     const msg = pop.querySelector('.vrel-pop-msg'), btn = pop.querySelector('[data-rel-gerar]');
+    const oque = pop.querySelector('[data-rel-oque]')?.value || '', aba = oque.startsWith('aba:') ? oque.slice(4) : '';
+    const selAlvo = pop.querySelector('[data-rel-alvo]'), caixaAlvo = pop.querySelector('[data-rel-alvo-caixa]');
+    const alvo = aba && caixaAlvo && !caixaAlvo.hidden ? (selAlvo?.value ? { id: selAlvo.value, nome: selAlvo.selectedOptions[0]?.textContent || selAlvo.value } : null) : null;
+    if (aba && caixaAlvo && !caixaAlvo.hidden && !alvo) { msg.textContent = 'Escolha de quem é o relatório.'; return; }
     btn.disabled = true; btn.textContent = 'Montando…'; msg.textContent = '';
-    try { await gerar(modulo, { periodo: per }); fecharEscolha(); }
+    try { await gerar(modulo, { periodo: per, ...(aba ? { aba, alvo } : {}) }); fecharEscolha(); }
     catch (err) { console.error('[relatorio]', err); if (pop) { btn.disabled = false; btn.textContent = 'Gerar PDF'; msg.textContent = 'Não deu para montar o relatório agora. Tente de novo.'; } }
   }
 
@@ -689,7 +782,8 @@ td.n,th.n{text-align:right;white-space:nowrap}
   const antigo = G.VybeRelatorio && typeof G.VybeRelatorio === 'object' ? G.VybeRelatorio : {};
   const api = Object.freeze({ ...antigo, registrar, registrado, gerar, documento, relatorioDe, montar, filtrar, periodo, PERIODOS, util, acesso: acessoAtual,
     corDoStatus, corDoCliente, corDoPapel, cores, colorir, lerTokens, corOpaca,
-    modulos: () => [...REG.values()].map((r) => ({ id: r.id, nome: r.nome, telas: [...r.telas], acesso: r.acesso, agente: r.agente })), _botao: { posicionar, telaDoDock } });
+    abas: abasDe, abaDaTela, rotuloDaAba: (modulo, aba, alvo) => { const reg = REG.get(String(modulo)); return reg ? rotuloDaAba(reg, reg.abas.find((x) => x.id === aba) || null, alvo) : ''; },
+    modulos: () => [...REG.values()].map((r) => ({ id: r.id, nome: r.nome, telas: [...r.telas], acesso: r.acesso, agente: r.agente, abas: r.abas.map((a) => ({ id: a.id, nome: a.nome, acesso: a.acesso, porAlvo: Boolean(a.alvos) })) })), _botao: { posicionar, telaDoDock, opcoesDoQue: (modulo, acesso, abertaId) => { const reg = REG.get(String(modulo)); return reg ? opcoesDoQue(reg, acesso, reg.abas.find((x) => x.id === abertaId) || null) : ''; } } });
   G.VybeRelatorio = api;
   if (typeof module === 'object' && module && module.exports) module.exports = api;
 })(typeof window !== 'undefined' ? window : globalThis);

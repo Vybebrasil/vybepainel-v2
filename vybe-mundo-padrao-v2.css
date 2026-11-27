@@ -9858,6 +9858,17 @@ body.mundo #workflow-modal.status-context-dialog{--vybe-orange-soft:var(--d3-tin
 @media (max-width:760px){#vv-conteudo .d3m-a-ap-topo > .vrel-botao{grid-column:1;grid-row:1;justify-self:end;width:34px;margin:0;padding:0;justify-content:center}#vv-conteudo .d3m-a-ap-topo > .vrel-botao span{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}#vv-conteudo .d3m-a-ap-topo > .d3m-a-ap-tit{padding-right:42px}}
 /* Finanças: a folha é clara mesmo no tema fume; o botão segue a letra da própria tela. */
 .fe-marca + .vrel-botao,.d3f-tit + .vrel-botao{color:inherit;background:transparent;border-color:currentColor}
+/* "O quê" (Paulo, 27/11/2026: o relatório de cada subaba): a aba aberta, o módulo inteiro ou outra aba, num select nativo
+   (cabe as 8 abas do Finanças no celular e anda no teclado); "Qual" aparece na aba cliente a cliente. O período segue embaixo.
+   A caixa nunca passa da altura da tela: o que não couber rola dentro dela. */
+.vrel-pop{max-height:calc(100vh - 24px);overflow-y:auto;overscroll-behavior:contain}
+.vrel-campo{display:flex;flex-direction:column;gap:4px;font-size:var(--d3-fs-apoio,12px);color:var(--d3-fume-apagado)}
+.vrel-campo[hidden]{display:none}
+.vrel-campo select{width:100%;min-height:36px;padding:0 8px;border-radius:var(--d3-r-botao,8px);border:1px solid var(--d3-fume-borda);background:var(--d3-fume-veu);color:var(--d3-fume-texto);font:inherit;font-size:var(--d3-fs-texto,13px);font-weight:500;line-height:1.3;cursor:pointer}
+.vrel-campo select option,.vrel-campo select optgroup{background:var(--d3-fume-painel);color:var(--d3-fume-texto)}
+.vrel-campo select:disabled{cursor:progress;opacity:.8}
+.vrel-campo select:focus-visible{outline:2px solid var(--d3-acao-claro);outline-offset:1px}
+.vrel-pop-rot{display:block;padding:2px 0 4px;font-size:var(--d3-fs-apoio,12px);color:var(--d3-fume-apagado)}
 
 /* ===== padrao-v2/s-a.css ===== */
 /* RODADA S · FRENTE A (pranchas V2-S aprovadas pelo Paulo em 19/11/2026: "Aprovado, implementa").
