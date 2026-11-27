@@ -199,3 +199,18 @@ test('quem não é dono não vê: o servidor recusa e o dock esconde o Hoje do F
   const so = /const SO_DINHEIRO = new Set\(\[([^\]]+)\]\)/.exec(mundo);
   assert.ok(so && so[1].includes("'fin_hoje'") && so[1].includes("'setor:financas'"), 'o Hoje do Finanças é só de quem é dono do dinheiro');
 });
+
+test('vai pagar à equipe usa o pago do #792: a ligação pelo extrato conta como pago; freela e reembolso não viram salário', () => {
+  let saldo = 20000;
+  const L = [['2026-11-05', 'Pix Enviado Ademir Ficticio Lima', -2000], ['2026-11-06', 'Pix Enviado Bruno Ficticio Costa', -500]].map(([d, h, v]) => { saldo += v; return [d, h, v, saldo]; });
+  const texto = ['AGENCIA;"0000";CONTA;"00000"', '', 'Data;Histórico;Documento;Valor (R$);Saldo (R$)', ...L.reverse().map(([d, h, v, s]) => `"${br(d)}";"${h}";"";"${brl(v)}";"${brl(s)}"`)].join('\r\n');
+  const transacoes = X.transacoesDoCsv(X.lerCsvBB(texto), []);
+  // Nenhum dos dois tem "Pessoa do time" marcada: a ligação vem do nome no Pix (ligadorPessoas).
+  for (const t of transacoes) t.real = X.aplicarEdicao(t, { categoria: /Ademir/.test(t.banco.historico) ? 'salario' : 'freela', conferido: true }, 'Teste').real;
+  const base = { extrato: { transacoes, importacoes: [] }, regras: [], fixos: [], cartao: [], cenarios: [], vales: [], salarios: { 8: { valor: 2000, desde: '2026-08' }, 9: { valor: 1500, desde: '2026-08' } } };
+  const d = montar(base, [], { hoje: HOJE, pessoas: [{ id: '8', nome: 'Ademir Ficticio Lima' }, { id: '9', nome: 'Bruno Ficticio Costa' }] });
+  const h = A.hojeDoMes(d, { mes: '2026-11' });
+  assert.deepEqual(h.saidas.itens.map((i) => [i.nome, i.valor]), [['Bruno Ficticio Costa', 1500]], 'o Ademir já recebeu; o freela do Bruno não abate o combinado');
+  assert.match(h.saidas.itens[0].det, /R\$ 500,00 de freela\/reembolso à parte/);
+  assert.equal(h.saidas.ja, 2500, 'o que saiu continua no "já pagou"');
+});

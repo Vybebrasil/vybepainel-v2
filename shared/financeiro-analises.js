@@ -861,8 +861,9 @@
   const nomeDoMes = (m) => (ehMes(m) ? NOMES_MES[Number(m.slice(5, 7)) - 1] : '');
   const brl = (v) => `R$ ${(Number(v) || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   // O dia em que a pessoa costuma receber: a mediana dos dias dos pagamentos de salário/pró-labore dela; sem histórico, 5.
+  // Desde o #792 o item traz o tipo da ligação (à mão, Pago a, extrato ou apelido): vale o tipo; freela e reembolso não contam.
   function diaDoSalario(c) {
-    const dias = (c?.itens || []).filter((i) => ['salario', 'pro_labore'].includes(i.categoria) && ehDia(i.data)).map((i) => Number(i.data.slice(8, 10))).sort((a, b) => a - b);
+    const dias = (c?.itens || []).filter((i) => ['salario', 'pro_labore'].includes(i.tipo || i.categoria) && Number(i.valor) < 0 && ehDia(i.data)).map((i) => Number(i.data.slice(8, 10))).sort((a, b) => a - b);
     return dias.length ? dias[Math.floor(dias.length / 2)] : 5;
   }
   // Os contratos, para o mês que ainda não está na grade por cliente (o mês seguinte, no calendário).
@@ -889,7 +890,9 @@
       if (fora.has(String(c.pessoa_id))) continue;
       const m = (c.meses || []).find((x) => x.mes === mes);
       let v = 0, det = '';
-      if (m) { v = centavos(m.aberto ? m.falta_pagar || 0 : m.a_pagar || 0); det = m.combinado ? `recebeu ${brl(m.pago || 0)} de ${brl(m.combinado)}` : ''; }
+      if (m) { v = centavos(m.aberto ? m.falta_pagar || 0 : m.a_pagar || 0); det = m.combinado ? `recebeu ${brl(m.pago || 0)} de ${brl(m.combinado)}` : '';
+        // Freela e reembolso (#792) são pagos à parte: não abatem o combinado, só aparecem no detalhe.
+        const aParte = Number(m.freela || 0) + Number(m.reembolso || 0); if (det && aParte > 0) det += ` · ${brl(aParte)} de freela/reembolso à parte`; }
       else if (mes > hoje.slice(0, 7)) { const s = d.salarios?.[c.pessoa_id]; if (s && Number(s.valor) > 0 && (!s.desde || s.desde <= mes)) { v = centavos(s.valor); det = 'combinado do mês'; } }
       if (v > 0) sai.push({ lado: 'sai', tipo: 'salario', id: String(c.pessoa_id), nome: c.nome || 'Pessoa', valor: reais(v), data: diaDoMes(mes, diaDoSalario(c)), det });
     }
