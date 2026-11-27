@@ -3,6 +3,8 @@
 //   window.VybeRelatorioFinancas.montar(d, { mes })  → o objeto do contrato (puro: d = o GET de area=financeiro)
 //   window.VybeRelatorioFinancas.gerar({ mes })      → busca os dados (só donos: o servidor recusa os outros) e monta
 //   window.VybeFinancas.relatorio({ mes })           → o mesmo gerar (vybe-mundo-financas.js delega para cá)
+//   Subabas (27/11/2026): Hoje, Movimento, Clientes, Pessoas, Assinaturas, Análise, Projeção e Fechamento, cada uma com
+//   o relatório dela (vybe-relatorio-financas-abas.js, que carrega antes deste arquivo).
 //   window.VybeRelatorioFinancas.imprimir(rel)       → sem o motor de PDF, abre a versão para imprimir/salvar em PDF
 //
 // Contrato: { titulo, periodo, resumo, numeros: [{ rotulo, valor, variacao, porque }], secoes: [{ titulo, texto,
@@ -144,10 +146,17 @@
     // Pelo ctx.api do motor (só leitura, entra nas fontes); sem o motor, o gerar() de sempre.
     if (typeof ctx.api === 'function') {
       const d = await ctx.api('financeiro', mes ? { mes } : {});
+      // Uma subaba (vybe-relatorio-financas-abas.js): o relatório só daquela tela, completo.
+      if (ctx.aba) {
+        const A = raiz.VybeRelFinAbas;
+        if (!A) throw new Error('O relatório por aba do Finanças não carregou.');
+        if (!d) { const nome = A.ABAS.find((x) => x.id === ctx.aba.id)?.nome || ctx.aba.nome; return { aba: ctx.aba.id, titulo: `Finanças · ${nome}`, resumo: ['O Financeiro não respondeu agora: o relatório desta aba saiu sem números. Tente de novo em instantes.'], numeros: [], secoes: [], recomendacoes: [{ o_que: 'Gerar de novo em instantes.', por_que: 'A leitura do Financeiro não respondeu.', impacto: 'Relatório com números.', prioridade: 'media', dinheiro: true }] }; }
+        return A.montar(ctx.aba.id, d, ctx);
+      }
       if (!d) return { ...paraMotor(montar({}, { mes })), resumo: ['O Financeiro não respondeu agora: o relatório saiu sem números. Tente de novo em instantes.'] };
       return paraMotor(montar(d, { mes }));
     }
     const r = await gerar({ mes }); if (r.erro) throw new Error(r.erro); return r;
   }
-  if (R && typeof R.registrar === 'function') { try { R.registrar('financas', doMotor, { nome: 'Finanças', telas: TELAS, agente: { nome: 'Vorcaro', papel: 'Tesouraria' }, acesso: 'dinheiro' }); } catch { /* o motor recusou: o relatório continua por VybeFinancas.relatorio() */ } }
+  if (R && typeof R.registrar === 'function') { try { R.registrar('financas', doMotor, { nome: 'Finanças', telas: TELAS, agente: { nome: 'Vorcaro', papel: 'Tesouraria' }, acesso: 'dinheiro', abas: raiz.VybeRelFinAbas?.ABAS || [] }); } catch { /* o motor recusou: o relatório continua por VybeFinancas.relatorio() */ } }
 })(typeof globalThis !== 'undefined' ? globalThis : this);
