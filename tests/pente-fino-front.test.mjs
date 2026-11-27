@@ -77,13 +77,13 @@ test('sem troca em andamento, clique no <html> e clique no menu seguem como ante
   assert.equal(a.recebidos, 1, 'a troca normal repassa o clique uma vez');
 });
 
-const semComentario = (css) => css.replace(//*[sS]*?*//g, '');
+const semComentario = (css) => css.replace(/\/\*[\s\S]*?\*\//g, '');
 const mundo = semComentario(ler('vybe-mundo.css'));
 const v2 = semComentario(ler('vybe-mundo-padrao-v2.css'));
 
 test('rótulos do menu largo (Operação, Negócio, Time, Vybe): o cinza antigo não vence mais a cor do tema', () => {
-  // Antes: color:#6B665E!important pintava os rótulos de cinza escuro sobre o menu fumê/escuro (contraste ~3:1).
-  assert.match(mundo, /body.trilho-largo .vv-trilho-grupo{color:#6B665E}/, 'a regra antiga continua, sem !important');
-  assert.doesNotMatch(mundo, /.vv-trilho-grupo{[^}]*color:[^;}]*!important/, 'nenhuma cor com !important no rótulo');
-  assert.match(v2, /body.mundo.trilho-largo #mundo-hud .vv-trilho .vv-trilho-grupo{[^}]*color:var(--d3-fume-apagado)/, 'a cor do tema vem do padrão v2');
+  // Antes: color:#6B665E!important pintava os rótulos de cinza escuro sobre o menu fumê e escuro (contraste ~3:1).
+  assert.ok(mundo.includes('body.trilho-largo .vv-trilho-grupo{color:#6B665E}'), 'a regra antiga continua, sem !important');
+  assert.doesNotMatch(mundo, /\.vv-trilho-grupo\{[^}]*color:[^;}]*!important/, 'nenhuma cor com !important no rótulo');
+  assert.match(v2, /body\.mundo\.trilho-largo #mundo-hud \.vv-trilho \.vv-trilho-grupo\{[^}]*color:var\(--d3-fume-apagado\)/, 'a cor do tema vem do padrão v2');
 });
