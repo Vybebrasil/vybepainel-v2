@@ -1,5 +1,5 @@
 // SAFE: pente fino no front-end (27/11/2026). Cada teste prova uma correção da varredura: o segundo clique dado no meio
-// de uma troca de tela não se perde. Só lê arquivos e roda funções com um DOM de mentira; não abre navegador, não chama o
+// de uma troca de tela não se perde; os !important do legado que venciam o padrão v2 saíram. Só lê arquivos e roda funções com um DOM de mentira; não abre navegador, não chama o
 // servidor.
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -75,4 +75,15 @@ test('sem troca em andamento, clique no <html> e clique no menu seguem como ante
   const a = item('midia'); const ea = clique(a); c.vbInterceptarClique(ea);
   assert.ok(ea.defaultPrevented); vts[0].seguir(); await solto(); await solto();
   assert.equal(a.recebidos, 1, 'a troca normal repassa o clique uma vez');
+});
+
+const semComentario = (css) => css.replace(//*[sS]*?*//g, '');
+const mundo = semComentario(ler('vybe-mundo.css'));
+const v2 = semComentario(ler('vybe-mundo-padrao-v2.css'));
+
+test('rótulos do menu largo (Operação, Negócio, Time, Vybe): o cinza antigo não vence mais a cor do tema', () => {
+  // Antes: color:#6B665E!important pintava os rótulos de cinza escuro sobre o menu fumê/escuro (contraste ~3:1).
+  assert.match(mundo, /body.trilho-largo .vv-trilho-grupo{color:#6B665E}/, 'a regra antiga continua, sem !important');
+  assert.doesNotMatch(mundo, /.vv-trilho-grupo{[^}]*color:[^;}]*!important/, 'nenhuma cor com !important no rótulo');
+  assert.match(v2, /body.mundo.trilho-largo #mundo-hud .vv-trilho .vv-trilho-grupo{[^}]*color:var(--d3-fume-apagado)/, 'a cor do tema vem do padrão v2');
 });
