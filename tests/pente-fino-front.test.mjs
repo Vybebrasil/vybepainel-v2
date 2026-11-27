@@ -109,6 +109,21 @@ test('Gestão de clientes: o nome do cliente não some na lista estreita (menu l
   assert.ok(nome(901, []) >= 160, 'acima de 900 px todas as colunas voltam e o nome continua com espaço');
 });
 
+test('Planejamentos: o nome do cliente não some na folha estreita, e o "Criar" fica na mesma linha', () => {
+  // Antes: em 713 px, "Onde está" (minmax(0,172px)) crescia antes do nome (minmax(0,1fr)), que ficava com 0 px.
+  const cheia = v2.match(/\.plj2-cab,\.plj2-lin\{display:grid;grid-template-columns:([^;]+);/)?.[1];
+  assert.equal(cheia, '70px 28px minmax(0,1fr) 66px 128px minmax(0,172px) 76px 78px', 'a grade larga continua igual');
+  const fixos = 70 + 28 + 66 + 128 + 172 + 76 + 78, gaps = 7 * 10, lados = 32;
+  assert.ok(713 - lados - gaps - fixos <= 0, 'na grade larga, em 713 px, o nome não cabia (é o bug)');
+  assert.match(v2, /\.plj2-folha\{container:plj2folha \/ inline-size\}/);
+  const bloco = v2.slice(v2.indexOf('@container plj2folha (max-width:860px){'));
+  assert.ok(bloco.length > 40, 'a grade compacta vale pela largura da folha');
+  assert.match(bloco, /grid-template-columns:52px 28px minmax\(0,1fr\) 60px minmax\(0,150px\) 70px/);
+  assert.match(bloco, /\.plj2-lin\.sem > \.plj2-n\{display:none\}/, 'a casa vazia de Peças sai e o "Criar" não desce para outra linha');
+  assert.ok(713 - lados - 5 * 10 - (52 + 28 + 60 + 150 + 70) >= 140, 'na grade compacta, em 713 px, o nome tem pelo menos 140 px');
+  assert.ok(861 - lados - gaps - fixos >= 140, 'acima de 860 px a grade larga também deixa pelo menos 140 px para o nome');
+});
+
 test('tempo do topo com o serviço fora: uma consulta só, e não uma a cada volta ao Hoje', async () => {
   const topo = ler('vybe-topo.js');
   const trecho = topo.slice(topo.indexOf('const TOPO_TEMPO_FALHOU'), topo.indexOf('async function pintarTempoDoTopo'));
