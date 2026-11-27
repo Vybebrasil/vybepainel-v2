@@ -43,8 +43,22 @@ export const CHAVES = Object.freeze({ extrato: 'financeiro_extrato', regras: 'fi
   // vale lançados à mão ("devolveu", "abater"): [{ id, pessoa_id, mes, tipo, valor, nota }]. Chaves novas, sem migração.
   salarios: 'financeiro_salarios', vales: 'financeiro_vales',
   // 26/11/2026: orçamento { 'AAAA-MM': { grupo: valor } }, meses fechados { 'AAAA-MM': { situacao, em, por_nome, totais } } e metas.
-  orcamento: 'financeiro_orcamento', fechamentos: 'financeiro_fechamentos', metas: 'financeiro_metas' });
-const VAZIO = { extrato: { transacoes: [], importacoes: [] }, regras: [], fixos: [], cartao: [], cenarios: [], vorcaro: { propostas: [] }, cartoes: {}, salarios: {}, vales: [], orcamento: {}, fechamentos: {}, metas: {} };
+  orcamento: 'financeiro_orcamento', fechamentos: 'financeiro_fechamentos', metas: 'financeiro_metas',
+  // 27/11/2026: os apelidos ({ '<pessoa_id>': ['Apelido'] }) e as junções de pessoas duplicadas ({ '<id que saiu>': { para,
+  // em, por, desfazer } }) que ligam as saídas do extrato a quem recebeu. Chave nova no mesmo jsonb dos salários.
+  pessoas_extra: 'financeiro_pessoas' });
+const VAZIO = { extrato: { transacoes: [], importacoes: [] }, regras: [], fixos: [], cartao: [], cenarios: [], vorcaro: { propostas: [] }, cartoes: {}, salarios: {}, vales: [], orcamento: {}, fechamentos: {}, metas: {},
+  pessoas_extra: { apelidos: {}, juntadas: {} } };
+const ID_PESSOA = /^[A-Za-z0-9_-]{1,40}$/;
+export function normalizarPessoasExtra(v) {
+  const o = v && typeof v === 'object' && !Array.isArray(v) ? v : {};
+  const apelidos = {}, juntadas = {};
+  for (const [id, l] of Object.entries(o.apelidos && typeof o.apelidos === 'object' ? o.apelidos : {}))
+    if (ID_PESSOA.test(id) && Array.isArray(l)) { const a = [...new Set(l.map((x) => String(x || '').trim().slice(0, 60)).filter(Boolean))].slice(0, 10); if (a.length) apelidos[id] = a; }
+  for (const [id, j] of Object.entries(o.juntadas && typeof o.juntadas === 'object' ? o.juntadas : {}))
+    if (ID_PESSOA.test(id) && j && ID_PESSOA.test(String(j.para || '')) && String(j.para) !== id) juntadas[id] = j;
+  return { apelidos, juntadas };
+}
 const LIMITE_CSV = 2_000_000;
 
 const erro = (status, message) => Object.assign(new Error(message), { status });
@@ -72,6 +86,7 @@ export async function lerTudo(sql, { env = process.env } = {}) {
   if (!out.salarios || typeof out.salarios !== 'object' || Array.isArray(out.salarios)) out.salarios = {};
   if (!Array.isArray(out.vales)) out.vales = [];
   for (const k of ['orcamento', 'fechamentos', 'metas']) if (!out[k] || typeof out[k] !== 'object' || Array.isArray(out[k])) out[k] = {};
+  out.pessoas_extra = normalizarPessoasExtra(out.pessoas_extra);
   Object.defineProperty(out, 'fonte', { value: tab ? 'tabelas' : 'jsonb', enumerable: false });
   return out;
 }
@@ -93,7 +108,7 @@ async function mudar(sql, parte, pessoaId, fn) {
 // Várias chaves travadas na mesma transação (lançar uma proposta mexe nas propostas e no extrato juntos).
 // Ids do banco que um dono apagou: o reimportar não os traz de volta.
 const idsApagados = (extrato = {}) => new Set((extrato.lixeira || []).map((t) => t.id));
-async function mudarVarias(sql, partes, pessoaId, fn) {
+async function mudarVarias(sql, partes, pessoaId, fn, { depois = null } = {}) {
   return sql.comTransacao(async (tx) => {
     const atuais = {};
     for (const parte of partes) {
@@ -107,6 +122,8 @@ async function mudarVarias(sql, partes, pessoaId, fn) {
     for (const [parte, valor] of Object.entries(valores))
       await tx`UPDATE vybe_carteira_config SET valor=${JSON.stringify(valor)}::jsonb, atualizado_por=${pessoaId}, atualizado_em=now() WHERE chave=${CHAVES[parte]}`;
     await espelharNaTransacao(tx, Object.entries(valores).map(([parte, valor]) => ({ parte, antes: antes[parte], depois: valor })), pessoaId);
+    // O que mais precisa ir junto na mesma transação (a junção de pessoas marca a que saiu em vybe_pessoas).
+    if (typeof depois === 'function') await depois(tx, resposta);
     return resposta;
   });
 }
@@ -144,19 +161,136 @@ export async function clientesComMensalidade(sql) {
 
 // O time (sócios incluídos) para o "Para quem" do extrato e a conta de cada pessoa. Sem a tabela: ninguém.
 // A conta do VYBES (servico, server/conta-vybes.js) não recebe nem paga: fica fora.
+// 27/11/2026: quem foi juntado a outra pessoa (juntada_em_id) também fica fora; tem_login diz quem tem acesso ao painel
+// (e-mail ou senha), para a junção nunca tirar de cena a pessoa que entra no sistema.
 export async function pessoasDoTime(sql) {
-  try { return await sql`SELECT id::text, nome FROM vybe_pessoas p WHERE COALESCE(ativo, true) AND (to_jsonb(p) ->> 'servico') IS DISTINCT FROM 'true' ORDER BY nome`; }
-  catch (e) { if (e.code !== '42P01' && e.code !== '42703') throw e; try { return await sql`SELECT id::text, nome FROM vybe_pessoas p WHERE (to_jsonb(p) ->> 'servico') IS DISTINCT FROM 'true' ORDER BY nome`; } catch { return []; } }
+  const login = (p) => ({ ...p, tem_login: p.tem_login === true || p.tem_login === 't' });
+  try { return (await sql`SELECT id::text, nome, ((to_jsonb(p) ->> 'senha_hash') IS NOT NULL OR (to_jsonb(p) ->> 'email') IS NOT NULL) AS tem_login FROM vybe_pessoas p
+    WHERE COALESCE(ativo, true) AND (to_jsonb(p) ->> 'servico') IS DISTINCT FROM 'true' AND (to_jsonb(p) ->> 'juntada_em_id') IS NULL ORDER BY nome`).map(login); }
+  catch (e) { if (e.code !== '42P01' && e.code !== '42703') throw e; try { return (await sql`SELECT id::text, nome, ((to_jsonb(p) ->> 'senha_hash') IS NOT NULL OR (to_jsonb(p) ->> 'email') IS NOT NULL) AS tem_login FROM vybe_pessoas p
+    WHERE (to_jsonb(p) ->> 'servico') IS DISTINCT FROM 'true' AND (to_jsonb(p) ->> 'juntada_em_id') IS NULL ORDER BY nome`).map(login); } catch { return []; } }
 }
-// A conta de cada pessoa (combinado × pago × vale), para quem tem salário combinado ou lançamento atribuído.
-export function contasDasPessoas(base, pessoas = [], { hoje }) {
+
+// ---------- Junção de pessoas duplicadas (Paulo, 27/11/2026: a mesma pessoa cadastrada duas vezes) ----------
+// Nunca sozinha: só pela ação pessoa_juntar, que só um dono chama (pegarDono). Quem fica é a de mais dados, nesta ordem:
+// tem login (e-mail ou senha), é dono, tem combinado, vales, lançamentos ligados à mão, apelidos; empate, o menor id.
+// Recusa juntar quando as duas têm login (credencial não se move) ou quando a que sairia é dono.
+export function dadosDaPessoaNaJuncao(base, id, linha = {}) {
+  const s = base.salarios?.[id];
+  let manuais = 0;
+  for (const t of base.extrato?.transacoes || []) for (const p of X.pedacos(t)) if (String(p.pessoa_id || '') === id) manuais++;
+  return { id, tem_login: Boolean(linha.tem_login), dono: Boolean(linha.dono), salario: s && !s.fora && Number(s.valor) > 0 ? 1 : 0,
+    vales: (base.vales || []).filter((a) => String(a.pessoa_id) === id).length, lancamentos: manuais, apelidos: (normalizarPessoasExtra(base.pessoas_extra).apelidos[id] || []).length };
+}
+export function quemFicaNaJuncao(a, b) {
+  const v = (x) => [x.tem_login ? 1 : 0, x.dono ? 1 : 0, x.salario, x.vales, x.lancamentos, x.apelidos, -Number(x.id) || 0];
+  const va = v(a), vb = v(b);
+  for (let i = 0; i < va.length; i++) if (va[i] !== vb[i]) return va[i] > vb[i] ? a.id : b.id;
+  return a.id;
+}
+// O que a junção muda nas chaves do Financeiro (pura, para testar): toda referência ao id que sai passa para quem fica, e
+// o "desfazer" guarda exatamente o que mudou. a = { extrato, salarios, vales, pessoas_extra } (o jsonb atual).
+export function juntarNaBase(a, de, para, { nomeDe = '', nomePara = '', por = '', em = new Date().toISOString() } = {}) {
+  const lancamentos = [];
+  const transacoes = (a.extrato?.transacoes || []).map((t) => {
+    let mudou = false;
+    const real = { ...t.real };
+    if (String(real.pessoa_id || '') === de) { real.pessoa_id = para; real.pessoa_nome = nomePara || real.pessoa_nome; mudou = true; }
+    if (Array.isArray(real.partes) && real.partes.some((p) => String(p.pessoa_id || '') === de)) {
+      real.partes = real.partes.map((p) => (String(p.pessoa_id || '') === de ? { ...p, pessoa_id: para, pessoa_nome: nomePara || p.pessoa_nome } : p)); mudou = true;
+    }
+    if (!mudou) return t;
+    lancamentos.push(t.id);
+    return { ...t, real };
+  });
+  const salarios = { ...(a.salarios || {}) };
+  const salarioDe = salarios[de] ?? null, salarioPara = salarios[para] ?? null;
+  // O combinado: fica o de quem fica; se só a que sai tinha, ele passa.
+  const paraTem = salarioPara && !salarioPara.fora && Number(salarioPara.valor) > 0;
+  const moveu = Boolean(salarioDe && !salarioDe.fora && !paraTem);
+  if (moveu) salarios[para] = salarioDe;
+  delete salarios[de];
+  const valesMovidos = (a.vales || []).filter((x) => String(x.pessoa_id) === de).map((x) => x.id);
+  const vales = (a.vales || []).map((x) => (String(x.pessoa_id) === de ? { ...x, pessoa_id: para } : x));
+  const extra = normalizarPessoasExtra(a.pessoas_extra);
+  const apelidosAntes = { de: extra.apelidos[de] || null, para: extra.apelidos[para] || null };
+  // O nome de quem sai vira apelido de quem fica: o Pix no nome antigo continua achando a pessoa.
+  const novos = [...new Set([...(extra.apelidos[para] || []), ...(extra.apelidos[de] || []), ...(nomeDe ? [nomeDe] : [])])].slice(0, 10);
+  const apelidos = { ...extra.apelidos };
+  if (novos.length) apelidos[para] = novos;
+  delete apelidos[de];
+  // Quem tinha sido juntado à que sai passa a apontar para quem fica.
+  const juntadas = Object.fromEntries(Object.entries(extra.juntadas).map(([k, j]) => [k, String(j.para) === de ? { ...j, para } : j]));
+  juntadas[de] = { para, nome: nomeDe, para_nome: nomePara, em, por, desfazer: { lancamentos, vales: valesMovidos, salario_de: salarioDe, salario_para: salarioPara, apelidos: apelidosAntes } };
+  return { valores: { extrato: { ...(a.extrato || {}), transacoes }, salarios, vales, pessoas_extra: { apelidos, juntadas } },
+    resumo: { de, para, lancamentos: lancamentos.length, vales: valesMovidos.length, salario_movido: moveu } };
+}
+// Desfazer a junção: volta para quem saiu só o que a junção levou (o que mudou depois fica).
+export function separarNaBase(a, de) {
+  const extra = normalizarPessoasExtra(a.pessoas_extra);
+  const j = extra.juntadas[de];
+  if (!j) return null;
+  const para = String(j.para), d = j.desfazer || {};
+  const ids = new Set(d.lancamentos || []), nomeDe = j.nome || '';
+  const transacoes = (a.extrato?.transacoes || []).map((t) => {
+    if (!ids.has(t.id)) return t;
+    const real = { ...t.real };
+    if (String(real.pessoa_id || '') === para) { real.pessoa_id = de; real.pessoa_nome = nomeDe || real.pessoa_nome; }
+    if (Array.isArray(real.partes)) real.partes = real.partes.map((p) => (String(p.pessoa_id || '') === para ? { ...p, pessoa_id: de, pessoa_nome: nomeDe || p.pessoa_nome } : p));
+    return { ...t, real };
+  });
+  const vIds = new Set(d.vales || []);
+  const vales = (a.vales || []).map((x) => (vIds.has(x.id) && String(x.pessoa_id) === para ? { ...x, pessoa_id: de } : x));
+  const salarios = { ...(a.salarios || {}) };
+  if (d.salario_de) salarios[de] = d.salario_de;
+  if (d.salario_para) salarios[para] = d.salario_para; else if (d.salario_de) delete salarios[para];
+  const apelidos = { ...extra.apelidos };
+  if (d.apelidos?.para) apelidos[para] = d.apelidos.para; else delete apelidos[para];
+  if (d.apelidos?.de) apelidos[de] = d.apelidos.de;
+  const juntadas = { ...extra.juntadas };
+  delete juntadas[de];
+  return { valores: { extrato: { ...(a.extrato || {}), transacoes }, salarios, vales, pessoas_extra: { apelidos, juntadas } }, resumo: { de, para } };
+}
+// Em vybe_pessoas a que sai fica marcada (juntada_em_id = quem fica) e inativa, nunca apagada: desfazer devolve como estava.
+async function linhasDaJuncao(sql, ids) {
+  const out = new Map();
+  for (const id of ids) {
+    const [l] = await sql`SELECT id::text, nome, to_jsonb(p) ->> 'ativo' AS ativo, to_jsonb(p) ->> 'monday_user_id' AS monday_user_id, to_jsonb(p) ->> 'juntada_em_id' AS juntada_em_id,
+      ((to_jsonb(p) ->> 'senha_hash') IS NOT NULL OR (to_jsonb(p) ->> 'email') IS NOT NULL) AS tem_login FROM vybe_pessoas p WHERE id::text = ${id}`;
+    if (l) out.set(id, { ...l, tem_login: l.tem_login === true || l.tem_login === 't', dono: ehDonoPessoa({ id: Number(l.id), monday_user_id: l.monday_user_id ?? null }) });
+  }
+  return out;
+}
+// A regra única de ligação saída → pessoa (shared/financeiro-extrato.js › ligadorPessoas), com os apelidos, as junções e os
+// clientes (nome de cliente no "Pago a" não vira pessoa). A mesma função serve Pessoas, Hoje e a Projeção.
+export function ligadorDaBase(base, pessoas = [], clientes = []) {
+  const extra = normalizarPessoasExtra(base.pessoas_extra);
+  return X.ligadorPessoas(pessoas, { apelidos: extra.apelidos, juntadas: extra.juntadas, salarios: base.salarios || {}, lista: base.extrato?.transacoes || [],
+    clientes: (clientes || []).map((c) => ({ id: c.cliente_id ?? c.id, nome: c.cliente_nome ?? c.nome })) });
+}
+// A conta de cada pessoa (combinado × pago × vale), para quem tem salário combinado ou lançamento ligado (27/11/2026: pela
+// regra única, não só pelo "Pessoa do time"). Quem foi juntado a outra pessoa some daqui: tudo dele conta em quem ficou.
+export function contasDasPessoas(base, pessoas = [], { hoje, clientes = [], ligar = null }) {
   const lista = base.extrato.transacoes, ate = hoje.slice(0, 7);
+  const extra = normalizarPessoasExtra(base.pessoas_extra);
+  const liga = ligar || ligadorDaBase(base, pessoas, clientes);
   const fora = new Set(Object.entries(base.salarios || {}).filter(([, s]) => s?.fora).map(([id]) => id));
-  const ids = new Set(Object.keys(base.salarios || {}).filter((id) => !fora.has(id)));
-  for (const t of lista) for (const p of X.pedacos(t)) if (p.pessoa_id && !fora.has(String(p.pessoa_id))) ids.add(String(p.pessoa_id));
+  const juntou = (id) => Boolean(extra.juntadas[id]);
+  const ids = new Set(Object.keys(base.salarios || {}).filter((id) => !fora.has(id) && !juntou(id)));
   const nome = new Map(pessoas.map((p) => [String(p.id), p.nome]));
-  for (const t of lista) for (const p of X.pedacos(t)) if (p.pessoa_id && !nome.has(String(p.pessoa_id))) nome.set(String(p.pessoa_id), p.pessoa_nome || 'Pessoa');
-  return [...ids].map((id) => ({ nome: nome.get(id) || 'Pessoa', ...X.contaPessoa(lista, id, { salario: base.salarios?.[id] || null, ajustes: (base.vales || []).filter((a) => String(a.pessoa_id) === id), ate }) }))
+  for (const t of lista) for (const p of X.pedacos(t)) {
+    const l = liga(t, p);
+    if (!l || !l.tipo) continue;
+    const id = String(l.pessoa_id);
+    if (!fora.has(id) && !juntou(id)) ids.add(id);
+    if (!nome.has(id)) nome.set(id, l.pessoa_nome || p.pessoa_nome || 'Pessoa');
+  }
+  const dups = X.pessoasDuplicadas(pessoas, { juntadas: extra.juntadas });
+  return [...ids].map((id) => ({ nome: nome.get(id) || 'Pessoa',
+    ...X.contaPessoa(lista, id, { salario: base.salarios?.[id] || null, ajustes: (base.vales || []).filter((a) => String(a.pessoa_id) === id), ate, ligar: liga }),
+    apelidos: extra.apelidos[id] || [],
+    // Possível duplicado (Paulo, 27/11/2026): nunca junta sozinho; a tela mostra o aviso e o botão de juntar.
+    duplicados: dups.filter((d) => d.ids.includes(id)).map((d) => { const o = d.ids[0] === id ? 1 : 0; return { pessoa_id: d.ids[o], nome: d.nomes[o] }; }) }))
     .sort((a, b) => b.vale - a.vale || a.nome.localeCompare(b.nome, 'pt-BR'));
 }
 
@@ -167,6 +301,8 @@ export function montar(base, clientes, { mes, hoje, pessoas = [], extras = null 
   const mesesCliente = (() => { const fim = hoje.slice(0, 7), out = []; for (let i = 5; i >= 0; i--) out.push(X.somarMeses(fim, -i)); return out; })();
   const contratos = clientes.filter((c) => c.ativo && c.valor_mensal > 0).map((c) => ({ cliente_id: c.cliente_id, cliente_nome: c.cliente_nome, valor_mensal: c.valor_mensal, inicio: c.inicio, fim: c.fim || '', dia_vencimento: c.dia_vencimento || null }));
   const projBase = X.baseDaProjecao(lista);
+  const ligar = ligadorDaBase(base, pessoas, clientes);
+  const extraPes = normalizarPessoasExtra(base.pessoas_extra);
   const out = {
     hoje, mes: mesAtual, meses,
     categorias: X.CATEGORIAS, regras_padrao: X.REGRAS_PADRAO, regras: base.regras,
@@ -189,8 +325,18 @@ export function montar(base, clientes, { mes, hoje, pessoas = [], extras = null 
       return { itens: base.cartao, faturas: X.cartao(base.cartao, lista).map((f) => ({ ...f, vence: vence(f.cartao, f.fatura) })), pagamentos_sem_fatura: X.pagamentosSemFatura(lista), vencimentos: venc };
     })(),
     projecao: { base: projBase, cenarios: base.cenarios },
-    pessoas: pessoas.map((p) => ({ id: String(p.id), nome: p.nome })), salarios: base.salarios || {}, vales: base.vales || [],
-    contas_pessoas: contasDasPessoas(base, pessoas, { hoje }),
+    pessoas: pessoas.map((p) => ({ id: String(p.id), nome: p.nome, apelidos: extraPes.apelidos[String(p.id)] || [] })), salarios: base.salarios || {}, vales: base.vales || [],
+    contas_pessoas: contasDasPessoas(base, pessoas, { hoje, clientes, ligar }),
+    // 27/11/2026 (só acrescenta): de quem é cada saída pela regra única (o Movimento mostra e deixa trocar), os possíveis
+    // duplicados (juntar só quando um dono clica) e as junções e apelidos guardados.
+    ligacoes_pessoas: X.ligacoesPessoas(lista, ligar),
+    pessoas_duplicadas: X.pessoasDuplicadas(pessoas, { juntadas: extraPes.juntadas }).map((d) => {
+      const [a, b] = d.ids.map((id) => dadosDaPessoaNaJuncao(base, id, pessoas.find((p) => String(p.id) === id) || {}));
+      const fica = quemFicaNaJuncao(a, b), sai = fica === a.id ? b.id : a.id, nomeDeId = (id) => d.nomes[d.ids.indexOf(id)];
+      return { ...d, fica, sai, fica_nome: nomeDeId(fica), sai_nome: nomeDeId(sai), dados: { [a.id]: a, [b.id]: b },
+        bloqueio: a.tem_login && b.tem_login ? 'As duas entram no painel: resolva o acesso na Equipe antes de juntar.' : '' };
+    }),
+    pessoas_extra: extraPes,
     vorcaro: (() => {
       const propostas = base.vorcaro?.propostas || [];
       const juntadas = new Set(propostas.filter((p) => p.estado === 'juntada').map((p) => p.transacao_id));
@@ -205,7 +351,7 @@ export function montar(base, clientes, { mes, hoje, pessoas = [], extras = null 
   const saldoHoje = comSaldo.length ? comSaldo[comSaldo.length - 1].banco.saldo : 0;
   out.analise = montarAnalise(base, ext, { hoje, saldo_hoje: saldoHoje, cartao: out.cartao, por_cliente: out.por_cliente, serie: out.serie, fixos_analise: out.fixos_analise,
     clientes_ativos: clientes.filter((c) => c.ativo !== false).map((c) => ({ cliente_id: String(c.cliente_id), cliente_nome: c.cliente_nome })),
-    pessoas: pessoas.map((p) => ({ id: String(p.id), nome: p.nome })) });
+    pessoas: pessoas.map((p) => ({ id: String(p.id), nome: p.nome })), ligar });
   out.orcamento = base.orcamento || {}; out.fechamentos = base.fechamentos || {}; out.metas = base.metas || {};
   out.fonte_dados = base.fonte || 'jsonb';
   return out;
@@ -228,8 +374,9 @@ export async function lerFinanceiro(sql, quem, q = {}, { hoje = hojeNaBahia() } 
   if (q.pessoa) {
     const id = String(q.pessoa);
     if (!/^[A-Za-z0-9_-]{1,40}$/.test(id)) throw erro(400, 'Pessoa inválida.');
-    const c = contasDasPessoas({ ...base, salarios: base.salarios?.[id] ? { [id]: base.salarios[id] } : {}, vales: base.vales.filter((a) => String(a.pessoa_id) === id) }, pessoas, { hoje }).find((x) => x.pessoa_id === id)
-      || { nome: pessoas.find((p) => String(p.id) === id)?.nome || 'Pessoa', ...X.contaPessoa(base.extrato.transacoes, id, { ate: hoje.slice(0, 7) }) };
+    const ligar = ligadorDaBase(base, pessoas, clientes);
+    const c = contasDasPessoas({ ...base, salarios: base.salarios?.[id] ? { [id]: base.salarios[id] } : {}, vales: base.vales.filter((a) => String(a.pessoa_id) === id) }, pessoas, { hoje, clientes, ligar }).find((x) => x.pessoa_id === id)
+      || { nome: pessoas.find((p) => String(p.id) === id)?.nome || 'Pessoa', ...X.contaPessoa(base.extrato.transacoes, id, { ate: hoje.slice(0, 7), ligar }) };
     return { hoje, conta: c, ajustes: base.vales.filter((a) => String(a.pessoa_id) === id) };
   }
   const extras = await dadosExtras(sql);
@@ -250,7 +397,7 @@ export function parteDoExtrato(parte, base, clientes, { mes, hoje, pessoas = [] 
   const r = { parte, mes, hoje, conectado: true, fonte: FONTE, origem_dados: 'extrato', pode, ...parteDaBase(parte, b, { mes, hoje }) };
   // RH › Folha: o vale acumulado e o combinado de cada pessoa (a conta da pessoa), na mesma linha.
   if (parte === 'rh') {
-    const contas = contasDasPessoas({ salarios: {}, vales: [], ...base }, pessoas, { hoje });
+    const contas = contasDasPessoas({ salarios: {}, vales: [], ...base }, pessoas, { hoje, clientes });
     const porId = new Map(contas.map((c) => [c.pessoa_id, c]));
     r.folha.funcionarios = r.folha.funcionarios.map((f) => { const c = f.pessoa_id ? porId.get(String(f.pessoa_id)) : null;
       return { ...f, vale: c ? c.vale : null, combinado: c?.salario?.valor ?? null, a_pagar: c ? c.a_pagar : null }; });
@@ -597,6 +744,60 @@ export async function escreverFinanceiro(sql, quem, b = {}) {
       const r = X.normalizarAjusteVale(b.ajuste || {});
       if (r.erro) throw erro(400, r.erro);
       return mudar(sql, 'vales', pid, (atual) => ({ valor: salvarNaLista(Array.isArray(atual) ? atual : [], { ...r.ajuste, por: nomeDe(pessoa) }), resposta: { ajuste: r.ajuste } }));
+    }
+    // Apelidos da pessoa (27/11/2026: o Pix sai com o apelido, não com o nome): o Pix ou o "Pago a" com o apelido liga a saída a ela.
+    case 'pessoa_apelidos_salvar': {
+      const pessoaId = String(b.pessoa_id || '').trim();
+      if (!ID_PESSOA.test(pessoaId)) throw erro(400, 'Qual pessoa?');
+      const lista = (Array.isArray(b.apelidos) ? b.apelidos : String(b.apelidos || '').split(/[,;\n]/)).map((x) => String(x || '').trim().slice(0, 60)).filter((x) => x.replace(/\s/g, '').length >= 3);
+      return mudar(sql, 'pessoas_extra', pid, (atual) => {
+        const v = normalizarPessoasExtra(atual);
+        if (lista.length) v.apelidos[pessoaId] = [...new Set(lista)].slice(0, 10); else delete v.apelidos[pessoaId];
+        return { valor: v, resposta: { pessoa_id: pessoaId, apelidos: v.apelidos[pessoaId] || [] } };
+      });
+    }
+    // Juntar duas pessoas duplicadas (só quando um dono clica; nunca sozinho). { de, para }: de = a que sai, para = a que fica.
+    case 'pessoa_juntar': {
+      const de = String(b.de || '').trim(), para = String(b.para || '').trim();
+      if (!ID_PESSOA.test(de) || !ID_PESSOA.test(para) || de === para) throw erro(400, 'Escolha as duas pessoas.');
+      const linhas = await linhasDaJuncao(sql, [de, para]);
+      if (!linhas.get(de) || !linhas.get(para)) throw erro(404, 'Pessoa não encontrada.');
+      if (linhas.get(de).juntada_em_id || linhas.get(para).juntada_em_id) throw erro(409, 'Uma das duas já foi juntada a outra pessoa.');
+      if (linhas.get(de).tem_login && linhas.get(para).tem_login) throw erro(409, 'As duas pessoas entram no painel (e-mail ou senha): juntar tiraria o acesso de uma. Resolva o acesso na Equipe primeiro.');
+      if (linhas.get(de).dono) throw erro(409, 'A pessoa que sairia é dona da Vybe: inverta (ela fica).');
+      const base = await lerTudo(sql);
+      const fica = quemFicaNaJuncao(dadosDaPessoaNaJuncao(base, de, linhas.get(de)), dadosDaPessoaNaJuncao(base, para, linhas.get(para)));
+      if (fica !== para) throw erro(409, `Quem fica é ${linhas.get(fica).nome} (tem mais dados: acesso, combinado, vales ou lançamentos). Junte na outra direção.`);
+      return mudarVarias(sql, ['extrato', 'salarios', 'vales', 'pessoas_extra'], pid, (a) => {
+        if (normalizarPessoasExtra(a.pessoas_extra).juntadas[de]) throw erro(409, 'Essa pessoa já foi juntada.');
+        const r = juntarNaBase(a, de, para, { nomeDe: linhas.get(de).nome, nomePara: linhas.get(para).nome, por: nomeDe(pessoa) });
+        // O que estava antes em vybe_pessoas, para desfazer.
+        r.valores.pessoas_extra.juntadas[de].desfazer.ativo_antes = linhas.get(de).ativo;
+        return { valores: r.valores, resposta: { juntou: r.resumo } };
+      }, { depois: async (tx) => {
+        await tx`ALTER TABLE vybe_pessoas ADD COLUMN IF NOT EXISTS juntada_em_id BIGINT`;
+        await tx`ALTER TABLE vybe_pessoas ADD COLUMN IF NOT EXISTS juntada_em TIMESTAMPTZ`;
+        await tx`UPDATE vybe_pessoas SET juntada_em_id = ${Number(para)}, juntada_em = now() WHERE id::text = ${de}`;
+        // Inativa só se a coluna existir (o painel trata ativo; a linha nunca é apagada).
+        if (linhas.get(de).ativo != null) await tx`UPDATE vybe_pessoas SET ativo = false WHERE id::text = ${de}`;
+      } });
+    }
+    case 'pessoa_separar': {
+      const de = String(b.de || '').trim();
+      if (!ID_PESSOA.test(de)) throw erro(400, 'Qual pessoa?');
+      let ativoAntes = null;
+      return mudarVarias(sql, ['extrato', 'salarios', 'vales', 'pessoas_extra'], pid, (a) => {
+        const j = normalizarPessoasExtra(a.pessoas_extra).juntadas[de];
+        const r = separarNaBase(a, de);
+        if (!r) throw erro(404, 'Essa pessoa não está juntada.');
+        ativoAntes = j?.desfazer?.ativo_antes ?? null;
+        return { valores: r.valores, resposta: { separou: r.resumo } };
+      }, { depois: async (tx) => {
+        await tx`ALTER TABLE vybe_pessoas ADD COLUMN IF NOT EXISTS juntada_em_id BIGINT`;
+        await tx`ALTER TABLE vybe_pessoas ADD COLUMN IF NOT EXISTS juntada_em TIMESTAMPTZ`;
+        await tx`UPDATE vybe_pessoas SET juntada_em_id = NULL, juntada_em = NULL WHERE id::text = ${de}`;
+        if (ativoAntes != null) await tx`UPDATE vybe_pessoas SET ativo = ${ativoAntes === true || ativoAntes === 'true'} WHERE id::text = ${de}`;
+      } });
     }
     case 'vale_ajuste_remover':
       return mudar(sql, 'vales', pid, (atual) => { const l = (atual || []).filter((x) => x.id !== String(b.id || '')); return { valor: l, resposta: { removido: (atual || []).length - l.length } }; });
